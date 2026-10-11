@@ -1,0 +1,156 @@
+import { useMemo, useState } from 'react';
+import { Button } from 'primereact/button';
+import { Column } from 'primereact/column';
+import { DataTable } from 'primereact/datatable';
+import { Tag } from 'primereact/tag';
+import type { Transfer, TransferCreate } from '@/shared/contracts';
+import { ApiError } from '@/shared/api/client';
+import { useCreateTransfer, useReceiveTransfer, useTransfers } from '@/shared/api/inventory';
+import { useStockLevels } from '@/shared/api/queries';
+import { Can } from '@/app/guards/RouteGuard';
+import { useNotify } from '@/app/providers/ToastProvider';
+import { useSession } from '@/app/providers/SessionProvider';
+import { QueryState } from './QueryState';
+import { TransferDialog } from './TransferDialog';
+import { formatDate, useBranchLabel, useProductLookup } from './lookups';
+
+const createErrorMessage = (e: Error): string => {
+  if (e instanceof ApiError && e.code === 'STOCK_INSUFFICIENT') {
+    const { available, requested } = e.details ?? {};
+    return `Existencias insuficientes en la sede origen${available !== undefined ? ` (disponibles: ${String(available)}, pedidas: ${String(requested)})` : ''}.`;
+  }
+  if (e instanceof ApiError && e.code === 'FORBIDDEN') return 'Tu rol no puede crear traslados.';
+  return e.message;
+};
+
+export const TransfersTab = () => {
+  const transfers = useTransfers();
+  const levels = useStockLevels();
+  const create = useCreateTransfer();
+  const receive = useReceiveTransfer();
+  const notify = useNotify();
+  const { session } = useSession();
+  const { products, nameOf } = useProductLookup();
+  const branchLabel = useBranchLabel();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [receiveError, setReceiveError] = useState<string | null>(null);
+  const [receivingId, setReceivingId] = useState<string | null>(null);
+
+  const branches = useMemo(() => {
+    const ids = new Set<string>([session.branch.id]);
+    for (const l of levels.data ?? []) ids.add(l.branchId);
+    for (const t of transfers.data ?? []) { ids.add(t.fromBranchId); ids.add(t.toBranchId); }
+    return [...ids].sort();
+  }, [levels.data, transfers.data, session.branch.id]);
+
+  const rows = useMemo(
+    () => [...(transfers.data ?? [])].sort((a, b) => b.sentAt.localeCompare(a.sentAt)),
+    [transfers.data],
+  );
+
+  const handleCreate = (input: TransferCreate) => {
+    setCreateError(null);
+    create.mutate(input, {
+      onSuccess: (t) => {
+        setDialogOpen(false);
+        notify({ severity: 'success', summary: 'Traslado enviado', detail: `${t.number}: queda en tránsito hasta que el destino lo reciba.` });
+      },
+      onError: (e) => setCreateError(createErrorMessage(e)),
+    });
+  };
+
+  const handleReceive = (t: Transfer) => {
+    setReceiveError(null);
+    setReceivingId(t.id);
+    receive.mutate({ transferId: t.id }, {
+      onSuccess: () => notify({ severity: 'success', summary: 'Traslado recibido', detail: `${t.number} ya está en el inventario de ${branchLabel(t.toBranchId)}.` }),
+      onError: (e) => {
+        if (e instanceof ApiError && e.code === 'FORBIDDEN') {
+          setReceiveError(`No puedes recibir ${t.number}: solo el encargado de la sede destino (${branchLabel(t.toBranchId)}) puede confirmar la recepción (BR-INV-04).`);
+        } else if (e instanceof ApiError && e.code === 'TRANSFER_ALREADY_RECEIVED') {
+          setReceiveError(`${t.number} ya fue recibido; un traslado recibido no se modifica.`);
+        } else {
+          setReceiveError(e.message);
+        }
+      },
+      onSettled: () => setReceivingId(null),
+    });
+  };
+
+  const summarize = (t: Transfer): string =>
+    t.lines.map((l) => `${nameOf(l.productId)} × ${l.quantity}`).join(', ');
+
+  return (
+    <>
+      <div className="flex justify-content-end mb-3">
+        <Can permission="inventory.adjust">
+          <Button label="Nuevo traslado" icon="pi pi-plus" onClick={() => { setCreateError(null); setDialogOpen(true); }} />
+        </Can>
+      </div>
+      {receiveError ? (
+        <div role="alert" className="p-3 mb-3 border-round surface-card" style={{ border: '1px solid var(--app-danger)' }}>
+          <i className="pi pi-exclamation-circle mr-2" aria-hidden="true" />
+          {receiveError}
+        </div>
+      ) : null}
+      <QueryState
+        isLoading={transfers.isLoading}
+        error={transfers.error}
+        isEmpty={rows.length === 0}
+        emptyMessage="Aún no hay traslados. Crea el primero con «Nuevo traslado»."
+        onRetry={() => void transfers.refetch()}
+      >
+        <div className="app-table-scroll">
+          <DataTable value={rows} paginator rows={10} stripedRows size="small" dataKey="id">
+            <Column field="number" header="Traslado" sortable />
+            <Column header="Origen → destino" body={(t: Transfer) => `${branchLabel(t.fromBranchId)} → ${branchLabel(t.toBranchId)}`} />
+            <Column header="Productos" body={summarize} />
+            <Column field="sentAt" header="Enviado" sortable body={(t: Transfer) => formatDate(t.sentAt)} />
+            <Column
+              field="status"
+              header="Estado"
+              sortable
+              body={(t: Transfer) => (
+                <Tag
+                  value={t.status === 'enviado' ? 'Enviado' : 'Recibido'}
+                  severity={t.status === 'enviado' ? 'info' : 'success'}
+                />
+              )}
+            />
+            <Column
+              header="Acciones"
+              body={(t: Transfer) =>
+                t.status === 'enviado' ? (
+                  <Can permission="inventory.adjust">
+                    <Button
+                      label="Recibir"
+                      icon="pi pi-download"
+                      size="small"
+                      aria-label={`Recibir ${t.number}`}
+                      loading={receivingId === t.id}
+                      onClick={() => handleReceive(t)}
+                    />
+                  </Can>
+                ) : (
+                  <span className="text-color-secondary">Recibido {t.receivedAt ? formatDate(t.receivedAt) : ''}</span>
+                )}
+            />
+          </DataTable>
+        </div>
+      </QueryState>
+      <TransferDialog
+        visible={dialogOpen}
+        branches={branches}
+        products={products ?? []}
+        levels={levels.data ?? []}
+        branchLabel={branchLabel}
+        defaultFrom={session.branch.id}
+        saving={create.isPending}
+        serverError={createError}
+        onSubmit={handleCreate}
+        onHide={() => setDialogOpen(false)}
+      />
+    </>
+  );
+};
