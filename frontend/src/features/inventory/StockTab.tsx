@@ -2,25 +2,22 @@ import { useMemo, useState } from 'react';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import { InputText } from 'primereact/inputtext';
-import { Tag } from 'primereact/tag';
 import type { StockLevel } from '@/shared/contracts';
 import { useStockLevels } from '@/shared/api/queries';
-import { FormField } from '@/shared/ui';
+import { EmptyState, FormField, StatusTag } from '@/shared/ui';
 import { QueryState } from './QueryState';
-import { formatQuantity, useBranchLabel, useProductLookup } from './lookups';
+import { formatQuantity, stockState, stockStatusMap, useBranchLabel, useProductLookup } from './lookups';
+import { useIsMobile } from './useIsMobile';
 
 type Row = StockLevel & { id: string; name: string; sku: string; branchName: string };
 
-const stockStatus = (row: StockLevel): 'negativo' | 'bajo' | 'ok' => {
-  if (row.onHand < 0) return 'negativo';
-  if (row.onHand < row.minimum) return 'bajo';
-  return 'ok';
-};
+const stateTag = (r: StockLevel) => <StatusTag status={stockState(r.onHand, r.minimum)} map={stockStatusMap} />;
 
 export const StockTab = () => {
   const levels = useStockLevels();
   const { nameOf, skuOf, isLoading: loadingProducts } = useProductLookup();
   const branchLabel = useBranchLabel();
+  const isMobile = useIsMobile();
   const [branch, setBranch] = useState('');
   const [query, setQuery] = useState('');
 
@@ -28,7 +25,7 @@ export const StockTab = () => {
     () => (levels.data ?? []).map((l) => ({
       ...l, id: `${l.productId}:${l.branchId}`, name: nameOf(l.productId), sku: skuOf(l.productId), branchName: branchLabel(l.branchId),
     })),
-    [levels.data, loadingProducts],
+    [levels.data, loadingProducts, branchLabel],
   );
   const branches = useMemo(() => [...new Set((levels.data ?? []).map((l) => l.branchId))].sort(), [levels.data]);
   const visible = rows.filter((r) => {
@@ -36,6 +33,55 @@ export const StockTab = () => {
     const q = query.trim().toLowerCase();
     return !q || r.name.toLowerCase().includes(q) || r.sku.toLowerCase().includes(q);
   });
+
+  const cards = visible.length === 0
+    ? <EmptyState message="Ninguna existencia coincide con la búsqueda." />
+    : (
+      <ul className="inv-cards" aria-label="Existencias por sede">
+        {visible.map((r) => (
+          <li key={r.id} className="inv-card">
+            <div className="inv-card__head">
+              <div>
+                <h2 className="inv-card__name">{r.name}</h2>
+                <p className="inv-card__meta">{r.sku} · {r.branchName}</p>
+              </div>
+              {stateTag(r)}
+            </div>
+            <dl className="inv-card__facts">
+              <div><dt>Existencias</dt><dd>{formatQuantity(r.onHand)}</dd></div>
+              <div><dt>En tránsito</dt><dd>{formatQuantity(r.inTransit)}</dd></div>
+              <div><dt>Mínimo</dt><dd>{formatQuantity(r.minimum)}</dd></div>
+            </dl>
+          </li>
+        ))}
+      </ul>
+    );
+
+  const table = (
+    <div className="app-table-scroll">
+      <DataTable
+        value={visible}
+        paginator
+        rows={10}
+        stripedRows
+        size="small"
+        dataKey="id"
+        emptyMessage="Ninguna existencia coincide con la búsqueda."
+      >
+        <Column field="name" header="Producto" sortable body={(r: Row) => (
+          <>
+            <div>{r.name}</div>
+            <small className="text-color-secondary">{r.sku}</small>
+          </>
+        )} />
+        <Column field="branchName" header="Sede" sortable />
+        <Column field="onHand" header="Existencias" sortable bodyClassName="text-right" body={(r: Row) => formatQuantity(r.onHand)} />
+        <Column field="inTransit" header="En tránsito" sortable bodyClassName="text-right" body={(r: Row) => formatQuantity(r.inTransit)} />
+        <Column field="minimum" header="Mínimo" sortable bodyClassName="text-right" body={(r: Row) => formatQuantity(r.minimum)} />
+        <Column header="Estado" body={stateTag} />
+      </DataTable>
+    </div>
+  );
 
   return (
     <QueryState
@@ -45,10 +91,10 @@ export const StockTab = () => {
       emptyMessage="Aún no hay existencias registradas."
       onRetry={() => void levels.refetch()}
     >
-      <div className="app-row mb-3" style={{ alignItems: 'flex-end' }}>
+      <div className="inv-toolbar">
         <FormField id="stock-search" label="Buscar producto">
           <span className="p-input-icon-left">
-            <i className="pi pi-search" />
+            <i className="pi pi-search" aria-hidden="true" />
             <InputText id="stock-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Nombre o SKU" />
           </span>
         </FormField>
@@ -59,34 +105,7 @@ export const StockTab = () => {
           </select>
         </FormField>
       </div>
-      <div className="app-table-scroll">
-        <DataTable
-          value={visible}
-          paginator
-          rows={10}
-          stripedRows
-          size="small"
-          dataKey="id"
-          emptyMessage="Ninguna existencia coincide con la búsqueda."
-        >
-          <Column field="name" header="Producto" sortable body={(r: Row) => (
-            <>
-              <div>{r.name}</div>
-              <small className="text-color-secondary">{r.sku}</small>
-            </>
-          )} />
-          <Column field="branchName" header="Sede" sortable />
-          <Column field="onHand" header="Existencias" sortable bodyClassName="text-right" body={(r: Row) => formatQuantity(r.onHand)} />
-          <Column field="inTransit" header="En tránsito" sortable bodyClassName="text-right" body={(r: Row) => formatQuantity(r.inTransit)} />
-          <Column field="minimum" header="Mínimo" sortable bodyClassName="text-right" body={(r: Row) => formatQuantity(r.minimum)} />
-          <Column header="Estado" body={(r: Row) => {
-            const status = stockStatus(r);
-            if (status === 'negativo') return <Tag icon="pi pi-exclamation-triangle" severity="danger" value="Negativo" />;
-            if (status === 'bajo') return <Tag icon="pi pi-arrow-down" severity="warning" value="Bajo mínimo" />;
-            return <Tag severity="success" value="Normal" />;
-          }} />
-        </DataTable>
-      </div>
+      {isMobile ? cards : table}
     </QueryState>
   );
 };

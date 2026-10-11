@@ -1,0 +1,44 @@
+/* Estilos locales del módulo Inventario: solo tokens --app-*. */
+.inv-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--app-gap);
+  margin-bottom: var(--app-gap);
+}
+.inv-note {
+  margin: 0 0 var(--app-gap);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--app-radius-lg);
+  background: var(--app-info-bg);
+  color: var(--app-info-fg);
+  font-size: var(--app-font-size-sm);
+}
+.inv-toolbar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--app-gap);
+  align-items: end;
+  margin-bottom: var(--app-gap);
+}
+.inv-toolbar .field { margin-bottom: 0; }
+.inv-toolbar .p-input-icon-left { display: block; }
+.inv-toolbar .p-input-icon-left > .p-inputtext { width: 100%; padding-left: 2.5rem; }
+.inv-toolbar select { width: 100%; }
+.inv-panel { margin-top: var(--app-gap); }
+.inv-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--app-gap); }
+.inv-card {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  box-shadow: var(--app-shadow-card);
+  padding: var(--app-gap);
+  display: grid;
+  gap: 0.5rem;
+}
+.inv-card__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
+.inv-card__name { margin: 0; font-size: var(--app-font-size-base); font-weight: 700; overflow-wrap: anywhere; }
+.inv-card__meta { margin: 0; color: var(--app-text-muted); font-size: var(--app-font-size-sm); overflow-wrap: anywhere; }
+.inv-card__facts { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; margin: 0; }
+.inv-card__facts dt { color: var(--app-text-muted); font-size: var(--app-font-size-sm); }
+.inv-card__facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.inv-card__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
