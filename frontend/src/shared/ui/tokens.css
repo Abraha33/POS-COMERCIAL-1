@@ -2,7 +2,10 @@
  * Tokens del producto sobre el tema PrimeReact `lara-light-blue` (decisión: docs/architecture/UI_STACK.md).
  * Único archivo donde se permiten colores hex. Ajustes mínimos para cumplir contraste AA (4,5:1):
  * el primario del tema (#3b82f6) con texto blanco da 3,67:1.
+ * Los estilos de componentes compartidos viven en components.css y solo usan estas variables.
  */
+@import './components.css';
+
 :root {
   /* Color: tonos del mismo matiz del tema, más oscuros para texto blanco encima. */
   --primary-color: #2563eb;
@@ -13,11 +16,61 @@
   --app-danger: #b91c1c;
   --app-info: #0369a1;
 
+  /* Marca (maquetas docs/design/reference): azul marino de barra superior y menú lateral. */
+  --app-navy-900: #0b2545;
+  --app-navy-800: #12335f;
+  --app-navy-700: #1b4478;
+  --app-on-navy: #ffffff;
+  --app-on-navy-muted: #cbd5e1; /* 9,6:1 sobre navy-900 */
+  --app-navy-border: rgb(255 255 255 / 0.14);
+  --app-focus-on-navy: #93c5fd;
+
+  /* Superficies y bordes, nombrados por intención. */
+  --app-bg: #f4f6fa;
+  --app-surface: #ffffff;
+  --app-surface-muted: #f8fafc;
+  --app-border: #dbe2ec;
+  --app-text: #1e293b;
+  --app-text-muted: #475569; /* 7,5:1 sobre blanco */
+
+  /* Estado: texto oscuro sobre fondo tenue (cada par ≥ 4,5:1; ver tabla en UI_STACK.md). */
+  --app-success-bg: #dcfce7;
+  --app-success-fg: #14532d;
+  --app-warning-bg: #fef3c7;
+  --app-warning-fg: #78350f;
+  --app-danger-bg: #fee2e2;
+  --app-danger-fg: #7f1d1d;
+  --app-info-bg: #e0f2fe;
+  --app-info-fg: #075985;
+  --app-neutral-bg: #e2e8f0;
+  --app-neutral-fg: #1e293b;
+
+  /* Botón "Cobrar": verde AA con texto blanco (5,0:1). */
+  --app-charge: #15803d;
+  --app-charge-hover: #166534;
+  --app-charge-text: #ffffff;
+
+  /* Radios, sombras y tipografía. */
+  --app-radius-sm: 4px;
+  --app-radius-lg: 10px;
+  --app-radius-pill: 999px;
+  --app-shadow-card: 0 1px 2px rgb(15 37 69 / 0.08), 0 1px 3px rgb(15 37 69 / 0.06);
+  --app-shadow-overlay: 0 8px 24px rgb(15 37 69 / 0.25);
+  --app-font-size-sm: 0.875rem;
+  --app-font-size-base: 1rem;
+  --app-font-size-lg: 1.125rem;
+  --app-font-size-xl: 1.5rem;
+  --app-font-size-kpi: 1.75rem;
+
   /* Espaciado y objetivos táctiles. */
   --app-touch-min: 44px;
   --app-gap: 0.75rem;
+  --app-gap-lg: 1.25rem;
   --app-page-padding: 1rem;
   --app-radius: 6px;
+  --app-topbar-height: 56px;
+  --app-sidebar-width: 232px;
+  --app-bottombar-height: 60px;
 
   /* Densidad: la caja necesita filas altas y tipografía legible a distancia. */
   --app-pos-row-height: 48px;
@@ -37,6 +90,20 @@
 .p-button.p-button-text,
 .p-button.p-button-link {
   color: var(--primary-color);
+}
+
+/* Botón de cobro: usar className="app-charge-button" sobre un Button de PrimeReact. */
+.p-button.app-charge-button {
+  background: var(--app-charge);
+  border-color: var(--app-charge);
+  color: var(--app-charge-text);
+  font-weight: 700;
+  font-size: var(--app-font-size-lg);
+  min-height: 56px;
+}
+.p-button.app-charge-button:not(:disabled):hover {
+  background: var(--app-charge-hover);
+  border-color: var(--app-charge-hover);
 }
 
 /* Etiquetas de estado con contraste suficiente. */
