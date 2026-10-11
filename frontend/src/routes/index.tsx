@@ -1,9 +1,10 @@
 import { lazy, Suspense, type ComponentType } from 'react';
-import { createRootRoute, createRoute, createRouter, Navigate } from '@tanstack/react-router';
+import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
 import { modules, type ModuleId } from '@/app/config/modules';
 import { RouteGuard } from '@/app/guards/RouteGuard';
 import { AppShell } from '@/app/layouts/AppShell';
-import { useSession } from '@/app/providers/SessionProvider';
+import { HomePage } from '@/app/pages/HomePage';
+import { LoginPage } from '@/app/pages/LoginPage';
 import { LoadingState } from '@/shared/ui';
 
 /**
@@ -22,12 +23,6 @@ const pages: Record<ModuleId, ComponentType> = {
   administration: lazy(() => import('@/features/administration').then((m) => ({ default: m.AdministrationPage }))),
 };
 
-const Home = () => {
-  const { can } = useSession();
-  const first = modules.find((m) => can(m.permission));
-  return first ? <Navigate to={first.path} replace /> : <p className="p-4">Sin módulos disponibles para tu rol.</p>;
-};
-
 const NotFound = () => (
   <section className="p-4" data-testid="not-found">
     <h1 className="text-2xl m-0 mb-2">Página no encontrada</h1>
@@ -35,7 +30,8 @@ const NotFound = () => (
 );
 
 const rootRoute = createRootRoute({ component: AppShell, notFoundComponent: NotFound });
-const homeRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', component: Home });
+const homeRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', component: HomePage });
+const loginRoute = createRoute({ getParentRoute: () => rootRoute, path: '/login', component: LoginPage });
 
 const moduleRoutes = modules.map((m) => {
   const Page = pages[m.id];
@@ -52,7 +48,7 @@ const moduleRoutes = modules.map((m) => {
   });
 });
 
-const routeTree = rootRoute.addChildren([homeRoute, ...moduleRoutes]);
+const routeTree = rootRoute.addChildren([homeRoute, loginRoute, ...moduleRoutes]);
 
 export const createAppRouter = (history?: Parameters<typeof createRouter>[0]['history']) =>
   createRouter({ routeTree, history });

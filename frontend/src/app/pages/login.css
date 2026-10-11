@@ -1,0 +1,32 @@
+.app-login {
+  min-height: 100vh; display: grid; place-items: center; padding: 1rem;
+  background: var(--app-navy-900);
+}
+.app-login__card {
+  width: min(26rem, 100%); display: grid; gap: var(--app-gap); padding: 1.5rem;
+  background: var(--app-surface); color: var(--app-text);
+  border-radius: var(--app-radius-lg); box-shadow: var(--app-shadow-overlay);
+}
+.app-login__brand { display: flex; justify-content: center; align-items: center; gap: 0.5rem; font-size: var(--app-font-size-xl); font-weight: 700; color: var(--app-navy-900); }
+.app-login__title { margin: 0; text-align: center; font-size: var(--app-font-size-base); font-weight: 500; color: var(--app-text-muted); }
+.app-login__form { display: grid; gap: 0.5rem; }
+.app-login__label { font-weight: 600; }
+.app-login__dots { display: flex; justify-content: center; gap: 0.75rem; padding: 0.5rem 0; }
+.app-login__dot {
+  width: 2.5rem; height: 2.5rem; border: 2px solid var(--app-border); border-radius: var(--app-radius);
+  background: var(--app-surface-muted);
+}
+.app-login__dot.is-filled { background: var(--app-navy-900); border-color: var(--app-navy-900); }
+.app-pinpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+.app-pinpad__key {
+  min-height: 3.5rem; font: inherit; font-size: 1.5rem; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--app-border); border-radius: var(--app-radius);
+  background: var(--app-surface); color: var(--app-text);
+}
+.app-pinpad__key:hover:not(:disabled) { background: var(--app-surface-muted); border-color: var(--primary-color); }
+.app-pinpad__key:disabled { opacity: 0.55; cursor: not-allowed; }
+.app-pinpad__key--ghost { background: var(--app-neutral-bg); }
+.app-pinpad__key--submit { background: var(--primary-color); border-color: var(--primary-color); color: var(--primary-color-text); }
+.app-pinpad__key--submit:hover:not(:disabled) { background: var(--app-primary-hover); }
+.app-login__hint { margin: 0; font-size: var(--app-font-size-sm); color: var(--app-text-muted); }
+.app-login__error { margin: 0; padding: 0.5rem 0.75rem; border-radius: var(--app-radius); background: var(--app-danger-bg); color: var(--app-danger-fg); }

@@ -1,11 +1,18 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { roleSchema, type Permission, type Role, type Session } from '@/shared/contracts';
+import { roleSchema, sessionSchema, type AuthSession, type Permission, type Role, type Session } from '@/shared/contracts';
 import { roleLabels, rolePermissions } from '@/app/config/permissions';
 
 type SessionContextValue = {
   session: Session;
   can: (permission: Permission) => boolean;
+  /** Selector de rol simulado (solo DEV). Descarta la sesión de login y vuelve a la sesión genérica del rol. */
   switchRole: (role: Role) => void;
+  /** Adopta la sesión devuelta por `useLogin` (usuario real, sucursal y caja). */
+  signIn: (auth: AuthSession) => void;
+  /** Olvida la sesión de login. El token lo limpia quien llama con `setAccessToken(null)` si aplica. */
+  signOut: () => void;
+  /** true si la sesión viene de un login y no del rol simulado. */
+  authenticated: boolean;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -18,6 +25,7 @@ const buildSession = (role: Role): Session => ({
 });
 
 const STORAGE_KEY = 'pos.simulatedRole';
+const SESSION_KEY = 'pos.session';
 
 const storedRole = (): Role | null => {
   try {
@@ -25,6 +33,27 @@ const storedRole = (): Role | null => {
     return parsed.success ? parsed.data : null;
   } catch {
     return null;
+  }
+};
+
+/** Sesión de login guardada en sessionStorage (sin token ni PIN: solo nombre, rol, sucursal y caja). */
+const storedSession = (): Session | null => {
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const parsed = sessionSchema.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null;
+  }
+};
+
+const persist = (key: string, value: string | null) => {
+  try {
+    if (value === null) window.sessionStorage.removeItem(key);
+    else window.sessionStorage.setItem(key, value);
+  } catch {
+    /* sin almacenamiento: vive solo en memoria */
   }
 };
 
@@ -41,24 +70,43 @@ type SessionProviderProps = {
 };
 
 export const SessionProvider = ({ children, initialRole, onRoleChange, sessionFor }: SessionProviderProps) => {
-  const [role, setRole] = useState<Role>(() => initialRole ?? storedRole() ?? 'propietario');
+  const [login, setLogin] = useState<Session | null>(() => (initialRole ? null : storedSession()));
+  const [role, setRole] = useState<Role>(() => initialRole ?? storedSession()?.user.role ?? storedRole() ?? 'propietario');
+
   const switchRole = useCallback((next: Role) => {
+    setLogin(null);
+    persist(SESSION_KEY, null);
     setRole(next);
-    try {
-      window.sessionStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      /* sin almacenamiento: el rol vive solo en memoria */
-    }
+    persist(STORAGE_KEY, next);
+  }, []);
+
+  const signIn = useCallback((auth: AuthSession) => {
+    setLogin(auth.session);
+    setRole(auth.session.user.role);
+    persist(SESSION_KEY, JSON.stringify(auth.session));
+  }, []);
+
+  const signOut = useCallback(() => {
+    setLogin(null);
+    persist(SESSION_KEY, null);
   }, []);
 
   useEffect(() => {
-    onRoleChange?.(role);
-  }, [role, onRoleChange]);
+    // Con sesión de login el token ya lo fijó `useLogin`; el puente de rol simulado no debe pisarlo.
+    if (!login) onRoleChange?.(role);
+  }, [role, login, onRoleChange]);
 
   const value = useMemo<SessionContextValue>(() => {
     const granted = new Set<Permission>(rolePermissions[role]);
-    return { session: sessionFor?.(role) ?? buildSession(role), can: (p) => granted.has(p), switchRole };
-  }, [role, switchRole, sessionFor]);
+    return {
+      session: login ?? sessionFor?.(role) ?? buildSession(role),
+      can: (p) => granted.has(p),
+      switchRole,
+      signIn,
+      signOut,
+      authenticated: login !== null,
+    };
+  }, [role, login, switchRole, signIn, signOut, sessionFor]);
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 };
