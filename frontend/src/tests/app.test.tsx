@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider } from '@tanstack/react-router';
 import { createMemoryHistory } from '@tanstack/react-router';
@@ -43,10 +43,11 @@ describe('app shell y navegación', () => {
     expect(await screen.findByText('Arroz 500 g')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /nuevo producto/i }));
-    await user.type(await screen.findByLabelText('SKU'), 'SKU-900');
-    await user.type(screen.getByLabelText('Nombre'), 'Producto de prueba');
-    await user.type(screen.getByLabelText('Categoría'), 'Pruebas');
-    await user.click(screen.getByRole('button', { name: /guardar/i }));
+    const dialog = within(await screen.findByRole('dialog'));
+    await user.type(await dialog.findByLabelText('SKU'), 'SKU-900');
+    await user.type(dialog.getByLabelText('Nombre'), 'Producto de prueba');
+    await user.type(dialog.getByLabelText('Categoría'), 'Pruebas');
+    await user.click(dialog.getByRole('button', { name: /guardar/i }));
 
     expect(await screen.findByRole('cell', { name: 'Producto de prueba' })).toBeInTheDocument();
   });
