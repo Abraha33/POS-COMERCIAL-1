@@ -58,3 +58,98 @@
 
 .pos__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; justify-content: flex-end; }
 @media (max-width: 900px) { .pos__actions { justify-content: flex-start; } }
+
+/* ---- Objetivos táctiles >= 44 px ---- */
+.pos .p-button,
+.pos .p-inputtext,
+.pos select,
+.pos-dialog .p-button,
+.pos-dialog .p-inputtext,
+.pos-dialog select { min-height: 44px; }
+.pos .p-button.p-button-icon-only,
+.pos-dialog .p-button.p-button-icon-only { min-width: 44px; }
+
+/* ---- Vistas Vender | Historial ---- */
+.pos__views { display: flex; gap: 0.5rem; margin-bottom: var(--app-gap); }
+.pos__view {
+  min-height: 44px;
+  padding: 0 1rem;
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--app-radius);
+  color: var(--text-color);
+  font: inherit;
+  cursor: pointer;
+}
+.pos__view[aria-pressed='true'] { background: var(--primary-color); border-color: var(--primary-color); color: var(--primary-color-text); }
+.pos__view:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
+
+/* ---- Historial ---- */
+.pos__filters { display: grid; gap: var(--app-gap); grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.pos__history { width: 100%; border-collapse: collapse; }
+.pos__history th { text-align: left; font-size: 0.85rem; color: var(--text-color-secondary); padding: 0.5rem 0.35rem; }
+.pos__history td { padding: 0.5rem 0.35rem; border-top: 1px solid var(--surface-border); vertical-align: middle; }
+.pos__status { display: inline-block; padding: 0.1rem 0.5rem; border: 1px solid currentColor; border-radius: var(--app-radius); font-size: 0.85rem; font-weight: 600; }
+.pos__status--pagada { color: var(--app-success); }
+.pos__status--credito { color: var(--text-color); }
+.pos__status--anulada { color: var(--app-danger); }
+.pos__facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0.5rem var(--app-gap); margin: 0 0 var(--app-gap); }
+.pos__facts dt { font-size: 0.85rem; color: var(--text-color-secondary); }
+.pos__facts dd { margin: 0; }
+.pos__detail-lines { width: 100%; border-collapse: collapse; }
+.pos__detail-lines th { text-align: left; font-size: 0.85rem; color: var(--text-color-secondary); padding: 0.35rem; }
+.pos__detail-lines td { padding: 0.35rem; border-top: 1px solid var(--surface-border); }
+.pos__return-grid { display: grid; gap: 0.75rem; margin-bottom: var(--app-gap); }
+.pos__return-row { display: grid; gap: 0.25rem; }
+.pos__return-qty { width: 100%; }
+.pos__return-lines { margin: 0 0 var(--app-gap); padding-left: 1.25rem; }
+
+@media (max-width: 599px) {
+  .pos__filters { grid-template-columns: minmax(0, 1fr); }
+
+  /* Historial: filas como tarjetas. */
+  .pos__history thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .pos__history, .pos__history tbody, .pos__history tr, .pos__history td { display: block; width: 100%; }
+  .pos__history tr { border: 1px solid var(--surface-border); border-radius: var(--app-radius); padding: 0.5rem; margin-bottom: 0.5rem; }
+  .pos__history td { border-top: 0; padding: 0.15rem 0; display: flex; justify-content: space-between; gap: 0.5rem; }
+  .pos__history td[data-label]::before { content: attr(data-label); color: var(--text-color-secondary); }
+  .pos__history .pos__num { text-align: right; }
+  .pos__row-action { justify-content: flex-end; }
+
+  /* Carrito: tarjetas apiladas, sin desplazamiento horizontal. */
+  .pos__lines-wrap { overflow-x: visible; }
+  .pos__lines, .pos__lines tbody { display: block; width: 100%; }
+  .pos__lines thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .pos__lines tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'name remove' 'qty total' 'disc disc';
+    gap: 0.35rem 0.5rem;
+    align-items: center;
+    padding: 0.6rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--surface-border);
+    border-radius: var(--app-radius);
+  }
+  .pos__lines td { display: block; padding: 0; border-top: 0; min-width: 0; }
+  .pos__c-name { grid-area: name; overflow-wrap: anywhere; }
+  .pos__c-remove { grid-area: remove; }
+  .pos__c-qty { grid-area: qty; }
+  .pos__c-total { grid-area: total; font-weight: 700; }
+  .pos__lines td.pos__c-disc { grid-area: disc; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.5rem; align-items: center; }
+  .pos__lines td.pos__c-disc::before { content: attr(data-label); color: var(--text-color-secondary); font-size: 0.85rem; }
+  .pos__c-disc .p-inputnumber, .pos__c-disc .p-inputnumber-input { width: 100% !important; min-width: 0; }
+}
+
+/* ---- Recibo imprimible: solo el bloque .pos__receipt ---- */
+@media print {
+  body * { visibility: hidden; }
+  .pos__receipt, .pos__receipt * { visibility: visible; }
+  .pos__receipt { position: absolute; left: 0; top: 0; width: 100%; padding: 0; color: CanvasText; background: Canvas; }
+  .pos__print-hide { display: none !important; }
+}
+.pos-dialog .p-dialog-header-icon { min-width: 44px; min-height: 44px; }
+
+/* Acciones destructivas con contraste AA (el rojo por defecto del tema no llega a 4.5:1 con texto blanco). */
+.pos-dialog .p-button.pos__danger { background: var(--app-danger); border-color: var(--app-danger); color: var(--primary-color-text); }
+.pos-dialog .p-button.pos__danger-outlined { background: transparent; border-color: var(--app-danger); color: var(--app-danger); }

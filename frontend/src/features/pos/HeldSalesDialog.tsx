@@ -22,7 +22,7 @@ const summarize = (sale: HeldSale, products: Map<string, Product>) => {
 };
 
 export const HeldSalesDialog = ({ visible, held, products, canResume, onResume, onDiscard, onHide }: Props) => (
-  <Dialog header="Ventas suspendidas" visible={visible} onHide={onHide} style={{ width: 'min(32rem, 95vw)' }} modal>
+  <Dialog header="Ventas suspendidas" visible={visible} onHide={onHide} className="pos-dialog" style={{ width: 'min(32rem, 95vw)' }} modal>
     {held.length === 0 ? (
       <p className="pos__hint" data-testid="held-empty">No hay ventas suspendidas en esta caja.</p>
     ) : (

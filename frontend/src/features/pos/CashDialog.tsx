@@ -80,7 +80,7 @@ export const CashDialog = ({ shift, heldCount, visible, onHide }: Props) => {
   };
 
   return (
-    <Dialog header="Caja" visible={visible} onHide={onHide} style={{ width: 'min(34rem, 95vw)' }} modal>
+    <Dialog header="Caja" visible={visible} onHide={onHide} className="pos-dialog" style={{ width: 'min(34rem, 95vw)' }} modal>
       <div className="pos__totals">
         <div><span>Base inicial</span><span>{formatMoney(shift.openingCash)}</span></div>
         <div className="pos__total"><span>Efectivo esperado</span><span data-testid="expected-cash">{formatMoney(shift.expectedCash)}</span></div>
