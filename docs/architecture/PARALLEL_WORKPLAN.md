@@ -17,6 +17,10 @@ Nadie espera a nadie: el frontend usa los mocks, el backend se mide con la **mis
 - La suite corre contra el mock (`pnpm test`) y por HTTP real (`pnpm conformance`, con o sin `API_BASE_URL`).
 - Cuando el backend pasa la suite, el frontend cambia de mock a backend sin tocar pantallas.
 
+## Arquitectura de integración
+Frappe/ERPNext es solo backend; el frontend (React) se conecta por API `/api/v1` según `contracts/openapi.yaml`.
+Detalle y opción elegida (app propia de Frappe, `pos_api`): `backend/README.md`.
+
 ## Carriles del frontend (cada agente, su carpeta)
 Todos consumen hooks de `frontend/src/shared/api` (no crean fetch propios) y `shared/utils/pricing.ts`.
 
@@ -47,7 +51,7 @@ Orden sugerido; cada carril se da por terminado cuando **sus escenarios de confo
 
 | Carril | Alcance | Reglas | Escenarios de conformidad |
 |---|---|---|---|
-| B0 | Instancia de desarrollo Frappe/ERPNext (versión por decidir), carga de `contracts/fixtures` (seed + usuarios), `branchId` en todo | BR-GEN-10 | — (precondición) |
+| B0 | **Cerrar primero.** Versión y levantamiento de Frappe/ERPNext, app `pos_api` con proxy `/api/v1`, modo de auth, CORS, carga de `contracts/fixtures`, `branchId` en todo. Prototipo mínimo: login y sesión pasando conformidad | BR-GEN-10 | `autenticación` (prototipo) |
 | B1 | Auth: login, sesión, `supervisor-approvals` con PIN, roles/permisos | BR-VEN-04/05/14 | `autenticación`, `below_cost solo propietario` |
 | B2 | Caja: turnos, movimientos, cierre con diferencia/nota | BR-CAJ-01..09 | `caja y turnos` |
 | B3 | Ventas: precios/IVA incluido, totales y ajuste al peso, pago mixto, descuentos, bajo costo, stock, crédito, idempotencia, anulación | BR-VEN-01..14, BR-CLI | `ventas` |
