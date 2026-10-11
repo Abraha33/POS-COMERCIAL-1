@@ -1,25 +1,18 @@
-import type { Employee } from '@/shared/contracts';
-import { useEmployees } from '@/shared/api/queries';
-import { DataTablePage, type ColumnDef } from '@/shared/ui';
+import { TabPanel, TabView } from 'primereact/tabview';
+import { ScreenTemplate } from '@/shared/ui';
+import { BranchesTab } from './BranchesTab';
+import { EmployeesTab } from './EmployeesTab';
+import { RolesMatrixTab } from './RolesMatrixTab';
+import { SettingsTab } from './SettingsTab';
 
-const columns: ColumnDef<Employee>[] = [
-  { field: 'name', header: 'Nombre' },
-  { field: 'role', header: 'Rol' },
-  { field: 'branchId', header: 'Sede' },
-];
-
-/** Pantalla ancla de Administración (agente 5). */
-export const AdministrationPage = () => {
-  const { data, isLoading, error, refetch } = useEmployees();
-  return (
-    <DataTablePage
-      title="Administración"
-      subtitle="Usuarios y empleados"
-      rows={data}
-      isLoading={isLoading}
-      error={error}
-      onRetry={() => void refetch()}
-      columns={columns}
-    />
-  );
-};
+/** Administración (agente 5): empleados, matriz de roles, sedes/empresa y parámetros aprobados. */
+export const AdministrationPage = () => (
+  <ScreenTemplate title="Administración" subtitle="Usuarios, roles, sedes y parámetros del negocio">
+    <TabView>
+      <TabPanel header="Usuarios"><EmployeesTab /></TabPanel>
+      <TabPanel header="Roles y permisos"><RolesMatrixTab /></TabPanel>
+      <TabPanel header="Sedes y empresa"><BranchesTab /></TabPanel>
+      <TabPanel header="Configuración"><SettingsTab /></TabPanel>
+    </TabView>
+  </ScreenTemplate>
+);
