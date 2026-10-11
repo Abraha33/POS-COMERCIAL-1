@@ -1,0 +1,27 @@
+{
+  "route": "/administration",
+  "viewport": "phone-375",
+  "overflow": false,
+  "scrollWidth": 375,
+  "innerWidth": 375,
+  "widest": [
+    "li.p-unselectable-text right=480",
+    "a.p-tabview-nav-link right=480",
+    "span.p-tabview-title right=460",
+    "li.p-unselectable-text right=632",
+    "a.p-tabview-nav-link right=632"
+  ],
+  "smallTargets": 0,
+  "violations": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "nodes": 1,
+      "targets": [
+        "#pr_id_11_header_0 > .p-tabview-title[data-pc-section=\"headertitle\"]"
+      ]
+    }
+  ],
+  "consoleErrors": []
+}

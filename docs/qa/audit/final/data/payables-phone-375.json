@@ -1,0 +1,17 @@
+{
+  "route": "/payables",
+  "viewport": "phone-375",
+  "overflow": true,
+  "scrollWidth": 865,
+  "innerWidth": 375,
+  "widest": [
+    "div.ledger__summary right=865",
+    "div.ledger__stat right=439",
+    "div.ledger__stat-label right=426",
+    "div.ledger__stat-value right=426",
+    "div.ledger__stat right=652"
+  ],
+  "smallTargets": 0,
+  "violations": [],
+  "consoleErrors": []
+}

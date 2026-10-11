@@ -1,0 +1,17 @@
+{
+  "route": "/payables",
+  "viewport": "tablet-768",
+  "overflow": true,
+  "scrollWidth": 865,
+  "innerWidth": 768,
+  "widest": [
+    "div.ledger__summary right=865",
+    "div.ledger__stat right=865",
+    "div.ledger__stat-label right=852",
+    "div.ledger__stat-value right=852",
+    "div.ledger__filters right=865"
+  ],
+  "smallTargets": 0,
+  "violations": [],
+  "consoleErrors": []
+}

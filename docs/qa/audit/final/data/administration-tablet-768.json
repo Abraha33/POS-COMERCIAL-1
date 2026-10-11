@@ -1,0 +1,21 @@
+{
+  "route": "/administration",
+  "viewport": "tablet-768",
+  "overflow": false,
+  "scrollWidth": 768,
+  "innerWidth": 768,
+  "widest": [],
+  "smallTargets": 0,
+  "violations": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "help": "Elements must meet minimum color contrast ratio thresholds",
+      "nodes": 1,
+      "targets": [
+        "#pr_id_11_header_0 > .p-tabview-title[data-pc-section=\"headertitle\"]"
+      ]
+    }
+  ],
+  "consoleErrors": []
+}
