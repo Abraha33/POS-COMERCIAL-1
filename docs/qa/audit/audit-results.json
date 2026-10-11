@@ -1,0 +1,353 @@
+[
+  {
+    "route": "pos",
+    "viewport": "desktop",
+    "h1": "Punto de venta",
+    "hOverflow": false,
+    "navHeight": 744,
+    "mainRowCount": 3,
+    "smallTargets": 0,
+    "buttons": 5,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "products",
+    "viewport": "desktop",
+    "h1": "Productos",
+    "hOverflow": false,
+    "navHeight": 744,
+    "mainRowCount": 6,
+    "smallTargets": 0,
+    "buttons": 12,
+    "axe": [
+      "color-contrast(serious,8)"
+    ]
+  },
+  {
+    "route": "inventory",
+    "viewport": "desktop",
+    "h1": "Inventarios",
+    "hOverflow": false,
+    "navHeight": 744,
+    "mainRowCount": 8,
+    "smallTargets": 0,
+    "buttons": 5,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "purchases",
+    "viewport": "desktop",
+    "h1": "Compras",
+    "hOverflow": false,
+    "navHeight": 744,
+    "mainRowCount": 2,
+    "smallTargets": 0,
+    "buttons": 5,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "customers",
+    "viewport": "desktop",
+    "h1": "Clientes",
+    "hOverflow": false,
+    "navHeight": 744,
+    "mainRowCount": 3,
+    "smallTargets": 0,
+    "buttons": 5,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "receivables",
+    "viewport": "desktop",
+    "h1": "Cuentas por cobrar",
+    "hOverflow": false,
+    "navHeight": 744,
+    "mainRowCount": 1,
+    "smallTargets": 0,
+    "buttons": 5,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "payables",
+    "viewport": "desktop",
+    "h1": "Cuentas por pagar",
+    "hOverflow": false,
+    "navHeight": 744,
+    "mainRowCount": 1,
+    "smallTargets": 0,
+    "buttons": 5,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "reports",
+    "viewport": "desktop",
+    "h1": "Reportes",
+    "hOverflow": false,
+    "navHeight": 744,
+    "mainRowCount": 0,
+    "smallTargets": 0,
+    "buttons": 0,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "administration",
+    "viewport": "desktop",
+    "h1": "Administración",
+    "hOverflow": false,
+    "navHeight": 744,
+    "mainRowCount": 7,
+    "smallTargets": 0,
+    "buttons": 5,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "pos",
+    "viewport": "tablet",
+    "h1": "Punto de venta",
+    "hOverflow": true,
+    "navHeight": 97,
+    "mainRowCount": 3,
+    "smallTargets": 0,
+    "buttons": 5,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "products",
+    "viewport": "tablet",
+    "h1": "Productos",
+    "hOverflow": true,
+    "navHeight": 97,
+    "mainRowCount": 6,
+    "smallTargets": 0,
+    "buttons": 12,
+    "axe": [
+      "color-contrast(serious,8)"
+    ]
+  },
+  {
+    "route": "inventory",
+    "viewport": "tablet",
+    "h1": "Inventarios",
+    "hOverflow": true,
+    "navHeight": 97,
+    "mainRowCount": 8,
+    "smallTargets": 0,
+    "buttons": 5,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "purchases",
+    "viewport": "tablet",
+    "h1": "Compras",
+    "hOverflow": true,
+    "navHeight": 97,
+    "mainRowCount": 2,
+    "smallTargets": 0,
+    "buttons": 5,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "customers",
+    "viewport": "tablet",
+    "h1": "Clientes",
+    "hOverflow": true,
+    "navHeight": 97,
+    "mainRowCount": 3,
+    "smallTargets": 0,
+    "buttons": 5,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "receivables",
+    "viewport": "tablet",
+    "h1": "Cuentas por cobrar",
+    "hOverflow": true,
+    "navHeight": 97,
+    "mainRowCount": 1,
+    "smallTargets": 0,
+    "buttons": 5,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "payables",
+    "viewport": "tablet",
+    "h1": "Cuentas por pagar",
+    "hOverflow": true,
+    "navHeight": 97,
+    "mainRowCount": 1,
+    "smallTargets": 0,
+    "buttons": 5,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "reports",
+    "viewport": "tablet",
+    "h1": "Reportes",
+    "hOverflow": true,
+    "navHeight": 97,
+    "mainRowCount": 0,
+    "smallTargets": 0,
+    "buttons": 0,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "administration",
+    "viewport": "tablet",
+    "h1": "Administración",
+    "hOverflow": true,
+    "navHeight": 97,
+    "mainRowCount": 7,
+    "smallTargets": 0,
+    "buttons": 5,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "pos",
+    "viewport": "phone",
+    "h1": "Punto de venta",
+    "hOverflow": true,
+    "navHeight": 97,
+    "mainRowCount": 3,
+    "smallTargets": 0,
+    "buttons": 5,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "products",
+    "viewport": "phone",
+    "h1": "Productos",
+    "hOverflow": true,
+    "navHeight": 97,
+    "mainRowCount": 6,
+    "smallTargets": 0,
+    "buttons": 12,
+    "axe": [
+      "color-contrast(serious,8)"
+    ]
+  },
+  {
+    "route": "inventory",
+    "viewport": "phone",
+    "h1": "Inventarios",
+    "hOverflow": true,
+    "navHeight": 97,
+    "mainRowCount": 8,
+    "smallTargets": 0,
+    "buttons": 5,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "purchases",
+    "viewport": "phone",
+    "h1": "Compras",
+    "hOverflow": true,
+    "navHeight": 97,
+    "mainRowCount": 2,
+    "smallTargets": 0,
+    "buttons": 5,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "customers",
+    "viewport": "phone",
+    "h1": "Clientes",
+    "hOverflow": true,
+    "navHeight": 97,
+    "mainRowCount": 3,
+    "smallTargets": 0,
+    "buttons": 5,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "receivables",
+    "viewport": "phone",
+    "h1": "Cuentas por cobrar",
+    "hOverflow": true,
+    "navHeight": 97,
+    "mainRowCount": 1,
+    "smallTargets": 0,
+    "buttons": 5,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "payables",
+    "viewport": "phone",
+    "h1": "Cuentas por pagar",
+    "hOverflow": true,
+    "navHeight": 97,
+    "mainRowCount": 1,
+    "smallTargets": 0,
+    "buttons": 5,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "reports",
+    "viewport": "phone",
+    "h1": "Reportes",
+    "hOverflow": true,
+    "navHeight": 97,
+    "mainRowCount": 0,
+    "smallTargets": 0,
+    "buttons": 0,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  },
+  {
+    "route": "administration",
+    "viewport": "phone",
+    "h1": "Administración",
+    "hOverflow": true,
+    "navHeight": 97,
+    "mainRowCount": 7,
+    "smallTargets": 0,
+    "buttons": 5,
+    "axe": [
+      "color-contrast(serious,1)"
+    ]
+  }
+]
