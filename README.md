@@ -20,6 +20,8 @@ pnpm conformance  # suite de conformidad por HTTP (API_BASE_URL=... para el back
 pnpm core:check   # 8 gates; imprime READY FOR PARALLEL SCREEN CONSTRUCTION si todo pasa
 ```
 
+Stack de interfaz (PrimeReact 10.9.9, tema lara-light-blue): `docs/architecture/UI_STACK.md`.
+
 Plan de trabajo frontend/backend en paralelo: `docs/architecture/PARALLEL_WORKPLAN.md`.
 
 Reglas de trabajo en paralelo: `docs/architecture/BRANCHING.md` y `docs/architecture/MODULE_OWNERSHIP.md`.
