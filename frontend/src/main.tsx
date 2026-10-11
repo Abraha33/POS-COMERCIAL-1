@@ -6,6 +6,8 @@ import 'primereact/resources/primereact.min.css';
 import 'primeicons/primeicons.css';
 import 'primeflex/primeflex.css';
 import { AppProviders } from '@/app/providers/AppProviders';
+import { setAccessToken } from '@/shared/api/client';
+import type { Role } from '@/shared/contracts';
 import { createAppRouter } from '@/routes';
 
 const router = createAppRouter();
@@ -13,11 +15,14 @@ const router = createAppRouter();
 const start = async () => {
   // Backend simulado hasta conectar Frappe/ERPNext.
   const { worker } = await import('@/mocks/browser');
+  const { mockTokenForRole } = await import('@/mocks/test-users');
   await worker.start({ onUnhandledFrame: 'bypass', quiet: true });
+  // El rol simulado del selector se traduce en el token del usuario de prueba equivalente.
+  const onRoleChange = (role: Role) => setAccessToken(mockTokenForRole(role));
 
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <AppProviders>
+      <AppProviders onRoleChange={onRoleChange}>
         <RouterProvider router={router} />
       </AppProviders>
     </StrictMode>,

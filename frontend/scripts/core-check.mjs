@@ -63,6 +63,7 @@ rmSync(tmp, { recursive: true, force: true });
 
 const e2e = run('playwright (smoke + a11y)', ['exec', 'playwright', 'test']);
 const storybook = run('storybook build', ['exec', 'storybook', 'build', '--quiet']);
+const conformance = run('conformidad por HTTP (mock)', ['conformance']);
 
 // ---- Gate 1
 gate(1, 'La aplicación compila y navega',
@@ -107,9 +108,14 @@ gate(1, 'La aplicación compila y navega',
 }
 
 // ---- Gate 5
-gate(5, 'Mocks coherentes entre módulos',
-  vitestFiles['seed-integrity.test.ts'] === true,
-  'src/tests/seed-integrity.test.ts debe existir y pasar');
+{
+  const problems = [];
+  if (vitestFiles['seed-integrity.test.ts'] !== true) problems.push('seed-integrity.test.ts no pasa');
+  if (vitestFiles['conformance.mock.test.ts'] !== true) problems.push('conformance.mock.test.ts no pasa (mock incumple reglas aprobadas)');
+  if (vitestFiles['fixtures.test.ts'] !== true) problems.push('fixtures.test.ts no pasa (regenerar: UPDATE_FIXTURES=1 pnpm test fixtures)');
+  if (!conformance.ok) problems.push(`conformidad por HTTP falló:\n${tail(conformance.out)}`);
+  gate(5, 'Mocks coherentes y conformes al contrato', problems.length === 0, problems.join('; '));
+}
 
 // ---- Gate 6
 {

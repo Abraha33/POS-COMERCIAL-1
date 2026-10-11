@@ -6,14 +6,16 @@ import type { Role } from '@/shared/contracts';
 import { SessionProvider } from './SessionProvider';
 import { ToastProvider } from './ToastProvider';
 
-export const AppProviders = ({ children, initialRole }: { children: ReactNode; initialRole?: Role }) => {
+export const AppProviders = ({
+  children, initialRole, onRoleChange,
+}: { children: ReactNode; initialRole?: Role; onRoleChange?: (role: Role) => void }) => {
   const [client] = useState(
     () => new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } }),
   );
   return (
     <PrimeReactProvider value={{ ripple: true }}>
       <QueryClientProvider client={client}>
-        <SessionProvider initialRole={initialRole}>
+        <SessionProvider initialRole={initialRole} onRoleChange={onRoleChange}>
           <ToastProvider>
             <ConfirmDialog />
             {children}

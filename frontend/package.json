@@ -13,7 +13,8 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "core:check": "node scripts/core-check.mjs",
-    "gen:api": "openapi-typescript ../contracts/openapi.yaml -o src/shared/api/generated/schema.d.ts"
+    "gen:api": "openapi-typescript ../contracts/openapi.yaml -o src/shared/api/generated/schema.d.ts",
+    "conformance": "vitest run --config vitest.conformance.config.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",

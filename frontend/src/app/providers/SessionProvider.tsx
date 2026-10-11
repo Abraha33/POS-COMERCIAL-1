@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { roleSchema, type Permission, type Role, type Session } from '@/shared/contracts';
 import { roleLabels, rolePermissions } from '@/app/config/permissions';
 
@@ -28,7 +28,14 @@ const storedRole = (): Role | null => {
   }
 };
 
-export const SessionProvider = ({ children, initialRole }: { children: ReactNode; initialRole?: Role }) => {
+type SessionProviderProps = {
+  children: ReactNode;
+  initialRole?: Role;
+  /** Se invoca al montar y en cada cambio de rol simulado (p. ej. para fijar el token de los mocks). */
+  onRoleChange?: (role: Role) => void;
+};
+
+export const SessionProvider = ({ children, initialRole, onRoleChange }: SessionProviderProps) => {
   const [role, setRole] = useState<Role>(() => initialRole ?? storedRole() ?? 'propietario');
   const switchRole = useCallback((next: Role) => {
     setRole(next);
@@ -38,6 +45,10 @@ export const SessionProvider = ({ children, initialRole }: { children: ReactNode
       /* sin almacenamiento: el rol vive solo en memoria */
     }
   }, []);
+
+  useEffect(() => {
+    onRoleChange?.(role);
+  }, [role, onRoleChange]);
 
   const value = useMemo<SessionContextValue>(() => {
     const granted = new Set<Permission>(rolePermissions[role]);

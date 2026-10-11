@@ -1,0 +1,411 @@
+{
+  "products": [
+    {
+      "id": "prd-001",
+      "sku": "SKU-001",
+      "barcode": "7701234567890",
+      "name": "Arroz 500 g",
+      "category": "Granos",
+      "unit": "und",
+      "price": 2800,
+      "cost": 2100,
+      "taxCategory": "excluido",
+      "taxRate": 0,
+      "active": true
+    },
+    {
+      "id": "prd-002",
+      "sku": "SKU-002",
+      "barcode": "7701234567891",
+      "name": "Aceite 1 L",
+      "category": "Aceites",
+      "unit": "und",
+      "price": 12500,
+      "cost": 9800,
+      "taxCategory": "gravado",
+      "taxRate": 0.19,
+      "active": true
+    },
+    {
+      "id": "prd-003",
+      "sku": "SKU-003",
+      "barcode": "7701234567892",
+      "name": "Azúcar 1 kg",
+      "category": "Granos",
+      "unit": "und",
+      "price": 4200,
+      "cost": 3300,
+      "taxCategory": "excluido",
+      "taxRate": 0,
+      "active": true
+    },
+    {
+      "id": "prd-004",
+      "sku": "SKU-004",
+      "barcode": "7701234567893",
+      "name": "Leche entera 1 L",
+      "category": "Lácteos",
+      "unit": "und",
+      "price": 4600,
+      "cost": 3700,
+      "taxCategory": "excluido",
+      "taxRate": 0,
+      "active": true
+    },
+    {
+      "id": "prd-005",
+      "sku": "SKU-005",
+      "barcode": "7701234567894",
+      "name": "Detergente 1 kg",
+      "category": "Aseo",
+      "unit": "und",
+      "price": 9800,
+      "cost": 7400,
+      "taxCategory": "gravado",
+      "taxRate": 0.19,
+      "active": true
+    },
+    {
+      "id": "prd-006",
+      "sku": "SKU-006",
+      "name": "Café molido 250 g",
+      "category": "Bebidas",
+      "unit": "und",
+      "price": 8900,
+      "cost": 6900,
+      "taxCategory": "excluido",
+      "taxRate": 0,
+      "active": false
+    }
+  ],
+  "customers": [
+    {
+      "id": "cus-001",
+      "name": "Tienda La Esquina",
+      "documentType": "NIT",
+      "taxId": "900123456-1",
+      "taxResponsibility": "R-99-PN",
+      "phone": "3001112233",
+      "email": "compras@laesquina.example",
+      "active": true,
+      "creditLimit": 1500000
+    },
+    {
+      "id": "cus-002",
+      "name": "Restaurante El Sazón",
+      "documentType": "NIT",
+      "taxId": "901234567-2",
+      "taxResponsibility": "R-99-PN",
+      "email": "admin@elsazon.example",
+      "active": true,
+      "creditLimit": 800000
+    },
+    {
+      "id": "cus-003",
+      "name": "Cliente mostrador",
+      "documentType": "CC",
+      "taxId": "222222222222",
+      "taxResponsibility": "R-99-PN",
+      "active": true,
+      "creditLimit": 0
+    }
+  ],
+  "suppliers": [
+    {
+      "id": "sup-001",
+      "name": "Distribuidora Andina",
+      "taxId": "800765432-9",
+      "active": true,
+      "paymentTermsDays": 30
+    },
+    {
+      "id": "sup-002",
+      "name": "Lácteos del Valle",
+      "taxId": "800111222-3",
+      "active": true,
+      "paymentTermsDays": 15
+    }
+  ],
+  "employees": [
+    {
+      "id": "emp-001",
+      "name": "Laura Gómez",
+      "role": "cajero",
+      "branchId": "br-001",
+      "active": true
+    },
+    {
+      "id": "emp-002",
+      "name": "Andrés Rojas",
+      "role": "bodeguero",
+      "branchId": "br-001",
+      "active": true
+    },
+    {
+      "id": "emp-003",
+      "name": "María Pérez",
+      "role": "admin",
+      "branchId": "br-001",
+      "active": true
+    },
+    {
+      "id": "emp-004",
+      "name": "Carlos Dueño",
+      "role": "propietario",
+      "branchId": "br-001",
+      "active": true
+    },
+    {
+      "id": "emp-005",
+      "name": "Sofía Ruiz",
+      "role": "bodeguero",
+      "branchId": "br-002",
+      "active": true
+    },
+    {
+      "id": "emp-006",
+      "name": "Pedro Compras",
+      "role": "comprador",
+      "branchId": "br-001",
+      "active": true
+    },
+    {
+      "id": "emp-007",
+      "name": "Ana Cartera",
+      "role": "cartera",
+      "branchId": "br-001",
+      "active": true
+    }
+  ],
+  "sales": [
+    {
+      "id": "sal-001",
+      "number": "POS-0001",
+      "date": "2026-10-01",
+      "customerId": "cus-003",
+      "cashierId": "emp-001",
+      "branchId": "br-001",
+      "lines": [
+        {
+          "productId": "prd-001",
+          "quantity": 2,
+          "unitPrice": 2800,
+          "discount": 0
+        }
+      ],
+      "payments": [
+        {
+          "method": "efectivo",
+          "amount": 5600
+        }
+      ],
+      "roundingAdjustment": 0,
+      "total": 5600,
+      "status": "pagada"
+    },
+    {
+      "id": "sal-002",
+      "number": "POS-0002",
+      "date": "2026-09-20",
+      "customerId": "cus-001",
+      "cashierId": "emp-001",
+      "branchId": "br-001",
+      "lines": [
+        {
+          "productId": "prd-002",
+          "quantity": 32,
+          "unitPrice": 12500,
+          "discount": 0
+        }
+      ],
+      "payments": [
+        {
+          "method": "credito",
+          "amount": 400000
+        }
+      ],
+      "roundingAdjustment": 0,
+      "total": 400000,
+      "status": "credito"
+    },
+    {
+      "id": "sal-003",
+      "number": "POS-0003",
+      "date": "2026-10-03",
+      "customerId": "cus-002",
+      "cashierId": "emp-001",
+      "branchId": "br-001",
+      "lines": [
+        {
+          "productId": "prd-003",
+          "quantity": 5,
+          "unitPrice": 4200,
+          "discount": 0
+        },
+        {
+          "productId": "prd-004",
+          "quantity": 6,
+          "unitPrice": 4600,
+          "discount": 600
+        }
+      ],
+      "payments": [
+        {
+          "method": "efectivo",
+          "amount": 20000
+        },
+        {
+          "method": "nequi",
+          "amount": 28000
+        }
+      ],
+      "roundingAdjustment": 0,
+      "total": 48000,
+      "status": "pagada"
+    }
+  ],
+  "stockLevels": [
+    {
+      "productId": "prd-001",
+      "branchId": "br-001",
+      "onHand": 40,
+      "inTransit": 0,
+      "minimum": 20
+    },
+    {
+      "productId": "prd-002",
+      "branchId": "br-001",
+      "onHand": 55,
+      "inTransit": 0,
+      "minimum": 20
+    },
+    {
+      "productId": "prd-003",
+      "branchId": "br-001",
+      "onHand": 70,
+      "inTransit": 0,
+      "minimum": 20
+    },
+    {
+      "productId": "prd-004",
+      "branchId": "br-001",
+      "onHand": 85,
+      "inTransit": 0,
+      "minimum": 20
+    },
+    {
+      "productId": "prd-005",
+      "branchId": "br-001",
+      "onHand": 100,
+      "inTransit": 0,
+      "minimum": 20
+    },
+    {
+      "productId": "prd-006",
+      "branchId": "br-001",
+      "onHand": 115,
+      "inTransit": 0,
+      "minimum": 20
+    },
+    {
+      "productId": "prd-001",
+      "branchId": "br-002",
+      "onHand": 10,
+      "inTransit": 0,
+      "minimum": 5
+    },
+    {
+      "productId": "prd-002",
+      "branchId": "br-002",
+      "onHand": 10,
+      "inTransit": 0,
+      "minimum": 5
+    }
+  ],
+  "stockMovements": [
+    {
+      "id": "stk-001",
+      "date": "2026-09-29",
+      "productId": "prd-001",
+      "branchId": "br-001",
+      "type": "entrada",
+      "quantity": 100,
+      "reference": "PO-0001"
+    },
+    {
+      "id": "stk-002",
+      "date": "2026-10-01",
+      "productId": "prd-001",
+      "branchId": "br-001",
+      "type": "salida",
+      "quantity": 2,
+      "reference": "POS-0001"
+    },
+    {
+      "id": "stk-003",
+      "date": "2026-10-03",
+      "productId": "prd-003",
+      "branchId": "br-001",
+      "type": "salida",
+      "quantity": 5,
+      "reference": "POS-0003"
+    }
+  ],
+  "purchaseOrders": [
+    {
+      "id": "po-001",
+      "number": "PO-0001",
+      "date": "2026-09-28",
+      "supplierId": "sup-001",
+      "lines": [
+        {
+          "productId": "prd-001",
+          "quantity": 100,
+          "unitCost": 2100
+        }
+      ],
+      "total": 210000,
+      "status": "recibida"
+    },
+    {
+      "id": "po-002",
+      "number": "PO-0002",
+      "date": "2026-10-05",
+      "supplierId": "sup-002",
+      "lines": [
+        {
+          "productId": "prd-004",
+          "quantity": 60,
+          "unitCost": 3700
+        }
+      ],
+      "total": 222000,
+      "status": "enviada"
+    }
+  ],
+  "receivables": [
+    {
+      "id": "rec-001",
+      "customerId": "cus-001",
+      "saleId": "sal-002",
+      "issued": "2026-09-20",
+      "due": "2026-10-20",
+      "amount": 400000,
+      "paid": 100000
+    }
+  ],
+  "payables": [
+    {
+      "id": "pay-001",
+      "supplierId": "sup-001",
+      "purchaseOrderId": "po-001",
+      "issued": "2026-09-28",
+      "due": "2026-10-28",
+      "amount": 210000,
+      "paid": 0
+    }
+  ],
+  "shifts": [],
+  "transfers": [],
+  "alerts": []
+}

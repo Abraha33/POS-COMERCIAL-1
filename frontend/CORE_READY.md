@@ -1,6 +1,6 @@
 # CORE READY — READY FOR PARALLEL SCREEN CONSTRUCTION
 
-Verificado: 2026-10-11T14:46:17.224Z  ·  commit: f899aee
+Verificado: 2026-10-11T14:55:51.745Z  ·  commit: 0cdea18
 
 | Gate | Resultado | Descripción |
 |------|-----------|-------------|
@@ -8,7 +8,7 @@ Verificado: 2026-10-11T14:46:17.224Z  ·  commit: f899aee
 | 2 | ✅ | App Shell y PrimeReact configurados |
 | 3 | ✅ | Mapa de rutas y propiedad por módulo |
 | 4 | ✅ | Contratos compartidos con tipos y ejemplos |
-| 5 | ✅ | Mocks coherentes entre módulos |
+| 5 | ✅ | Mocks coherentes y conformes al contrato |
 | 6 | ✅ | Plantillas de pantalla, formulario y tabla en uso |
 | 7 | ✅ | Storybook, Vitest y Playwright ejecutan en verde |
 | 8 | ✅ | Reglas de ramas e integración vigentes |

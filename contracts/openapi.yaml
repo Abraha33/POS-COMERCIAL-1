@@ -9,7 +9,8 @@ info:
     implementación y de validación contra Frappe.** Cada operación cita su BR-XXX. Cambios solo vía PR `contract:` revisado por el integrador
     (docs/architecture/BRANCHING.md).
 
-    `x-status`: `simulated` = solo existe como mock MSW; `proposed` = definido aquí, sin mock ni backend todavía.
+    `x-status: simulated` = existe como mock MSW (frontend/src/mocks) que implementa las reglas aprobadas;
+    el backend real aún no existe.
     Dinero en el contrato: entero en COP (BR-GEN-01); el backend calcula internamente con más decimales.
     Errores: `Error` (BR-GEN-09).
 servers:
@@ -29,7 +30,7 @@ paths:
     post:
       tags: [auth]
       operationId: login
-      x-status: proposed
+      x-status: simulated
       security: []
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Login' } } } }
       responses:
@@ -39,7 +40,7 @@ paths:
     get:
       tags: [auth]
       operationId: getSession
-      x-status: proposed
+      x-status: simulated
       responses:
         '200': { description: Sesión vigente, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -98,7 +99,7 @@ paths:
     post:
       tags: [pos]
       operationId: createSale
-      x-status: proposed
+      x-status: simulated
       summary: Confirma una venta (idempotente)
       description: |
         BR-VEN-01..14. El servidor fija precios, impuestos y totales (BR-GEN-06).
@@ -120,7 +121,7 @@ paths:
     post:
       tags: [pos]
       operationId: voidSale
-      x-status: proposed
+      x-status: simulated
       description: BR-VEN-10. Requiere permiso `pos.refund` o turno abierto.
       parameters: [{ $ref: '#/components/parameters/Id' }]
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SaleVoid' } } } }
@@ -133,7 +134,7 @@ paths:
     get:
       tags: [pos]
       operationId: getCurrentShift
-      x-status: proposed
+      x-status: simulated
       description: Turno abierto del usuario en su caja, o 404 si no hay.
       responses:
         '200': { description: Turno abierto, content: { application/json: { schema: { $ref: '#/components/schemas/Shift' } } } }
@@ -142,7 +143,7 @@ paths:
     post:
       tags: [pos]
       operationId: openShift
-      x-status: proposed
+      x-status: simulated
       description: BR-CAJ-01, BR-CAJ-02. `SHIFT_ALREADY_OPEN` si la caja ya tiene turno abierto.
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ShiftOpen' } } } }
       responses:
@@ -153,7 +154,7 @@ paths:
     post:
       tags: [pos]
       operationId: closeShift
-      x-status: proposed
+      x-status: simulated
       description: BR-CAJ-05..08. Devuelve el turno con `difference` calculada.
       parameters: [{ $ref: '#/components/parameters/Id' }]
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ShiftClose' } } } }
@@ -167,7 +168,7 @@ paths:
     post:
       tags: [pos]
       operationId: addShiftMovement
-      x-status: proposed
+      x-status: simulated
       description: BR-CAJ-09. Ingresos (base/sencillo) y egresos tipificados; afectan `expectedCash`.
       parameters: [{ $ref: '#/components/parameters/Id' }]
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ShiftMovement' } } } }
@@ -180,7 +181,7 @@ paths:
     post:
       tags: [auth]
       operationId: requestApproval
-      x-status: proposed
+      x-status: simulated
       description: |
         BR-VEN-04/05/14. Canjea el PIN de un supervisor por un token de un solo uso y corta vigencia, que luego
         se envía en `SaleCreate.approvalToken`. El PIN nunca viaja dentro de la venta. `below_cost` solo lo
@@ -190,11 +191,11 @@ paths:
         '200': { description: Aprobación concedida, content: { application/json: { schema: { $ref: '#/components/schemas/Approval' } } } }
         '403': { $ref: '#/components/responses/Forbidden' }
   /inventory/transfers:
-    get: { tags: [inventory], operationId: listTransfers, x-status: proposed, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Transfer' } } } } } } }
+    get: { tags: [inventory], operationId: listTransfers, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Transfer' } } } } } } }
     post:
       tags: [inventory]
       operationId: createTransfer
-      x-status: proposed
+      x-status: simulated
       description: BR-INV-03 paso 1. Descuenta de la sede origen y deja las unidades en tránsito.
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/TransferCreate' } } } }
       responses:
@@ -205,7 +206,7 @@ paths:
     post:
       tags: [inventory]
       operationId: receiveTransfer
-      x-status: proposed
+      x-status: simulated
       description: BR-INV-03 paso 2. Solo el encargado de la sede destino; suma al inventario destino.
       parameters: [{ $ref: '#/components/parameters/Id' }]
       responses:
@@ -214,7 +215,7 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
   /inventory/alerts:
-    get: { tags: [inventory], operationId: listInventoryAlerts, x-status: proposed, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/InventoryAlert' } } } } } } }
+    get: { tags: [inventory], operationId: listInventoryAlerts, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/InventoryAlert' } } } } } } }
 
 components:
   securitySchemes:

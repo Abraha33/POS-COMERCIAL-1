@@ -16,7 +16,10 @@ Estado del contrato: **v0.3.0, reglas de negocio aprobadas por el dueño** (acla
 pnpm install
 pnpm dev          # http://localhost:5188
 pnpm gen:api      # regenera tipos desde contracts/openapi.yaml
+pnpm conformance  # suite de conformidad por HTTP (API_BASE_URL=... para el backend real)
 pnpm core:check   # 8 gates; imprime READY FOR PARALLEL SCREEN CONSTRUCTION si todo pasa
 ```
+
+Plan de trabajo frontend/backend en paralelo: `docs/architecture/PARALLEL_WORKPLAN.md`.
 
 Reglas de trabajo en paralelo: `docs/architecture/BRANCHING.md` y `docs/architecture/MODULE_OWNERSHIP.md`.

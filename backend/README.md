@@ -13,9 +13,13 @@ Las reglas están en `docs/business-rules/` (BR-XXX); aprobadas por el dueño de
 3. Verificar el mapeo campo a campo de cada contrato contra los DocTypes (`x-frappe-doctype`). **No verificado.**
 4. Decidir autenticación (token API de Frappe vs. sesión con cookie).
 
+## Plan de trabajo
+Carriles B0–B5, orden y escenarios que cada uno debe pasar: `docs/architecture/PARALLEL_WORKPLAN.md`.
+Datos y usuarios de prueba a cargar: `contracts/fixtures/`.
+
 ## Cómo se comprueba que cumple
-- Pruebas de conformidad en `tests/integration/`: cada ejemplo de `contracts/examples/` se envía a la operación
-  correspondiente y la respuesta se valida contra el schema de `openapi.yaml`. (Pendiente de crear.)
+- Suite de conformidad (existe, 19 escenarios): desde `frontend/`, `API_BASE_URL=http://localhost:8000/api/v1 pnpm conformance`.
+  Valida estados, códigos de error y esquemas contra `openapi.yaml`. Hoy corre contra el mock; el backend debe pasarla igual.
 - El backend no cambia el contrato por su cuenta: PR `contract:` revisado por el integrador.
 
 ## Fuera de alcance por ahora

@@ -1,0 +1,43 @@
+{
+  "note": "Usuarios y PIN de PRUEBA para desarrollo y conformidad. Nunca usar en producción.",
+  "password": "cambiar-en-desarrollo",
+  "users": [
+    {
+      "username": "laura.gomez",
+      "employeeId": "emp-001",
+      "role": "cajero"
+    },
+    {
+      "username": "andres.rojas",
+      "employeeId": "emp-002",
+      "role": "bodeguero"
+    },
+    {
+      "username": "maria.perez",
+      "employeeId": "emp-003",
+      "role": "admin",
+      "pin": "1234"
+    },
+    {
+      "username": "carlos.duenio",
+      "employeeId": "emp-004",
+      "role": "propietario",
+      "pin": "9999"
+    },
+    {
+      "username": "sofia.ruiz",
+      "employeeId": "emp-005",
+      "role": "bodeguero"
+    },
+    {
+      "username": "pedro.compras",
+      "employeeId": "emp-006",
+      "role": "comprador"
+    },
+    {
+      "username": "ana.cartera",
+      "employeeId": "emp-007",
+      "role": "cartera"
+    }
+  ]
+}

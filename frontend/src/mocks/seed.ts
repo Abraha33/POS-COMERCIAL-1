@@ -1,5 +1,6 @@
 import type {
-  Customer, Employee, Payable, Product, PurchaseOrder, Receivable, Sale, StockLevel, StockMovement, Supplier,
+  Customer, Employee, InventoryAlert, Payable, Product, PurchaseOrder, Receivable, Sale, Shift, StockLevel,
+  StockMovement, Supplier, Transfer,
 } from '@/shared/contracts';
 
 const BRANCH = 'br-001';
@@ -28,6 +29,10 @@ export const employees: Employee[] = [
   { id: 'emp-001', name: 'Laura Gómez', role: 'cajero', branchId: BRANCH, active: true },
   { id: 'emp-002', name: 'Andrés Rojas', role: 'bodeguero', branchId: BRANCH, active: true },
   { id: 'emp-003', name: 'María Pérez', role: 'admin', branchId: BRANCH, active: true },
+  { id: 'emp-004', name: 'Carlos Dueño', role: 'propietario', branchId: BRANCH, active: true },
+  { id: 'emp-005', name: 'Sofía Ruiz', role: 'bodeguero', branchId: 'br-002', active: true },
+  { id: 'emp-006', name: 'Pedro Compras', role: 'comprador', branchId: BRANCH, active: true },
+  { id: 'emp-007', name: 'Ana Cartera', role: 'cartera', branchId: BRANCH, active: true },
 ];
 
 export const sales: Sale[] = [
@@ -49,9 +54,16 @@ export const sales: Sale[] = [
   },
 ];
 
-export const stockLevels: StockLevel[] = products.map((p, i) => ({
-  productId: p.id, branchId: BRANCH, onHand: 40 + i * 15, inTransit: 0, minimum: 20,
-}));
+export const stockLevels: StockLevel[] = [
+  ...products.map((p, i) => ({ productId: p.id, branchId: BRANCH, onHand: 40 + i * 15, inTransit: 0, minimum: 20 })),
+  // Sede 2: existencias iniciales para pruebas de traslado.
+  { productId: 'prd-001', branchId: 'br-002', onHand: 10, inTransit: 0, minimum: 5 },
+  { productId: 'prd-002', branchId: 'br-002', onHand: 10, inTransit: 0, minimum: 5 },
+];
+
+export const shifts: Shift[] = [];
+export const transfers: Transfer[] = [];
+export const alerts: InventoryAlert[] = [];
 
 export const stockMovements: StockMovement[] = [
   { id: 'stk-001', date: '2026-09-29', productId: 'prd-001', branchId: BRANCH, type: 'entrada', quantity: 100, reference: 'PO-0001' },
@@ -80,5 +92,6 @@ export const payables: Payable[] = [
 
 export const createSeed = () => structuredClone({
   products, customers, suppliers, employees, sales, stockLevels, stockMovements, purchaseOrders, receivables, payables,
+  shifts, transfers, alerts,
 });
 export type MockDb = ReturnType<typeof createSeed>;

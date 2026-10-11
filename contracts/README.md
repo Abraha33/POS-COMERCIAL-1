@@ -6,6 +6,8 @@ Fuente compartida entre frontend y backend. **Versión 0.3.0 — reglas aprobada
 - `openapi.yaml`: operaciones, esquemas, errores y seguridad. Prefijo `/api/v1`.
   Cada operación marca `x-status`: `simulated` (existe como mock MSW) o `proposed` (solo definida aquí).
 - `examples/<contrato>.json`: un ejemplo válido por contrato.
+- `fixtures/seed.json` y `fixtures/users.json`: datos y usuarios de prueba que el backend de desarrollo debe cargar para
+  pasar la suite de conformidad (generados desde el seed de los mocks: `UPDATE_FIXTURES=1 pnpm test fixtures`).
 
 ## Cómo se mantiene coherente (automático, `pnpm core:check` en `frontend/`)
 | Verificación | Dónde |
@@ -16,6 +18,9 @@ Fuente compartida entre frontend y backend. **Versión 0.3.0 — reglas aprobada
 | Los tipos Zod ≡ tipos generados desde el YAML (ambos sentidos) | `frontend/src/tests/contract-types.ts` (`tsc`) |
 | Tipos generados (`frontend/src/shared/api/generated/schema.d.ts`) están al día | gate 4 de `core:check`; regenerar con `pnpm gen:api` |
 | Endpoints `simulated` ⇔ handlers MSW | `openapi.test.ts` |
+| El mock cumple las reglas de negocio (19 escenarios) | `frontend/src/tests/conformance.mock.test.ts` |
+| La misma suite por HTTP real (mock o backend) | `pnpm conformance` (`API_BASE_URL`) |
+| Fixtures al día con el seed | `frontend/src/tests/fixtures.test.ts` |
 
 ## Reglas
 1. Contrato primero: se define aquí antes de implementarse en frontend o backend.
@@ -28,4 +33,4 @@ Fuente compartida entre frontend y backend. **Versión 0.3.0 — reglas aprobada
 - Autenticación real contra Frappe (token vs. sesión) — hoy `bearerAuth` es una propuesta.
 - Paginación y filtros en listados (hoy devuelven arreglos completos).
 - Operaciones de inventario (ajustes, traslados), compras (crear/recibir) y abonos de cartera.
-- Mocks MSW de las operaciones `proposed` (venta, turnos, auth): aún no existen.
+- Escenarios de conformidad faltantes: ver brechas en `docs/architecture/PARALLEL_WORKPLAN.md`.

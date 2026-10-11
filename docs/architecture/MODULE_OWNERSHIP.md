@@ -23,3 +23,18 @@ El integrador lo revisa antes de que otros agentes dependan de él.
 
 ## Referencia
 El slice `frontend/src/features/products` es la plantilla: ruta → hook → plantilla de tabla → formulario → mutación → toast → test.
+
+## Mocks por carril (frontend)
+Cada agente edita **solo su archivo de handlers** en `frontend/src/mocks/handlers/` y mantiene `contracts/openapi.yaml`
+coherente vía PR `contract:`:
+
+| Archivo | Carril |
+|---|---|
+| `auth.ts` | integrador |
+| `sales.ts`, `shifts.ts` | F1 `pos` |
+| `products.ts`, `inventory.ts` | F2 |
+| `readonly.ts` | F3–F6 (lo dividen al implementar escrituras) |
+
+## Carriles del backend
+Definidos en `docs/architecture/PARALLEL_WORKPLAN.md` (B0–B5). El backend vive en `backend/` y se valida con
+`pnpm conformance`; no modifica `contracts/` ni `frontend/` salvo PR `contract:`.

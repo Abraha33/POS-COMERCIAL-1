@@ -1,4 +1,5 @@
 # Pruebas de integración
 
-Pruebas que verifican que el frontend envía lo acordado en `contracts/openapi.yaml` y que el backend responde conforme.
-Pendiente: se crean cuando exista `backend/`.
+La suite de conformidad vive en `frontend/src/conformance/` (reutiliza los contratos Zod del frontend) y se ejecuta con
+`pnpm conformance` desde `frontend/`. Esta carpeta queda reservada para pruebas de extremo a extremo
+frontend ↔ backend real (Playwright contra ambos) cuando el backend exista.

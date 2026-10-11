@@ -22,3 +22,9 @@ git worktree add ../POS-wt-pos -b feat/pos integration
 - Estados de carga, vacío y error cubiertos.
 - Permisos aplicados (`RouteGuard` en ruta, `Can` en acciones).
 - Operable con teclado y sin violaciones críticas de axe.
+
+## Backend y contrato
+- Rama del backend: `be/<carril>` (p. ej. `be/sales`), en su propio worktree.
+- Un PR de backend es aceptable si `API_BASE_URL=<su instancia> pnpm conformance` pasa los escenarios de su carril.
+- Un PR `contract:` debe incluir: cambio en `openapi.yaml`, `examples/`, regla en `docs/business-rules/`,
+  escenario en `frontend/src/conformance/scenarios.ts` y mock actualizado. `pnpm core:check` verde.
