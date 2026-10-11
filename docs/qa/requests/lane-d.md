@@ -9,3 +9,14 @@
 | 5 | `contract:` responsabilidad tributaria | Catálogo cerrado de `taxResponsibility` (códigos DIAN). | Hoy es texto libre (PROPUESTA). |
 | 6 | `core:` UI | `DataTablePage` con slot de resumen/filtros y orden inicial. | Receivables/payables usan `DataTable` propio por esta limitación. |
 | 7 | `mocks` | Handler de abono en efectivo ligado al turno (BR-CAR-03 es SUP). | No se modela impacto en caja. |
+
+## Estado (contract/v0.5.0)
+| # | Estado |
+|---|--------|
+| 1 | **Atendida:** `customers.edit`, `receivables.pay`, `payables.pay`; las pantallas ya los usan. |
+| 2 | **Atendida:** `shared/utils/clock.ts` (`today()`/`useToday()`); `LEDGER_REFERENCE_DATE` eliminado. |
+| 3 | **Atendida en contrato y mocks:** `balance`, `status`, `daysOverdue`, `branchId`, `outstandingBalance`, `overdueBalance`. **Pendiente:** que la UI use los derivados en vez de calcularlos (las funciones locales se conservan). |
+| 4 | **Atendida:** `GET /receivables/{id}/payments`, `POST /customers/{id}/payments` (hooks `useReceivablePayments`, `usePayCustomer`). Sin historial de pagos a proveedores. |
+| 5 | **Atendida:** enum `taxResponsibility` (O-13, O-15, O-23, O-47, R-99-PN). **Pendiente:** el formulario de cliente sigue con texto libre; debe ser un select (`taxResponsibilityLabels`). |
+| 6 | **Atendida:** `DataTablePage` con `summary`, `filters`, `initialSort`. |
+| 7 | **Pendiente:** BR-CAR-03 sigue SUP (decisión del dueño). |

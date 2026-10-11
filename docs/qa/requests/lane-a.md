@@ -8,3 +8,9 @@
    carril (usa `findByText` con 1 s); revisar el timeout. Los tests POS pasan con `{ timeout: 20000 }` por describe.
 4. **core (opcional):** exponer en el contrato de `Sale` el `shiftId` para que la UI pueda anticipar el `FORBIDDEN`
    de anulación (turno cerrado) en vez de esperar la respuesta del servidor.
+
+## Estado (contract/v0.5.0)
+1. **Atendida:** `Sale.shiftId`, `SaleLine.returnedQuantity` y `GET /pos/sales/{id}/returns` (BR-DEV-07/08). La UI aún no los consume.
+2. **Atendida:** locale `es` de PrimeReact en el arranque (`app/config/primeLocale.ts`).
+3. **Atendida en config:** `testTimeout` 20 s y `asyncUtilTimeout` 5 s; con carga alta aún hay flakiness intermitente en `pos-*` (pasan aisladas).
+4. **Atendida:** `Sale.shiftId` (ver 1).

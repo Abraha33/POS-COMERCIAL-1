@@ -12,3 +12,9 @@
 4. **Tests globales con timeout de 5 s.** En esta máquina fallan por tiempo (sin cambios míos) `app.test.tsx` (productos)
    y `pos-*.test.tsx`; mi archivo fija `vi.setConfig({ testTimeout: 30000 })`. Sugerencia: `testTimeout` mayor en
    `vitest.config`.
+
+## Estado (contract/v0.5.0)
+1. **Atendida:** permiso `purchases.receive`; bodeguero con `purchases.view` + `purchases.receive`. La acción "Recibir" usa ya `purchases.receive`.
+2. **Atendida:** `POST /purchase-orders/{id}/cancel` y hook `useCancelPurchaseOrder`. **Pendiente:** botón en la UI (carril C).
+3. **Atendida en contrato:** la respuesta de `receive` trae `effect` por línea (`lines[]`, no un único objeto, porque una orden tiene varias líneas). **Pendiente:** que la UI lo use en vez de releer listas.
+4. **Ya resuelta:** `testTimeout` global 20 s.

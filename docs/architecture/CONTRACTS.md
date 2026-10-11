@@ -30,3 +30,13 @@ Reglas: `docs/business-rules/`. Detalle y verificaciones automáticas: `contract
 ## Pendiente de la integración real
 Mapeo campo a campo contra Frappe (nombres y tipos), autenticación, paginación del lado servidor,
 concurrencia de inventario y pagos reales. Los mocks no prueban nada de eso.
+
+## Contrato v0.5.0 (PROPUESTA, `x-approval: proposed`)
+Nuevos: `GET /pos/shifts`, `GET /pos/sales/{id}/returns`, `GET /receivables/{id}/payments`, `POST /customers/{id}/payments`,
+`POST /purchase-orders/{id}/cancel`, `POST /inventory/adjustments`, `POST /inventory/counts`,
+`GET /reports/sales-summary|aging|inventory-valuation`, `PUT /branches/{id}`, `GET|PUT /company`.
+Cambios de forma (rompen consumidores): `Sale.shiftId`, `SaleLine.returnedQuantity`, `Receivable`/`Payable` con
+`branchId`, `balance`, `status`, `daysOverdue`; `Customer` con `outstandingBalance`, `overdueBalance`;
+`taxResponsibility` es enum DIAN; `receive` devuelve `PurchaseOrderReceipt` (`effect` opcional).
+Permisos nuevos: `customers.edit`, `receivables.pay`, `payables.pay`, `purchases.receive`.
+Reglas: `docs/business-rules/08-v0.5-ajustes-conteos-cartera-reportes.md`.
