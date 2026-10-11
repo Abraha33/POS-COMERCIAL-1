@@ -33,8 +33,7 @@ API_BASE_URL=http://localhost:8000/api/v1 pnpm conformance
 
 ## Mantenerse al día
 ```bash
-git fetch . integration:integration   # no hace falta remoto: es el mismo repo
-git rebase integration                # desde el worktree del carril
+git rebase integration    # desde el worktree del carril; las ramas son locales, no hace falta remoto
 ```
 Regla: solo se integra a `integration` con `pnpm test`, `pnpm lint` y `pnpm typecheck` en verde; `main` solo recibe
 `integration` cuando `pnpm core:check` pasa.
