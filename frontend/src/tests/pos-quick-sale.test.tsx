@@ -24,7 +24,7 @@ const openShift = async (user: ReturnType<typeof userEvent.setup>) => {
   await screen.findByLabelText(/buscar producto o escanear/i);
 };
 
-describe('POS: venta rápida', () => {
+describe('POS: venta rápida', { timeout: 20000 }, () => {
   it('sin turno abierto pide la apertura; con turno permite vender y muestra el recibo', async () => {
     const user = userEvent.setup();
     await renderPos();

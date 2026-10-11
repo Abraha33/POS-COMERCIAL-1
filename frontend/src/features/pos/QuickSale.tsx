@@ -45,7 +45,7 @@ const matches = (product: Product, query: string): boolean => {
  * por eso solo se atienden los cambios con `originalEvent` (acción del usuario).
  *
  * Venta rápida: teclado y lector primero; táctil en tableta. Reglas: BR-VEN-01..14. */
-export const QuickSale = ({ shift }: { shift: Shift }) => {
+export const QuickSale = ({ shift, active = true }: { shift: Shift; active?: boolean }) => {
   const products = useProducts();
   const customers = useCustomers();
   const createSale = useCreateSale();
@@ -177,11 +177,12 @@ export const QuickSale = ({ shift }: { shift: Shift }) => {
     searchRef.current?.focus();
   };
 
-  useHotkey('F2', () => searchRef.current?.focus());
-  useHotkey('F4', holdCurrent, lines.length > 0);
-  useHotkey('F6', () => setHeldOpen(true));
-  useHotkey('F10', () => setCashOpen(true));
-  useHotkey('F9', () => submit(), canConfirm);
+  // Con la vista "Historial" activa la venta sigue montada pero sin atajos (evita cobrar un carrito oculto).
+  useHotkey('F2', () => searchRef.current?.focus(), active);
+  useHotkey('F4', holdCurrent, active && lines.length > 0);
+  useHotkey('F6', () => setHeldOpen(true), active);
+  useHotkey('F10', () => setCashOpen(true), active);
+  useHotkey('F9', () => submit(), active && canConfirm);
 
   const updatePayment = (index: number, patch: Partial<Payment>) =>
     setPayments(effectivePayments.map((p, i) => (i === index ? { ...p, ...patch } : p)));
@@ -248,6 +249,7 @@ export const QuickSale = ({ shift }: { shift: Shift }) => {
             ) : (
               <div className="pos__lines-wrap">
                 <table className="pos__lines">
+                  <caption className="sr-only">Líneas de la venta actual</caption>
                   <thead>
                     <tr>
                       <th>Producto</th>
@@ -260,11 +262,11 @@ export const QuickSale = ({ shift }: { shift: Shift }) => {
                   <tbody>
                     {priced.map(({ line, product, unitPrice }) => (
                       <tr key={line.productId}>
-                        <td>
+                        <td className="pos__c-name">
                           {product.name}
                           <div className="pos__hint">{formatMoney(unitPrice)} c/u</div>
                         </td>
-                        <td>
+                        <td className="pos__c-qty">
                           <span className="pos__qty">
                             <Button
                               type="button" icon="pi pi-minus" rounded text severity="secondary"
@@ -279,7 +281,7 @@ export const QuickSale = ({ shift }: { shift: Shift }) => {
                             />
                           </span>
                         </td>
-                        <td className="pos__num">
+                        <td className="pos__num pos__c-disc" data-label="Descuento">
                           <InputNumber
                             inputId={`discount-${line.productId}`}
                             aria-label={`Descuento ${product.name}`}
@@ -290,8 +292,8 @@ export const QuickSale = ({ shift }: { shift: Shift }) => {
                             inputStyle={{ width: '7rem' }}
                           />
                         </td>
-                        <td className="pos__num">{formatMoney(unitPrice * line.quantity - line.discount)}</td>
-                        <td>
+                        <td className="pos__num pos__c-total" data-label="Total">{formatMoney(unitPrice * line.quantity - line.discount)}</td>
+                        <td className="pos__c-remove">
                           <Button
                             type="button" icon="pi pi-trash" rounded text severity="danger"
                             aria-label={`Quitar ${product.name}`}
@@ -406,18 +408,22 @@ export const QuickSale = ({ shift }: { shift: Shift }) => {
         header="Venta registrada"
         visible={receipt !== null}
         onHide={() => { setReceipt(null); reset(); }}
+        className="pos-dialog"
         style={{ width: 'min(24rem, 95vw)' }}
         modal
       >
         {receipt ? (
-          <div className="pos__totals">
+          <div className="pos__totals pos__receipt">
             <div><span>Número</span><strong data-testid="receipt-number">{receipt.number}</strong></div>
             <div><span>Total</span><span>{formatMoney(receipt.total)}</span></div>
             <div><span>Cambio</span><span className="pos__change">{formatMoney(receipt.change)}</span></div>
-            <Button
-              type="button" label="Nueva venta" icon="pi pi-plus" autoFocus className="mt-3"
-              onClick={() => { setReceipt(null); reset(); }}
-            />
+            <div className="pos__print-hide flex flex-wrap gap-2 mt-3">
+              <Button
+                type="button" label="Nueva venta" icon="pi pi-plus" autoFocus
+                onClick={() => { setReceipt(null); reset(); }}
+              />
+              <Button type="button" label="Imprimir" icon="pi pi-print" outlined onClick={() => window.print()} />
+            </div>
           </div>
         ) : null}
       </Dialog>

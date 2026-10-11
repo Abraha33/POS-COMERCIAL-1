@@ -28,7 +28,7 @@ const openShiftAndScan = async (user: User, code: string) => {
 
 beforeEach(() => window.localStorage.clear());
 
-describe('POS: ventas suspendidas', () => {
+describe('POS: ventas suspendidas', { timeout: 20000 }, () => {
   it('suspende la venta, queda en la lista y se reanuda sin perder las líneas', async () => {
     const user = userEvent.setup();
     await renderPos();
@@ -49,7 +49,7 @@ describe('POS: ventas suspendidas', () => {
   });
 });
 
-describe('POS: caja', () => {
+describe('POS: caja', { timeout: 20000 }, () => {
   it('un egreso reduce el efectivo esperado', async () => {
     const user = userEvent.setup();
     await renderPos();

@@ -48,6 +48,7 @@ export const SupervisorPinDialog = ({ action, reason, onApproved, onCancel }: Pr
         approval.reset();
         onCancel();
       }}
+      className="pos-dialog"
       style={{ width: 'min(26rem, 95vw)' }}
       modal
     >
