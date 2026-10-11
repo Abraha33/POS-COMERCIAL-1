@@ -1,0 +1,46 @@
+.purch { display: grid; gap: var(--app-gap); }
+.purch__bar { display: flex; flex-wrap: wrap; gap: var(--app-gap); align-items: end; justify-content: space-between; margin-bottom: var(--app-gap); }
+.purch__filter { display: grid; gap: 0.25rem; min-width: min(14rem, 100%); }
+.purch__proposal { color: var(--text-color-secondary); font-size: 0.85rem; margin: var(--app-gap) 0 0; }
+.purch__num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.purch__panel {
+  background: var(--surface-ground);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--app-radius);
+  padding: var(--app-gap);
+  margin-top: var(--app-gap);
+}
+.purch__panel h3 { margin: 0 0 0.5rem; font-size: 1rem; }
+.purch__lines { width: 100%; border-collapse: collapse; }
+.purch__lines th { text-align: left; font-size: 0.85rem; color: var(--text-color-secondary); padding: 0.35rem; }
+.purch__lines td { padding: 0.35rem; border-top: 1px solid var(--surface-border); vertical-align: middle; }
+.purch__lines th.purch__num, .purch__lines td.purch__num { text-align: right; }
+.purch__form-lines { display: grid; gap: 0.5rem; }
+.purch__form-line {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) auto auto;
+  gap: 0.5rem;
+  align-items: end;
+}
+.purch__field { display: grid; gap: 0.25rem; min-width: 0; }
+.purch__subtotal { font-variant-numeric: tabular-nums; min-height: var(--app-touch-min); display: flex; align-items: center; white-space: nowrap; }
+.purch__total { font-size: 1.4rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.purch__error { color: var(--app-danger); font-weight: 600; margin: 0.25rem 0 0; }
+.purch__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-end; margin-top: var(--app-gap); }
+.purch__effect { border-color: var(--app-success); }
+.purch__effect h3 { color: var(--app-success); }
+.purch__hint { color: var(--text-color-secondary); font-size: 0.85rem; }
+
+@media (max-width: 640px) {
+  .purch__form-line {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--surface-border);
+  }
+  .purch__form-line > :first-child { grid-column: 1 / -1; }
+}
+
+/* El título de pestaña activa del tema (azul #3b82f6) no llega a AA sobre blanco: usa el primario del producto. */
+.purch-tabs .p-tabview-nav li.p-highlight .p-tabview-nav-link,
+.purch-tabs .p-tabview-nav li .p-tabview-nav-link:hover { color: var(--primary-color); }
+.purch-tabs .p-tabview-nav li .p-tabview-nav-link { color: var(--text-color-secondary); }
