@@ -23,7 +23,7 @@ Leyenda de **origen**: `REQ` requisito aprobado (reglas BR-XXX / mensajes del du
 ## Inventario por módulo
 | Módulo | Pantalla / flujo | Objetivo del usuario | Funcionalidades actuales | Componentes | Estados | Dependencias | Estado actual | Mejora propuesta | Origen |
 |---|---|---|---|---|---|---|---|---|---|
-| POS | Venta rápida | Cobrar rápido con teclado/lector | — (solo lista de ventas) | `DataTablePage` | carga/vacío/error | `useCreateSale`, `useCurrentShift`, `computeTotals` | **ausente** (hay lista, no venta) | Pantalla completa de venta con líneas editables, pago mixto, PIN, cambio | REQ |
+| POS | Venta rápida | Cobrar rápido con teclado/lector | **Implementada (prueba):** apertura de turno, búsqueda/lector (Enter), líneas con cantidad y descuento, cliente, pago mixto, ajuste al peso, PIN de supervisor, recibo, F2/F9 | `QuickSale`, `SupervisorPinDialog`, `OpenShiftCard` | turno cerrado, vacío, falta de pago, stock/PIN, éxito | `useCreateSale`, `useCurrentShift`, `useRequestApproval`, `computeTotals` | **parcial** (primera versión) | Suspender/reanudar, devolución, cierre de caja, imprimir, cola offline, tabla de líneas en móvil | REQ |
 | POS | Apertura / cierre de caja | Abrir turno, registrar movimientos, cuadrar | — | — | — | `useOpenShift`, `useCloseShift`, `useAddShiftMovement` | ausente | Flujo de turno con diferencia y nota obligatoria | REQ |
 | POS | Ventas suspendidas / devolución | Pausar una venta; devolver parcial | — | — | — | contrato v0.4.0 | ausente | `hold/resume`, `returns` | REC (PROPUESTA) |
 | POS | Historial de ventas | Consultar/anular ventas | Lista simple | `DataTablePage` | carga/vacío/error | `useSales`, `useVoidSale` | parcial | Filtros, detalle, anulación con motivo | REQ |

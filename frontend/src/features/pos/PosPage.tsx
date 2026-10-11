@@ -1,28 +1,22 @@
-import type { Sale } from '@/shared/contracts';
-import { useSales } from '@/shared/api/queries';
-import { DataTablePage, type ColumnDef } from '@/shared/ui';
-import { formatMoney } from '@/shared/utils/format';
+import { useCurrentShift } from '@/shared/api/pos';
+import { ErrorState, LoadingState, ScreenTemplate } from '@/shared/ui';
+import { OpenShiftCard } from './OpenShiftCard';
+import { QuickSale } from './QuickSale';
 
-const columns: ColumnDef<Sale>[] = [
-  { field: 'number', header: 'Número' },
-  { field: 'date', header: 'Fecha' },
-  { field: 'payments', header: 'Pago', body: (s) => s.payments.map((p) => p.method).join(' + ') },
-  { field: 'total', header: 'Total', body: (s) => formatMoney(s.total) },
-  { field: 'status', header: 'Estado' },
-];
-
-/** Pantalla ancla del POS (agente 1). Hoy solo lista ventas: la venta real se construye en la fase paralela. */
+/** Pantalla del POS: sin turno abierto muestra la apertura; con turno, la venta rápida (BR-VEN-01). */
 export const PosPage = () => {
-  const { data, isLoading, error, refetch } = useSales();
-  return (
-    <DataTablePage
-      title="Punto de venta"
-      subtitle="Ventas recientes"
-      rows={data}
-      isLoading={isLoading}
-      error={error}
-      onRetry={() => void refetch()}
-      columns={columns}
-    />
-  );
+  const shift = useCurrentShift();
+
+  if (shift.isLoading) {
+    return <ScreenTemplate title="Punto de venta"><LoadingState /></ScreenTemplate>;
+  }
+  if (shift.error) {
+    return (
+      <ScreenTemplate title="Punto de venta">
+        <ErrorState error={shift.error} onRetry={() => void shift.refetch()} />
+      </ScreenTemplate>
+    );
+  }
+  if (!shift.data) return <OpenShiftCard />;
+  return <QuickSale shift={shift.data} />;
 };

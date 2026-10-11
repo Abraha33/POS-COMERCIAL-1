@@ -1,0 +1,57 @@
+.pos { display: grid; gap: var(--app-gap); }
+.pos__layout {
+  display: grid;
+  gap: var(--app-gap);
+  grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr);
+  align-items: start;
+}
+.pos__panel {
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--app-radius);
+  padding: var(--app-gap);
+  min-width: 0;
+}
+.pos__panel h2 { margin: 0 0 var(--app-gap); font-size: 1.05rem; }
+.pos__search { width: 100%; font-size: var(--app-pos-font-size); }
+.pos__products {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  margin-top: var(--app-gap);
+}
+.pos__product {
+  min-height: 64px;
+  text-align: left;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.5rem 0.65rem;
+  background: var(--surface-ground);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--app-radius);
+  color: var(--text-color);
+  cursor: pointer;
+}
+.pos__product:hover { border-color: var(--primary-color); }
+.pos__product-price { color: var(--text-color-secondary); font-variant-numeric: tabular-nums; }
+.pos__lines { width: 100%; border-collapse: collapse; }
+.pos__lines th { text-align: left; font-size: 0.85rem; color: var(--text-color-secondary); padding: 0.35rem; }
+.pos__lines td { padding: 0.35rem; border-top: 1px solid var(--surface-border); vertical-align: middle; }
+.pos__num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pos__qty { display: inline-flex; align-items: center; gap: 0.25rem; }
+.pos__totals { display: grid; gap: 0.35rem; margin: var(--app-gap) 0; }
+.pos__totals div { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
+.pos__total { font-size: 1.6rem; font-weight: 700; }
+.pos__payment { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 0.5rem; margin-bottom: 0.5rem; }
+.pos__field { display: grid; gap: 0.25rem; margin-bottom: var(--app-gap); }
+.pos__hint { color: var(--text-color-secondary); font-size: 0.85rem; }
+.pos__change { color: var(--app-success); font-weight: 600; }
+.pos__missing { color: var(--app-danger); font-weight: 600; }
+.pos__confirm { width: 100%; font-size: 1.15rem; min-height: 56px; }
+.pos__shift { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; color: var(--text-color-secondary); font-size: 0.9rem; }
+
+@media (max-width: 900px) {
+  .pos__layout { grid-template-columns: minmax(0, 1fr); }
+  .pos__payment { grid-template-columns: minmax(0, 1fr); }
+  .pos__lines-wrap { overflow-x: auto; }
+}
