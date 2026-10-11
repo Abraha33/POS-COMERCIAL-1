@@ -1,27 +1,31 @@
-import type { StockLevel } from '@/shared/contracts';
-import { useStockLevels } from '@/shared/api/queries';
-import { DataTablePage, type ColumnDef } from '@/shared/ui';
+import { TabPanel, TabView } from 'primereact/tabview';
+import { useInventoryAlerts } from '@/shared/api/inventory';
+import { ScreenTemplate } from '@/shared/ui';
+import { AlertsTab } from './AlertsTab';
+import { MovementsTab } from './MovementsTab';
+import { StockTab } from './StockTab';
+import { TransfersTab } from './TransfersTab';
 
-const columns: ColumnDef<StockLevel & { id: string }>[] = [
-  { field: 'productId', header: 'Producto' },
-  { field: 'branchId', header: 'Sede' },
-  { field: 'onHand', header: 'Existencias' },
-  { field: 'minimum', header: 'Mínimo' },
-];
-
-/** Pantalla ancla de Inventarios (agente 2). */
 export const InventoryPage = () => {
-  const { data, isLoading, error, refetch } = useStockLevels();
-  const rows = data?.map((level) => ({ ...level, id: `${level.productId}:${level.branchId}` }));
+  const alerts = useInventoryAlerts();
+  const pending = (alerts.data ?? []).filter((a) => !a.resolved).length;
+
   return (
-    <DataTablePage
-      title="Inventarios"
-      subtitle="Existencias por sede"
-      rows={rows}
-      isLoading={isLoading}
-      error={error}
-      onRetry={() => void refetch()}
-      columns={columns}
-    />
+    <ScreenTemplate title="Inventarios" subtitle="Existencias por sede, kardex, traslados y alertas">
+      <TabView>
+        <TabPanel header="Existencias">
+          <StockTab />
+        </TabPanel>
+        <TabPanel header="Movimientos">
+          <MovementsTab />
+        </TabPanel>
+        <TabPanel header="Traslados">
+          <TransfersTab />
+        </TabPanel>
+        <TabPanel header={pending > 0 ? `Alertas (${pending})` : 'Alertas'}>
+          <AlertsTab />
+        </TabPanel>
+      </TabView>
+    </ScreenTemplate>
   );
 };
