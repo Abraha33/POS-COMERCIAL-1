@@ -1,0 +1,7 @@
+{
+  "fromBranchId": "br-001",
+  "toBranchId": "br-002",
+  "lines": [
+    { "productId": "prd-001", "quantity": 20 }
+  ]
+}

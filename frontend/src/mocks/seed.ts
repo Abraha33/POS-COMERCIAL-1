@@ -5,18 +5,18 @@ import type {
 const BRANCH = 'br-001';
 
 export const products: Product[] = [
-  { id: 'prd-001', sku: 'SKU-001', barcode: '7701234567890', name: 'Arroz 500 g', category: 'Granos', unit: 'und', price: 2800, cost: 2100, taxRate: 0, active: true },
-  { id: 'prd-002', sku: 'SKU-002', barcode: '7701234567891', name: 'Aceite 1 L', category: 'Aceites', unit: 'und', price: 12500, cost: 9800, taxRate: 0.19, active: true },
-  { id: 'prd-003', sku: 'SKU-003', barcode: '7701234567892', name: 'Azúcar 1 kg', category: 'Granos', unit: 'und', price: 4200, cost: 3300, taxRate: 0, active: true },
-  { id: 'prd-004', sku: 'SKU-004', barcode: '7701234567893', name: 'Leche entera 1 L', category: 'Lácteos', unit: 'und', price: 4600, cost: 3700, taxRate: 0, active: true },
-  { id: 'prd-005', sku: 'SKU-005', barcode: '7701234567894', name: 'Detergente 1 kg', category: 'Aseo', unit: 'und', price: 9800, cost: 7400, taxRate: 0.19, active: true },
-  { id: 'prd-006', sku: 'SKU-006', name: 'Café molido 250 g', category: 'Bebidas', unit: 'und', price: 8900, cost: 6900, taxRate: 0, active: false },
+  { id: 'prd-001', sku: 'SKU-001', barcode: '7701234567890', name: 'Arroz 500 g', category: 'Granos', unit: 'und', price: 2800, cost: 2100, taxCategory: 'excluido', taxRate: 0, active: true },
+  { id: 'prd-002', sku: 'SKU-002', barcode: '7701234567891', name: 'Aceite 1 L', category: 'Aceites', unit: 'und', price: 12500, cost: 9800, taxCategory: 'gravado', taxRate: 0.19, active: true },
+  { id: 'prd-003', sku: 'SKU-003', barcode: '7701234567892', name: 'Azúcar 1 kg', category: 'Granos', unit: 'und', price: 4200, cost: 3300, taxCategory: 'excluido', taxRate: 0, active: true },
+  { id: 'prd-004', sku: 'SKU-004', barcode: '7701234567893', name: 'Leche entera 1 L', category: 'Lácteos', unit: 'und', price: 4600, cost: 3700, taxCategory: 'excluido', taxRate: 0, active: true },
+  { id: 'prd-005', sku: 'SKU-005', barcode: '7701234567894', name: 'Detergente 1 kg', category: 'Aseo', unit: 'und', price: 9800, cost: 7400, taxCategory: 'gravado', taxRate: 0.19, active: true },
+  { id: 'prd-006', sku: 'SKU-006', name: 'Café molido 250 g', category: 'Bebidas', unit: 'und', price: 8900, cost: 6900, taxCategory: 'excluido', taxRate: 0, active: false },
 ];
 
 export const customers: Customer[] = [
-  { id: 'cus-001', name: 'Tienda La Esquina', taxId: '900123456-1', phone: '3001112233', active: true, creditLimit: 1_500_000 },
-  { id: 'cus-002', name: 'Restaurante El Sazón', taxId: '901234567-2', active: true, creditLimit: 800_000 },
-  { id: 'cus-003', name: 'Cliente mostrador', taxId: '222222222-2', active: true, creditLimit: 0 },
+  { id: 'cus-001', name: 'Tienda La Esquina', documentType: 'NIT', taxId: '900123456-1', taxResponsibility: 'R-99-PN', phone: '3001112233', email: 'compras@laesquina.example', active: true, creditLimit: 1_500_000 },
+  { id: 'cus-002', name: 'Restaurante El Sazón', documentType: 'NIT', taxId: '901234567-2', taxResponsibility: 'R-99-PN', email: 'admin@elsazon.example', active: true, creditLimit: 800_000 },
+  { id: 'cus-003', name: 'Cliente mostrador', documentType: 'CC', taxId: '222222222222', taxResponsibility: 'R-99-PN', active: true, creditLimit: 0 },
 ];
 
 export const suppliers: Supplier[] = [
@@ -33,11 +33,11 @@ export const employees: Employee[] = [
 export const sales: Sale[] = [
   {
     id: 'sal-001', number: 'POS-0001', date: '2026-10-01', customerId: 'cus-003', cashierId: 'emp-001', branchId: BRANCH,
-    lines: [{ productId: 'prd-001', quantity: 2, unitPrice: 2800, discount: 0 }], paymentMethod: 'efectivo', total: 5600, status: 'pagada',
+    lines: [{ productId: 'prd-001', quantity: 2, unitPrice: 2800, discount: 0 }], payments: [{ method: 'efectivo', amount: 5600 }], roundingAdjustment: 0, total: 5600, status: 'pagada',
   },
   {
     id: 'sal-002', number: 'POS-0002', date: '2026-09-20', customerId: 'cus-001', cashierId: 'emp-001', branchId: BRANCH,
-    lines: [{ productId: 'prd-002', quantity: 32, unitPrice: 12500, discount: 0 }], paymentMethod: 'credito', total: 400000, status: 'credito',
+    lines: [{ productId: 'prd-002', quantity: 32, unitPrice: 12500, discount: 0 }], payments: [{ method: 'credito', amount: 400000 }], roundingAdjustment: 0, total: 400000, status: 'credito',
   },
   {
     id: 'sal-003', number: 'POS-0003', date: '2026-10-03', customerId: 'cus-002', cashierId: 'emp-001', branchId: BRANCH,
@@ -45,12 +45,12 @@ export const sales: Sale[] = [
       { productId: 'prd-003', quantity: 5, unitPrice: 4200, discount: 0 },
       { productId: 'prd-004', quantity: 6, unitPrice: 4600, discount: 600 },
     ],
-    paymentMethod: 'tarjeta', total: 48000, status: 'pagada',
+    payments: [{ method: 'efectivo', amount: 20000 }, { method: 'nequi', amount: 28000 }], roundingAdjustment: 0, total: 48000, status: 'pagada',
   },
 ];
 
 export const stockLevels: StockLevel[] = products.map((p, i) => ({
-  productId: p.id, branchId: BRANCH, onHand: 40 + i * 15, minimum: 20,
+  productId: p.id, branchId: BRANCH, onHand: 40 + i * 15, inTransit: 0, minimum: 20,
 }));
 
 export const stockMovements: StockMovement[] = [

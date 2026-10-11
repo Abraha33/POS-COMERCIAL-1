@@ -8,7 +8,10 @@
   "lines": [
     { "productId": "prd-001", "quantity": 2, "unitPrice": 2800, "discount": 0 }
   ],
-  "paymentMethod": "efectivo",
+  "payments": [
+    { "method": "efectivo", "amount": 5600 }
+  ],
+  "roundingAdjustment": 0,
   "total": 5600,
   "status": "pagada"
 }

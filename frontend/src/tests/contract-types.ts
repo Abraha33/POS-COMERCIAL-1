@@ -7,7 +7,8 @@ import type { components } from '@/shared/api/generated/schema';
 import type {
   ApiErrorBody, AuthSession, Customer, Employee, Login, Payable, Product, ProductInput, PurchaseOrder,
   Receivable, Sale, SaleCreate, SaleReceipt, SaleVoid, Session, Shift, ShiftClose, ShiftOpen,
-  StockLevel, StockMovement, Supplier,
+  StockLevel, StockMovement, Supplier, ShiftMovement, ApprovalRequest, Approval, TransferCreate, Transfer,
+  InventoryAlert, Payment,
 } from '@/shared/contracts';
 
 type Schemas = components['schemas'];
@@ -38,4 +39,17 @@ export type ContractTypeChecks = [
   Assert<Same<Login, Schemas['Login']>>,
   Assert<Same<AuthSession, Schemas['AuthSession']>>,
   Assert<Same<Session, Schemas['Session']>>,
+  Assert<Same<ShiftMovement, Schemas['ShiftMovement']>>,
+  Assert<Same<ApprovalRequest, Schemas['ApprovalRequest']>>,
+  Assert<Same<Approval, Schemas['Approval']>>,
+  Assert<Same<TransferCreate, Schemas['TransferCreate']>>,
+  Assert<Same<Transfer, Schemas['Transfer']>>,
+  Assert<Same<InventoryAlert, Schemas['InventoryAlert']>>,
+  Assert<Same<Payment, Schemas['Payment']>>,
+  Assert<Same<ApprovalRequest, Schemas['ApprovalRequest']>>,
+  Assert<Same<Approval, Schemas['Approval']>>,
+  Assert<Same<TransferCreate, Schemas['TransferCreate']>>,
+  Assert<Same<Transfer, Schemas['Transfer']>>,
+  Assert<Same<InventoryAlert, Schemas['InventoryAlert']>>,
+  Assert<Same<Payment, Schemas['Payment']>>,
 ];

@@ -10,12 +10,24 @@ const partyBase = {
   active: z.boolean(),
 };
 
-export const customerSchema = z.object({ ...partyBase, creditLimit: z.number().nonnegative() });
+/** BR-CLI-07: tipos de documento DIAN. */
+export const documentTypeSchema = z.enum(['CC', 'NIT', 'CE', 'TI', 'PPT', 'PEP']);
+export type DocumentType = z.infer<typeof documentTypeSchema>;
+
+export const customerSchema = z.object({
+  ...partyBase,
+  documentType: documentTypeSchema,
+  taxResponsibility: z.string().min(1),
+  creditLimit: z.number().int().nonnegative(),
+});
 export type Customer = z.infer<typeof customerSchema>;
 export const customerContract: Contract<typeof customerSchema> = {
   doctype: 'Customer',
   schema: customerSchema,
-  example: { id: 'cus-001', name: 'Tienda La Esquina', taxId: '900123456-1', phone: '3001112233', active: true, creditLimit: 1_500_000 },
+  example: {
+    id: 'cus-001', name: 'Tienda La Esquina', documentType: 'NIT', taxId: '900123456-1', taxResponsibility: 'R-99-PN',
+    phone: '3001112233', email: 'compras@laesquina.example', active: true, creditLimit: 1_500_000,
+  },
 };
 
 export const supplierSchema = z.object({ ...partyBase, paymentTermsDays: z.number().int().nonnegative() });

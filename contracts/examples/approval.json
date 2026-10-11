@@ -1,0 +1,6 @@
+{
+  "approvalToken": "aprobacion-de-ejemplo",
+  "action": "negative_stock",
+  "supervisorId": "emp-003",
+  "expiresAt": "2026-10-01T13:05:00Z"
+}

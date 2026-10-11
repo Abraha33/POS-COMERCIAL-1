@@ -1,7 +1,7 @@
 # contracts/
 
-Fuente compartida entre frontend y backend. **Versión 0.2.0 — PROPUESTA pendiente de aprobación** (ver
-`docs/business-rules/99-preguntas-abiertas.md`).
+Fuente compartida entre frontend y backend. **Versión 0.3.0 — reglas aprobadas por el dueño; implementación y validación contra Frappe pendientes** (ver
+`docs/business-rules/99-preguntas-abiertas.md`, aclaraciones A1–A8).
 
 - `openapi.yaml`: operaciones, esquemas, errores y seguridad. Prefijo `/api/v1`.
   Cada operación marca `x-status`: `simulated` (existe como mock MSW) o `proposed` (solo definida aquí).
@@ -24,7 +24,7 @@ Fuente compartida entre frontend y backend. **Versión 0.2.0 — PROPUESTA pendi
 4. Las reglas de negocio que cita cada operación (BR-XXX) viven en `docs/business-rules/`.
 
 ## Pendiente
-- Aprobación de las reglas (impuestos, stock negativo, pago mixto, crédito, caja…).
+- Aclaraciones menores A1–A8 (redondeo al peso, descuento del cajero, recepción parcial de traslados…).
 - Autenticación real contra Frappe (token vs. sesión) — hoy `bearerAuth` es una propuesta.
 - Paginación y filtros en listados (hoy devuelven arreglos completos).
 - Operaciones de inventario (ajustes, traslados), compras (crear/recibir) y abonos de cartera.

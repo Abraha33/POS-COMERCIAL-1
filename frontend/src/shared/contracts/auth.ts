@@ -30,3 +30,30 @@ export const authSessionContract: Contract<typeof authSessionSchema> = {
     },
   },
 };
+
+/** Acciones que exigen PIN de supervisor (BR-VEN-04/05/14). `below_cost` solo lo autoriza el propietario. */
+export const approvalActionSchema = z.enum(['discount', 'negative_stock', 'below_cost']);
+
+export const approvalRequestSchema = z.object({ action: approvalActionSchema, pin: z.string().min(4) });
+export type ApprovalRequest = z.infer<typeof approvalRequestSchema>;
+export const approvalRequestContract: Contract<typeof approvalRequestSchema> = {
+  doctype: 'User (PIN)',
+  schema: approvalRequestSchema,
+  example: { action: 'negative_stock', pin: '0000' },
+};
+
+export const approvalSchema = z.object({
+  approvalToken: z.string().min(1),
+  action: approvalActionSchema,
+  supervisorId: z.string(),
+  expiresAt: isoDate,
+});
+export type Approval = z.infer<typeof approvalSchema>;
+export const approvalContract: Contract<typeof approvalSchema> = {
+  doctype: 'User (PIN)',
+  schema: approvalSchema,
+  example: {
+    approvalToken: 'aprobacion-de-ejemplo', action: 'negative_stock', supervisorId: 'emp-003',
+    expiresAt: '2026-10-01T13:05:00Z',
+  },
+};

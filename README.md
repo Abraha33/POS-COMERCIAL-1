@@ -9,7 +9,7 @@ tests/      integration/ (pruebas entre frontend y backend; vacío por ahora)
 
 `backend/` (Frappe/ERPNext): solo alcance y requisitos, sin código ni instancia.
 
-Estado del contrato: **v0.2.0, propuesta pendiente de aprobación** (`docs/business-rules/99-preguntas-abiertas.md`).
+Estado del contrato: **v0.3.0, reglas de negocio aprobadas por el dueño** (aclaraciones menores en `docs/business-rules/99-preguntas-abiertas.md`); sin backend que lo implemente todavía.
 
 ## Comandos (desde `frontend/`)
 ```bash

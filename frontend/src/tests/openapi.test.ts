@@ -20,6 +20,8 @@ const exampleSchema: Record<string, string> = {
   stockMovement: 'StockMovement', purchaseOrder: 'PurchaseOrder', receivable: 'Receivable', payable: 'Payable',
   apiError: 'Error', saleCreate: 'SaleCreate', saleReceipt: 'SaleReceipt', saleVoid: 'SaleVoid',
   shift: 'Shift', shiftOpen: 'ShiftOpen', shiftClose: 'ShiftClose', login: 'Login', authSession: 'AuthSession',
+  shiftMovement: 'ShiftMovement', approvalRequest: 'ApprovalRequest', approval: 'Approval',
+  transferCreate: 'TransferCreate', transfer: 'Transfer', inventoryAlert: 'InventoryAlert',
 };
 
 describe('contracts/openapi.yaml', () => {

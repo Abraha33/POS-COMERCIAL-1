@@ -1,8 +1,11 @@
 {
   "id": "cus-001",
   "name": "Tienda La Esquina",
+  "documentType": "NIT",
   "taxId": "900123456-1",
+  "taxResponsibility": "R-99-PN",
   "phone": "3001112233",
+  "email": "compras@laesquina.example",
   "active": true,
   "creditLimit": 1500000
 }

@@ -224,7 +224,7 @@ export interface paths {
         put?: never;
         /**
          * Confirma una venta (idempotente)
-         * @description BR-VEN-01..09, BR-VEN-11, BR-VEN-12. El servidor fija precios, impuestos y totales (BR-GEN-06).
+         * @description BR-VEN-01..14. El servidor fija precios, impuestos y totales (BR-GEN-06).
          *     `Idempotency-Key` debe ser igual a `clientOperationId`. Repetir la misma operación devuelve la misma venta con 200.
          */
         post: operations["createSale"];
@@ -302,6 +302,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pos/shifts/{id}/movements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description BR-CAJ-09. Ingresos (base/sencillo) y egresos tipificados; afectan `expectedCash`. */
+        post: operations["addShiftMovement"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/supervisor-approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description BR-VEN-04/05/14. Canjea el PIN de un supervisor por un token de un solo uso y corta vigencia, que luego
+         *     se envía en `SaleCreate.approvalToken`. El PIN nunca viaja dentro de la venta. `below_cost` solo lo
+         *     autoriza el propietario.
+         */
+        post: operations["requestApproval"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/inventory/transfers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listTransfers"];
+        put?: never;
+        /** @description BR-INV-03 paso 1. Descuenta de la sede origen y deja las unidades en tránsito. */
+        post: operations["createTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/inventory/transfers/{id}/receive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description BR-INV-03 paso 2. Solo el encargado de la sede destino; suma al inventario destino. */
+        post: operations["receiveTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/inventory/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listInventoryAlerts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -346,6 +434,8 @@ export interface components {
             unit: string;
             price: number;
             cost: number;
+            /** @enum {string} */
+            taxCategory: "gravado" | "exento" | "excluido" | "impoconsumo";
             taxRate: number;
             active: boolean;
         };
@@ -357,13 +447,18 @@ export interface components {
             unit: string;
             price: number;
             cost: number;
+            /** @enum {string} */
+            taxCategory: "gravado" | "exento" | "excluido" | "impoconsumo";
             taxRate: number;
             active: boolean;
         };
         Customer: {
             id: string;
             name: string;
+            /** @enum {string} */
+            documentType: "CC" | "NIT" | "CE" | "TI" | "PPT" | "PEP";
             taxId: string;
+            taxResponsibility: string;
             phone?: string;
             email?: string;
             active: boolean;
@@ -387,7 +482,11 @@ export interface components {
             active: boolean;
         };
         /** @enum {string} */
-        PaymentMethod: "efectivo" | "tarjeta" | "transferencia" | "credito";
+        PaymentMethod: "efectivo" | "tarjeta" | "transferencia" | "nequi" | "daviplata" | "credito";
+        Payment: {
+            method: components["schemas"]["PaymentMethod"];
+            amount: number;
+        };
         SaleLine: {
             productId: string;
             quantity: number;
@@ -402,7 +501,8 @@ export interface components {
             cashierId: string;
             branchId: string;
             lines: components["schemas"]["SaleLine"][];
-            paymentMethod: components["schemas"]["PaymentMethod"];
+            payments: components["schemas"]["Payment"][];
+            roundingAdjustment: number;
             total: number;
             /** @enum {string} */
             status: "pagada" | "credito" | "anulada";
@@ -417,8 +517,10 @@ export interface components {
                 quantity: number;
                 discount: number;
             }[];
-            paymentMethod: components["schemas"]["PaymentMethod"];
-            amountTendered?: number;
+            payments: components["schemas"]["Payment"][];
+            occurredAt?: string;
+            offline?: boolean;
+            approvalToken?: string;
         };
         SaleReceipt: components["schemas"]["Sale"] & {
             /** Format: uuid */
@@ -431,6 +533,7 @@ export interface components {
         Shift: {
             id: string;
             registerId: string;
+            branchId: string;
             cashierId: string;
             openedAt: string;
             closedAt: string | null;
@@ -438,6 +541,7 @@ export interface components {
             expectedCash: number;
             countedCash: number | null;
             difference: number | null;
+            closingNote: string | null;
             /** @enum {string} */
             status: "open" | "closed";
         };
@@ -449,20 +553,71 @@ export interface components {
             countedCash: number;
             note?: string;
         };
+        ShiftMovement: {
+            /** @enum {string} */
+            type: "ingreso" | "egreso";
+            /** @enum {string} */
+            category: "base" | "sencillo" | "pago_proveedor" | "transporte" | "sangria" | "otro";
+            amount: number;
+            note?: string;
+        };
+        ApprovalRequest: {
+            /** @enum {string} */
+            action: "discount" | "negative_stock" | "below_cost";
+            pin: string;
+        };
+        Approval: {
+            approvalToken: string;
+            /** @enum {string} */
+            action: "discount" | "negative_stock" | "below_cost";
+            supervisorId: string;
+            expiresAt: string;
+        };
+        TransferLine: {
+            productId: string;
+            quantity: number;
+        };
+        TransferCreate: {
+            fromBranchId: string;
+            toBranchId: string;
+            lines: components["schemas"]["TransferLine"][];
+        };
+        Transfer: {
+            id: string;
+            number: string;
+            fromBranchId: string;
+            toBranchId: string;
+            lines: components["schemas"]["TransferLine"][];
+            /** @enum {string} */
+            status: "enviado" | "recibido";
+            sentAt: string;
+            receivedAt: string | null;
+        };
+        InventoryAlert: {
+            id: string;
+            /** @constant */
+            type: "STOCK_NEGATIVE";
+            productId: string;
+            branchId: string;
+            createdAt: string;
+            resolved: boolean;
+        };
         StockMovement: {
             id: string;
             date: string;
             productId: string;
             branchId: string;
             /** @enum {string} */
-            type: "entrada" | "salida" | "ajuste" | "traslado";
+            type: "entrada" | "salida" | "ajuste" | "traslado_envio" | "traslado_recepcion";
             quantity: number;
             reference: string;
         };
         StockLevel: {
             productId: string;
             branchId: string;
+            /** @description Puede ser negativo (BR-VEN-05/13) */
             onHand: number;
+            inTransit: number;
             minimum: number;
         };
         PurchaseOrder: {
@@ -890,7 +1045,8 @@ export interface operations {
             };
             /**
              * @description Conflicto de negocio. `code` ∈ SHIFT_NOT_OPEN, STOCK_INSUFFICIENT, CREDIT_LIMIT_EXCEEDED,
-             *     PRODUCT_INACTIVE, IDEMPOTENCY_KEY_REUSED.
+             *     CUSTOMER_BLOCKED_OVERDUE, PRODUCT_INACTIVE, PAYMENT_INSUFFICIENT, DISCOUNT_NOT_ALLOWED,
+             *     PRICE_BELOW_COST, APPROVAL_REQUIRED, APPROVAL_INVALID, IDEMPOTENCY_KEY_REUSED.
              */
             409: {
                 headers: {
@@ -1006,6 +1162,151 @@ export interface operations {
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
             422: components["responses"]["ValidationError"];
+        };
+    };
+    addShiftMovement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShiftMovement"];
+            };
+        };
+        responses: {
+            /** @description Turno actualizado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Shift"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    requestApproval: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApprovalRequest"];
+            };
+        };
+        responses: {
+            /** @description Aprobación concedida */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Approval"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    listTransfers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transfer"][];
+                };
+            };
+        };
+    };
+    createTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferCreate"];
+            };
+        };
+        responses: {
+            /** @description Traslado enviado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transfer"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    receiveTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Traslado recibido */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Transfer"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listInventoryAlerts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryAlert"][];
+                };
+            };
         };
     };
 }

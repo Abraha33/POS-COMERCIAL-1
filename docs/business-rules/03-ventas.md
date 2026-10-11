@@ -1,24 +1,28 @@
 # Ventas (POS)
 
-> Estado: **PROPUESTA — pendiente de aprobación.** Ver `00-convenciones.md`.
+> Estado: **APROBADA** (ver `00-convenciones.md`).
 
 | ID | Regla |
 |----|-------|
 | BR-VEN-01 | Una venta pertenece a un **turno de caja abierto** (`shiftId`); sin turno abierto se rechaza (`SHIFT_NOT_OPEN`, 409). |
 | BR-VEN-02 | El cliente envía líneas `{productId, quantity, discount}`; el servidor fija `unitPrice` desde el catálogo (BR-GEN-06). |
-| BR-VEN-03 | IVA por línea: si el precio incluye IVA, `impuesto = round(base × taxRate / (1 + taxRate))`. ⚠ |
-| BR-VEN-04 | `discount` es un valor en COP por línea, `0 ≤ discount ≤ quantity × unitPrice`. Descuentos sobre un límite exigen permiso (pendiente ⚠). |
-| BR-VEN-05 | Stock: si `onHand < quantity` la venta se rechaza (`STOCK_INSUFFICIENT`, 409) salvo que la compañía permita stock negativo ⚠ (por defecto: no). |
-| BR-VEN-06 | Medios de pago: `efectivo`, `tarjeta`, `transferencia`, `credito`. Una venta tiene **un** medio de pago por ahora; pago mixto queda abierto ⚠. |
-| BR-VEN-07 | `credito` aplica BR-CLI-02..04 y genera una cuenta por cobrar con vencimiento a 30 días ⚠. |
-| BR-VEN-08 | Efectivo: `amountTendered ≥ total`; el cambio se calcula en el servidor y se devuelve. |
-| BR-VEN-09 | La venta confirmada descuenta inventario y registra movimiento `salida` con referencia al número de venta. |
-| BR-VEN-10 | Anulación: solo estando el turno abierto o con permiso `pos.refund`; genera movimiento `entrada` inverso y revierte la cuenta por cobrar. Exige `reason`. |
-| BR-VEN-11 | **Idempotencia**: cada venta lleva `clientOperationId` (UUID v4 generado en el cliente) y se envía también como cabecera `Idempotency-Key`. Repetir la misma operación devuelve la **misma** venta (200); mismo ID con otro contenido → `IDEMPOTENCY_KEY_REUSED` (409). |
-| BR-VEN-12 | Numeración consecutiva por caja la asigna el servidor al confirmar; nunca el cliente. ⚠ (facturación electrónica DIAN fuera de este alcance). |
+| BR-VEN-03 | IVA por línea sobre precio con IVA incluido: `base = precio / (1 + tasa)`, con decimales internos; se suma por categoría (gravado, exento, excluido, impoconsumo) y solo el total se redondea (BR-GEN-05). |
+| BR-VEN-04 | **Descuentos por rol** (por línea, sobre valor bruto): cajero hasta **5 %**; administrador hasta **15 %** con PIN de supervisor en la pantalla del cajero (`approvalToken`, acción `discount`); propietario libre. Fuera de tope: `DISCOUNT_NOT_ALLOWED` / `APPROVAL_REQUIRED`. (Cajero 0 % o 5 %: A2.) |
+| BR-VEN-05 | **Stock:** por defecto se bloquea la venta sin existencias (`STOCK_INSUFFICIENT`). Excepción: PIN de supervisor (acción `negative_stock`); el inventario queda negativo y se genera la alerta "Ajuste de inventario requerido" (BR-INV-02). |
+| BR-VEN-06 | **Pago mixto:** `payments` es un arreglo `{method, amount}`. Medios: `efectivo`, `tarjeta`, `transferencia`, `nequi`, `daviplata`, `credito`. La venta se cierra cuando `Σ pagos ≥ total`; el excedente solo se devuelve como cambio **en efectivo** (`PAYMENT_INSUFFICIENT` si no alcanza). |
+| BR-VEN-07 | `credito` aplica BR-CLI-02..04 y BR-CLI-06 y genera una cuenta por cobrar a 30 días. |
+| BR-VEN-08 | `change = Σ pagos − total`, calculado y devuelto por el servidor. |
+| BR-VEN-09 | La venta confirmada descuenta inventario de su sede y registra movimiento `salida` con referencia al número de venta. |
+| BR-VEN-10 | Anulación: con turno abierto o permiso `pos.refund`; genera movimiento `entrada` inverso, revierte la cuenta por cobrar y exige `reason`. |
+| BR-VEN-11 | **Idempotencia:** `clientOperationId` (UUID v4) = cabecera `Idempotency-Key`. Repetir devuelve la misma venta (200); mismo ID con otro contenido → `IDEMPOTENCY_KEY_REUSED` (409). |
+| BR-VEN-12 | La numeración consecutiva la asigna el servidor al confirmar; nunca el cliente. |
+| BR-VEN-13 | **Offline:** el POS factura sin conexión y sincroniza en bloque. Con `offline=true` el servidor **acepta la venta aunque no haya stock** (el cliente ya se llevó el producto): inventario negativo y alerta para revisión. `occurredAt` conserva el instante real. |
+| BR-VEN-14 | **Ningún descuento deja el precio final por debajo del costo promedio**, salvo autorización explícita del propietario (acción `below_cost`, liquidación). Si no: `PRICE_BELOW_COST` (409). |
 
-## Offline (diseño, no implementado)
-El POS puede encolar ventas con su `clientOperationId` y reenviarlas al reconectar. Gracias a BR-VEN-11 reenviar no duplica.
-Pendiente decidir: ¿qué hace el servidor si al sincronizar ya no hay stock? (propuesta: aceptar y marcar `STOCK_NEGATIVE` para revisión).
+Errores: `SHIFT_NOT_OPEN`, `STOCK_INSUFFICIENT`, `CREDIT_LIMIT_EXCEEDED`, `CUSTOMER_BLOCKED_OVERDUE`, `PRODUCT_INACTIVE`,
+`PAYMENT_INSUFFICIENT`, `DISCOUNT_NOT_ALLOWED`, `PRICE_BELOW_COST`, `APPROVAL_REQUIRED`, `APPROVAL_INVALID`,
+`IDEMPOTENCY_KEY_REUSED`, `VALIDATION_ERROR`.
 
-Errores: `SHIFT_NOT_OPEN`, `STOCK_INSUFFICIENT`, `CREDIT_LIMIT_EXCEEDED`, `PRODUCT_INACTIVE`, `IDEMPOTENCY_KEY_REUSED`, `VALIDATION_ERROR`.
+## Flujo de aprobación de supervisor
+`POST /auth/supervisor-approvals {action, pin}` → `approvalToken` de un solo uso y corta vigencia → `SaleCreate.approvalToken`.
+El PIN nunca viaja dentro de la venta. Pueden aprobar `admin` y `propietario`; `below_cost` solo `propietario` (A8).

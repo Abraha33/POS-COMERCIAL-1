@@ -1,14 +1,14 @@
 import { productContract } from './product';
 import { customerContract, supplierContract, employeeContract } from './party';
 import { saleContract } from './sale';
-import { stockMovementContract } from './stock';
+import { stockMovementContract, transferContract, transferCreateContract, inventoryAlertContract } from './stock';
 import { purchaseOrderContract } from './purchase';
 import { receivableContract, payableContract } from './ledger';
 import {
   apiErrorContract, saleCreateContract, saleReceiptContract, saleVoidContract,
-  shiftContract, shiftOpenContract, shiftCloseContract,
+  shiftContract, shiftOpenContract, shiftCloseContract, shiftMovementContract,
 } from './pos';
-import { loginContract, authSessionContract } from './auth';
+import { loginContract, authSessionContract, approvalRequestContract, approvalContract } from './auth';
 
 /**
  * Todos los contratos con DocType Frappe y ejemplo. La clave es el nombre de
@@ -33,4 +33,10 @@ export const contracts = {
   shiftClose: shiftCloseContract,
   login: loginContract,
   authSession: authSessionContract,
+  shiftMovement: shiftMovementContract,
+  approvalRequest: approvalRequestContract,
+  approval: approvalContract,
+  transferCreate: transferCreateContract,
+  transfer: transferContract,
+  inventoryAlert: inventoryAlertContract,
 } as const;

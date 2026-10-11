@@ -6,7 +6,7 @@ import { formatMoney } from '@/shared/utils/format';
 const columns: ColumnDef<Sale>[] = [
   { field: 'number', header: 'Número' },
   { field: 'date', header: 'Fecha' },
-  { field: 'paymentMethod', header: 'Pago' },
+  { field: 'payments', header: 'Pago', body: (s) => s.payments.map((p) => p.method).join(' + ') },
   { field: 'total', header: 'Total', body: (s) => formatMoney(s.total) },
   { field: 'status', header: 'Estado' },
 ];

@@ -1,16 +1,17 @@
 openapi: 3.1.0
 info:
   title: ERP/POS API
-  version: 0.2.0
+  version: 0.3.0
   description: |
     Contrato compartido entre frontend (React) y backend (Frappe/ERPNext).
 
-    **Estado: PROPUESTA — pendiente de aprobación del dueño del negocio.** Las reglas que lo sustentan están en
-    docs/business-rules/ (cada operación cita su BR-XXX). Cambios solo vía PR `contract:` revisado por el integrador
+    **Estado: reglas APROBADAS por el dueño del negocio (ver docs/business-rules/); contrato pendiente de
+    implementación y de validación contra Frappe.** Cada operación cita su BR-XXX. Cambios solo vía PR `contract:` revisado por el integrador
     (docs/architecture/BRANCHING.md).
 
     `x-status`: `simulated` = solo existe como mock MSW; `proposed` = definido aquí, sin mock ni backend todavía.
-    Dinero: entero en COP (BR-GEN-01). Errores: `Error` (BR-GEN-09).
+    Dinero en el contrato: entero en COP (BR-GEN-01); el backend calcula internamente con más decimales.
+    Errores: `Error` (BR-GEN-09).
 servers:
   - url: /api/v1
 security:
@@ -100,7 +101,7 @@ paths:
       x-status: proposed
       summary: Confirma una venta (idempotente)
       description: |
-        BR-VEN-01..09, BR-VEN-11, BR-VEN-12. El servidor fija precios, impuestos y totales (BR-GEN-06).
+        BR-VEN-01..14. El servidor fija precios, impuestos y totales (BR-GEN-06).
         `Idempotency-Key` debe ser igual a `clientOperationId`. Repetir la misma operación devuelve la misma venta con 200.
       parameters:
         - { name: Idempotency-Key, in: header, required: true, schema: { type: string, format: uuid } }
@@ -111,7 +112,8 @@ paths:
         '409':
           description: |
             Conflicto de negocio. `code` ∈ SHIFT_NOT_OPEN, STOCK_INSUFFICIENT, CREDIT_LIMIT_EXCEEDED,
-            PRODUCT_INACTIVE, IDEMPOTENCY_KEY_REUSED.
+            CUSTOMER_BLOCKED_OVERDUE, PRODUCT_INACTIVE, PAYMENT_INSUFFICIENT, DISCOUNT_NOT_ALLOWED,
+            PRICE_BELOW_COST, APPROVAL_REQUIRED, APPROVAL_INVALID, IDEMPOTENCY_KEY_REUSED.
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
         '422': { $ref: '#/components/responses/ValidationError' }
   /pos/sales/{id}/void:
@@ -160,6 +162,59 @@ paths:
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/ValidationError' }
+
+  /pos/shifts/{id}/movements:
+    post:
+      tags: [pos]
+      operationId: addShiftMovement
+      x-status: proposed
+      description: BR-CAJ-09. Ingresos (base/sencillo) y egresos tipificados; afectan `expectedCash`.
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ShiftMovement' } } } }
+      responses:
+        '200': { description: Turno actualizado, content: { application/json: { schema: { $ref: '#/components/schemas/Shift' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /auth/supervisor-approvals:
+    post:
+      tags: [auth]
+      operationId: requestApproval
+      x-status: proposed
+      description: |
+        BR-VEN-04/05/14. Canjea el PIN de un supervisor por un token de un solo uso y corta vigencia, que luego
+        se envía en `SaleCreate.approvalToken`. El PIN nunca viaja dentro de la venta. `below_cost` solo lo
+        autoriza el propietario.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ApprovalRequest' } } } }
+      responses:
+        '200': { description: Aprobación concedida, content: { application/json: { schema: { $ref: '#/components/schemas/Approval' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /inventory/transfers:
+    get: { tags: [inventory], operationId: listTransfers, x-status: proposed, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Transfer' } } } } } } }
+    post:
+      tags: [inventory]
+      operationId: createTransfer
+      x-status: proposed
+      description: BR-INV-03 paso 1. Descuenta de la sede origen y deja las unidades en tránsito.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/TransferCreate' } } } }
+      responses:
+        '201': { description: Traslado enviado, content: { application/json: { schema: { $ref: '#/components/schemas/Transfer' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /inventory/transfers/{id}/receive:
+    post:
+      tags: [inventory]
+      operationId: receiveTransfer
+      x-status: proposed
+      description: BR-INV-03 paso 2. Solo el encargado de la sede destino; suma al inventario destino.
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      responses:
+        '200': { description: Traslado recibido, content: { application/json: { schema: { $ref: '#/components/schemas/Transfer' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /inventory/alerts:
+    get: { tags: [inventory], operationId: listInventoryAlerts, x-status: proposed, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/InventoryAlert' } } } } } } }
 
 components:
   securitySchemes:
@@ -226,7 +281,7 @@ components:
     Product:
       x-frappe-doctype: Item
       type: object
-      required: [id, sku, name, category, unit, price, cost, taxRate, active]
+      required: [id, sku, name, category, unit, price, cost, taxCategory, taxRate, active]
       properties:
         id: { type: string }
         sku: { type: string, minLength: 1 }
@@ -236,11 +291,12 @@ components:
         unit: { type: string }
         price: { type: integer, minimum: 0 }
         cost: { type: integer, minimum: 0 }
+        taxCategory: { type: string, enum: [gravado, exento, excluido, impoconsumo] }
         taxRate: { type: number, minimum: 0, maximum: 1 }
         active: { type: boolean }
     ProductInput:
       type: object
-      required: [sku, name, category, unit, price, cost, taxRate, active]
+      required: [sku, name, category, unit, price, cost, taxCategory, taxRate, active]
       properties:
         sku: { type: string, minLength: 1 }
         barcode: { type: string }
@@ -249,16 +305,19 @@ components:
         unit: { type: string }
         price: { type: integer, minimum: 0 }
         cost: { type: integer, minimum: 0 }
+        taxCategory: { type: string, enum: [gravado, exento, excluido, impoconsumo] }
         taxRate: { type: number, minimum: 0, maximum: 1 }
         active: { type: boolean }
     Customer:
       x-frappe-doctype: Customer
       type: object
-      required: [id, name, taxId, active, creditLimit]
+      required: [id, name, documentType, taxId, taxResponsibility, active, creditLimit]
       properties:
         id: { type: string }
         name: { type: string, minLength: 1 }
+        documentType: { type: string, enum: [CC, NIT, CE, TI, PPT, PEP] }
         taxId: { type: string }
+        taxResponsibility: { type: string, minLength: 1 }
         phone: { type: string }
         email: { type: string }
         active: { type: boolean }
@@ -287,7 +346,13 @@ components:
         active: { type: boolean }
     PaymentMethod:
       type: string
-      enum: [efectivo, tarjeta, transferencia, credito]
+      enum: [efectivo, tarjeta, transferencia, nequi, daviplata, credito]
+    Payment:
+      type: object
+      required: [method, amount]
+      properties:
+        method: { $ref: '#/components/schemas/PaymentMethod' }
+        amount: { type: integer, minimum: 0 }
     SaleLine:
       type: object
       required: [productId, quantity, unitPrice, discount]
@@ -299,7 +364,7 @@ components:
     Sale:
       x-frappe-doctype: POS Invoice
       type: object
-      required: [id, number, date, customerId, cashierId, branchId, lines, paymentMethod, total, status]
+      required: [id, number, date, customerId, cashierId, branchId, lines, payments, roundingAdjustment, total, status]
       properties:
         id: { type: string }
         number: { type: string }
@@ -308,13 +373,14 @@ components:
         cashierId: { type: string }
         branchId: { type: string }
         lines: { type: array, minItems: 1, items: { $ref: '#/components/schemas/SaleLine' } }
-        paymentMethod: { $ref: '#/components/schemas/PaymentMethod' }
+        payments: { type: array, minItems: 1, items: { $ref: '#/components/schemas/Payment' } }
+        roundingAdjustment: { type: integer }
         total: { type: integer, minimum: 0 }
         status: { type: string, enum: [pagada, credito, anulada] }
     SaleCreate:
       x-frappe-doctype: POS Invoice
       type: object
-      required: [clientOperationId, shiftId, customerId, lines, paymentMethod]
+      required: [clientOperationId, shiftId, customerId, lines, payments]
       properties:
         clientOperationId: { type: string, format: uuid }
         shiftId: { type: string }
@@ -329,8 +395,10 @@ components:
               productId: { type: string }
               quantity: { type: number, exclusiveMinimum: 0 }
               discount: { type: integer, minimum: 0 }
-        paymentMethod: { $ref: '#/components/schemas/PaymentMethod' }
-        amountTendered: { type: integer, minimum: 0 }
+        payments: { type: array, minItems: 1, items: { $ref: '#/components/schemas/Payment' } }
+        occurredAt: { type: string, minLength: 10 }
+        offline: { type: boolean }
+        approvalToken: { type: string }
     SaleReceipt:
       allOf:
         - $ref: '#/components/schemas/Sale'
@@ -347,10 +415,11 @@ components:
     Shift:
       x-frappe-doctype: POS Opening Entry / POS Closing Entry
       type: object
-      required: [id, registerId, cashierId, openedAt, closedAt, openingCash, expectedCash, countedCash, difference, status]
+      required: [id, registerId, branchId, cashierId, openedAt, closedAt, openingCash, expectedCash, countedCash, difference, closingNote, status]
       properties:
         id: { type: string }
         registerId: { type: string }
+        branchId: { type: string }
         cashierId: { type: string }
         openedAt: { type: string, minLength: 10 }
         closedAt: { type: [string, 'null'] }
@@ -358,6 +427,7 @@ components:
         expectedCash: { type: integer, minimum: 0 }
         countedCash: { type: [integer, 'null'], minimum: 0 }
         difference: { type: [integer, 'null'] }
+        closingNote: { type: [string, 'null'] }
         status: { type: string, enum: [open, closed] }
     ShiftOpen:
       type: object
@@ -371,6 +441,66 @@ components:
       properties:
         countedCash: { type: integer, minimum: 0 }
         note: { type: string }
+    ShiftMovement:
+      x-frappe-doctype: POS Cash Movement
+      type: object
+      required: [type, category, amount]
+      properties:
+        type: { type: string, enum: [ingreso, egreso] }
+        category: { type: string, enum: [base, sencillo, pago_proveedor, transporte, sangria, otro] }
+        amount: { type: integer, exclusiveMinimum: 0 }
+        note: { type: string }
+    ApprovalRequest:
+      type: object
+      required: [action, pin]
+      properties:
+        action: { type: string, enum: [discount, negative_stock, below_cost] }
+        pin: { type: string, minLength: 4 }
+    Approval:
+      type: object
+      required: [approvalToken, action, supervisorId, expiresAt]
+      properties:
+        approvalToken: { type: string, minLength: 1 }
+        action: { type: string, enum: [discount, negative_stock, below_cost] }
+        supervisorId: { type: string }
+        expiresAt: { type: string, minLength: 10 }
+    TransferLine:
+      type: object
+      required: [productId, quantity]
+      properties:
+        productId: { type: string }
+        quantity: { type: number, exclusiveMinimum: 0 }
+    TransferCreate:
+      x-frappe-doctype: Stock Entry (Material Transfer)
+      type: object
+      required: [fromBranchId, toBranchId, lines]
+      properties:
+        fromBranchId: { type: string }
+        toBranchId: { type: string }
+        lines: { type: array, minItems: 1, items: { $ref: '#/components/schemas/TransferLine' } }
+    Transfer:
+      x-frappe-doctype: Stock Entry (Material Transfer)
+      type: object
+      required: [id, number, fromBranchId, toBranchId, lines, status, sentAt, receivedAt]
+      properties:
+        id: { type: string }
+        number: { type: string }
+        fromBranchId: { type: string }
+        toBranchId: { type: string }
+        lines: { type: array, minItems: 1, items: { $ref: '#/components/schemas/TransferLine' } }
+        status: { type: string, enum: [enviado, recibido] }
+        sentAt: { type: string, minLength: 10 }
+        receivedAt: { type: [string, 'null'] }
+    InventoryAlert:
+      type: object
+      required: [id, type, productId, branchId, createdAt, resolved]
+      properties:
+        id: { type: string }
+        type: { type: string, const: STOCK_NEGATIVE }
+        productId: { type: string }
+        branchId: { type: string }
+        createdAt: { type: string, minLength: 10 }
+        resolved: { type: boolean }
     StockMovement:
       x-frappe-doctype: Stock Ledger Entry
       type: object
@@ -380,16 +510,17 @@ components:
         date: { type: string, minLength: 10 }
         productId: { type: string }
         branchId: { type: string }
-        type: { type: string, enum: [entrada, salida, ajuste, traslado] }
+        type: { type: string, enum: [entrada, salida, ajuste, traslado_envio, traslado_recepcion] }
         quantity: { type: number }
         reference: { type: string }
     StockLevel:
       type: object
-      required: [productId, branchId, onHand, minimum]
+      required: [productId, branchId, onHand, inTransit, minimum]
       properties:
         productId: { type: string }
         branchId: { type: string }
-        onHand: { type: number }
+        onHand: { type: number, description: 'Puede ser negativo (BR-VEN-05/13)' }
+        inTransit: { type: number, minimum: 0 }
         minimum: { type: number, minimum: 0 }
     PurchaseOrder:
       x-frappe-doctype: Purchase Order

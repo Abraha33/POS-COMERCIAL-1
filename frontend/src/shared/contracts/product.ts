@@ -10,6 +10,8 @@ export const productSchema = z.object({
   unit: z.string(),
   price: money,
   cost: money,
+  /** BR-PRO-04: excluido y exento se separan contablemente aunque ambos tengan tarifa 0. */
+  taxCategory: z.enum(['gravado', 'exento', 'excluido', 'impoconsumo']),
   taxRate: z.number().min(0).max(1),
   active: z.boolean(),
 });
@@ -22,6 +24,6 @@ export const productContract: Contract<typeof productSchema> = {
   schema: productSchema,
   example: {
     id: 'prd-001', sku: 'SKU-001', barcode: '7701234567890', name: 'Arroz 500 g',
-    category: 'Granos', unit: 'und', price: 2800, cost: 2100, taxRate: 0, active: true,
+    category: 'Granos', unit: 'und', price: 2800, cost: 2100, taxCategory: 'excluido', taxRate: 0, active: true,
   },
 };

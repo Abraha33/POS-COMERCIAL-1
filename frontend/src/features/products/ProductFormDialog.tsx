@@ -10,7 +10,7 @@ import { productInputSchema, type Product, type ProductInput } from '@/shared/co
 import { FormField } from '@/shared/ui';
 
 const emptyProduct: ProductInput = {
-  sku: '', name: '', category: '', unit: 'und', price: 0, cost: 0, taxRate: 0, active: true,
+  sku: '', name: '', category: '', unit: 'und', price: 0, cost: 0, taxCategory: 'gravado', taxRate: 0.19, active: true,
 };
 
 type Props = {
@@ -70,6 +70,28 @@ export const ProductFormDialog = ({ visible, product, saving, onSubmit, onHide }
                   <InputNumber inputId="cost" value={field.value} onValueChange={(e) => field.onChange(e.value ?? 0)} mode="currency" currency="COP" locale="es-CO" minFractionDigits={0} className="w-full" />
                 )}
               />
+            </FormField>
+          </div>
+        </div>
+        <div className="grid">
+          <div className="col-6">
+            <FormField id="taxCategory" label="Categoría de IVA" error={errors.taxCategory?.message}>
+              <select id="taxCategory" className="p-inputtext w-full" {...register('taxCategory')}>
+                <option value="gravado">Gravado</option>
+                <option value="exento">Exento</option>
+                <option value="excluido">Excluido</option>
+                <option value="impoconsumo">Impoconsumo</option>
+              </select>
+            </FormField>
+          </div>
+          <div className="col-6">
+            <FormField id="taxRate" label="Tarifa" error={errors.taxRate?.message}>
+              <select id="taxRate" className="p-inputtext w-full" {...register('taxRate', { valueAsNumber: true })}>
+                <option value={0}>0 %</option>
+                <option value={0.05}>5 %</option>
+                <option value={0.08}>8 % (impoconsumo)</option>
+                <option value={0.19}>19 %</option>
+              </select>
             </FormField>
           </div>
         </div>

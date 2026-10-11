@@ -53,7 +53,9 @@ describe('integridad del seed de mocks', () => {
   it('los totales de venta coinciden con sus líneas', () => {
     for (const sale of s.sales) {
       const sum = sale.lines.reduce((acc, l) => acc + l.quantity * l.unitPrice - l.discount, 0);
-      expect(sale.total).toBe(sum);
+      expect(sale.total).toBe(sum + sale.roundingAdjustment);
+      const paid = sale.payments.reduce((acc, pay) => acc + pay.amount, 0);
+      expect(paid).toBeGreaterThanOrEqual(sale.total);
     }
   });
 });

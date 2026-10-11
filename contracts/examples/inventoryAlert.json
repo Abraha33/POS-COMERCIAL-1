@@ -1,0 +1,8 @@
+{
+  "id": "alt-001",
+  "type": "STOCK_NEGATIVE",
+  "productId": "prd-001",
+  "branchId": "br-001",
+  "createdAt": "2026-10-01T16:00:00Z",
+  "resolved": false
+}

@@ -5,6 +5,7 @@
   "lines": [
     { "productId": "prd-001", "quantity": 2, "discount": 0 }
   ],
-  "paymentMethod": "efectivo",
-  "amountTendered": 10000
+  "payments": [
+    { "method": "efectivo", "amount": 10000 }
+  ]
 }
