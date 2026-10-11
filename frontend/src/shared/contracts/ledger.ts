@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { isoDate, money, type Contract } from './common';
+import { paymentMethodSchema } from './sale';
 
 export const receivableSchema = z.object({
   id: z.string(),
@@ -31,4 +32,17 @@ export const payableContract: Contract<typeof payableSchema> = {
   doctype: 'Purchase Invoice (outstanding)',
   schema: payableSchema,
   example: { id: 'pay-001', supplierId: 'sup-001', purchaseOrderId: 'po-001', issued: '2026-09-28', due: '2026-10-28', amount: 210000, paid: 0 },
+};
+
+/** Abono a una cuenta por cobrar o pago a una por pagar (BR-CLI-05: se aplica a la factura indicada). */
+export const ledgerPaymentSchema = z.object({
+  amount: money.refine((v) => v > 0, 'Debe ser mayor que cero'),
+  method: paymentMethodSchema.exclude(['credito']),
+  note: z.string().optional(),
+});
+export type LedgerPayment = z.infer<typeof ledgerPaymentSchema>;
+export const ledgerPaymentContract: Contract<typeof ledgerPaymentSchema> = {
+  doctype: 'Payment Entry',
+  schema: ledgerPaymentSchema,
+  example: { amount: 100000, method: 'transferencia', note: 'Abono parcial' },
 };

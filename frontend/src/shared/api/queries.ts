@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
-  customerSchema, employeeSchema, payableSchema, productSchema, purchaseOrderSchema,
+  branchSchema, customerSchema, employeeSchema, payableSchema, productSchema, purchaseOrderSchema,
   receivableSchema, saleSchema, stockLevelSchema, stockMovementSchema, supplierSchema,
 } from '@/shared/contracts';
 import { api } from './client';
@@ -20,3 +20,4 @@ export const useStockMovements = list('stock-movements', '/stock/movements', sto
 export const usePurchaseOrders = list('purchase-orders', '/purchase-orders', purchaseOrderSchema);
 export const useReceivables = list('receivables', '/receivables', receivableSchema);
 export const usePayables = list('payables', '/payables', payableSchema);
+export const useBranches = list('branches', '/branches', branchSchema);

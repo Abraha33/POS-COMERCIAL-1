@@ -8,7 +8,8 @@ import type {
   ApiErrorBody, AuthSession, Customer, Employee, Login, Payable, Product, ProductInput, PurchaseOrder,
   Receivable, Sale, SaleCreate, SaleReceipt, SaleVoid, Session, Shift, ShiftClose, ShiftOpen,
   StockLevel, StockMovement, Supplier, ShiftMovement, ApprovalRequest, Approval, TransferCreate, Transfer,
-  InventoryAlert, Payment,
+  InventoryAlert, Payment, CustomerInput, SupplierInput, EmployeeInput, Branch, PurchaseOrderCreate, LedgerPayment,
+  SaleReturnCreate, SaleReturn,
 } from '@/shared/contracts';
 
 type Schemas = components['schemas'];
@@ -52,4 +53,12 @@ export type ContractTypeChecks = [
   Assert<Same<Transfer, Schemas['Transfer']>>,
   Assert<Same<InventoryAlert, Schemas['InventoryAlert']>>,
   Assert<Same<Payment, Schemas['Payment']>>,
+  Assert<Same<CustomerInput, Schemas['CustomerInput']>>,
+  Assert<Same<SupplierInput, Schemas['SupplierInput']>>,
+  Assert<Same<EmployeeInput, Schemas['EmployeeInput']>>,
+  Assert<Same<Branch, Schemas['Branch']>>,
+  Assert<Same<PurchaseOrderCreate, Schemas['PurchaseOrderCreate']>>,
+  Assert<Same<LedgerPayment, Schemas['LedgerPayment']>>,
+  Assert<Same<SaleReturnCreate, Schemas['SaleReturnCreate']>>,
+  Assert<Same<SaleReturn, Schemas['SaleReturn']>>,
 ];

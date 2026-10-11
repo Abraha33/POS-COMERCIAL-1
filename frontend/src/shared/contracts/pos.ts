@@ -131,3 +131,34 @@ export const shiftMovementContract: Contract<typeof shiftMovementSchema> = {
   schema: shiftMovementSchema,
   example: { type: 'egreso', category: 'transporte', amount: 15000, note: 'Flete de mercancía' },
 };
+
+/** Devolución parcial de una venta (PROPUESTA, docs/business-rules/07-devoluciones.md). */
+export const saleReturnCreateSchema = z.object({
+  lines: z.array(z.object({ productId: z.string(), quantity: z.number().positive() })).min(1),
+  reason: z.string().min(1),
+});
+export type SaleReturnCreate = z.infer<typeof saleReturnCreateSchema>;
+export const saleReturnCreateContract: Contract<typeof saleReturnCreateSchema> = {
+  doctype: 'POS Invoice (return)',
+  schema: saleReturnCreateSchema,
+  example: { lines: [{ productId: 'prd-001', quantity: 1 }], reason: 'Empaque dañado' },
+};
+
+export const saleReturnSchema = z.object({
+  id: z.string(),
+  number: z.string(),
+  saleId: z.string(),
+  date: isoDate,
+  lines: z.array(z.object({ productId: z.string(), quantity: z.number().positive(), amount: money })).min(1),
+  total: money,
+  reason: z.string(),
+});
+export type SaleReturn = z.infer<typeof saleReturnSchema>;
+export const saleReturnContract: Contract<typeof saleReturnSchema> = {
+  doctype: 'POS Invoice (return)',
+  schema: saleReturnSchema,
+  example: {
+    id: 'ret-001', number: 'DEV-0001', saleId: 'sal-001', date: '2026-10-11',
+    lines: [{ productId: 'prd-001', quantity: 1, amount: 2800 }], total: 2800, reason: 'Empaque dañado',
+  },
+};

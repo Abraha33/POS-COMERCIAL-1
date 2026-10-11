@@ -1,12 +1,16 @@
 import { productContract } from './product';
-import { customerContract, supplierContract, employeeContract } from './party';
+import {
+  customerContract, supplierContract, employeeContract, customerInputContract, supplierInputContract,
+  employeeInputContract, branchContract,
+} from './party';
 import { saleContract } from './sale';
 import { stockMovementContract, transferContract, transferCreateContract, inventoryAlertContract } from './stock';
-import { purchaseOrderContract } from './purchase';
-import { receivableContract, payableContract } from './ledger';
+import { purchaseOrderContract, purchaseOrderCreateContract } from './purchase';
+import { receivableContract, payableContract, ledgerPaymentContract } from './ledger';
 import {
   apiErrorContract, saleCreateContract, saleReceiptContract, saleVoidContract,
   shiftContract, shiftOpenContract, shiftCloseContract, shiftMovementContract,
+  saleReturnCreateContract, saleReturnContract,
 } from './pos';
 import { loginContract, authSessionContract, approvalRequestContract, approvalContract } from './auth';
 
@@ -39,4 +43,12 @@ export const contracts = {
   transferCreate: transferCreateContract,
   transfer: transferContract,
   inventoryAlert: inventoryAlertContract,
+  customerInput: customerInputContract,
+  supplierInput: supplierInputContract,
+  employeeInput: employeeInputContract,
+  branch: branchContract,
+  purchaseOrderCreate: purchaseOrderCreateContract,
+  ledgerPayment: ledgerPaymentContract,
+  saleReturnCreate: saleReturnCreateContract,
+  saleReturn: saleReturnContract,
 } as const;

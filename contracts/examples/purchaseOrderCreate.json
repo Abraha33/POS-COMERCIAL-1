@@ -1,0 +1,10 @@
+{
+  "supplierId": "sup-001",
+  "lines": [
+    {
+      "productId": "prd-001",
+      "quantity": 50,
+      "unitCost": 2100
+    }
+  ]
+}

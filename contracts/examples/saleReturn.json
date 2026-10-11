@@ -1,0 +1,15 @@
+{
+  "id": "ret-001",
+  "number": "DEV-0001",
+  "saleId": "sal-001",
+  "date": "2026-10-11",
+  "lines": [
+    {
+      "productId": "prd-001",
+      "quantity": 1,
+      "amount": 2800
+    }
+  ],
+  "total": 2800,
+  "reason": "Empaque dañado"
+}

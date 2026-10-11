@@ -1,12 +1,13 @@
 openapi: 3.1.0
 info:
   title: ERP/POS API
-  version: 0.3.0
+  version: 0.4.0
   description: |
     Contrato compartido entre frontend (React) y backend (Frappe/ERPNext).
 
     **Estado: reglas APROBADAS por el dueño del negocio (ver docs/business-rules/); contrato pendiente de
-    implementación y de validación contra Frappe.** Cada operación cita su BR-XXX. Cambios solo vía PR `contract:` revisado por el integrador
+    implementación y de validación contra Frappe.** Cada operación cita su BR-XXX. Las operaciones de v0.4.0 (compras, cartera, administración, devoluciones) llevan
+        `x-approval: proposed`: reglas propuestas, pendientes de aprobación del dueño. Cambios solo vía PR `contract:` revisado por el integrador
     (docs/architecture/BRANCHING.md).
 
     `x-status: simulated` = existe como mock MSW (frontend/src/mocks) que implementa las reglas aprobadas;
@@ -18,86 +19,354 @@ servers:
 security:
   - bearerAuth: []
 tags:
-  - { name: auth }
-  - { name: catalog }
-  - { name: pos }
-  - { name: inventory }
-  - { name: purchases }
-  - { name: ledger }
-
+  - name: auth
+  - name: catalog
+  - name: pos
+  - name: inventory
+  - name: purchases
+  - name: ledger
 paths:
   /auth/login:
     post:
-      tags: [auth]
+      tags:
+        - auth
       operationId: login
       x-status: simulated
       security: []
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Login' } } } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Login"
       responses:
-        '200': { description: Sesión iniciada, content: { application/json: { schema: { $ref: '#/components/schemas/AuthSession' } } } }
-        '401': { $ref: '#/components/responses/Unauthorized' }
+        "200":
+          description: Sesión iniciada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthSession"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /auth/session:
     get:
-      tags: [auth]
+      tags:
+        - auth
       operationId: getSession
       x-status: simulated
       responses:
-        '200': { description: Sesión vigente, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-
+        "200":
+          description: Sesión vigente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /products:
     get:
-      tags: [catalog]
+      tags:
+        - catalog
       operationId: listProducts
       x-status: simulated
       responses:
-        '200': { description: Lista de productos, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Product' } } } } }
+        "200":
+          description: Lista de productos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
     post:
-      tags: [catalog]
+      tags:
+        - catalog
       operationId: createProduct
       x-status: simulated
       description: BR-PRO-01, BR-PRO-02, BR-PRO-07.
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ProductInput' } } } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductInput"
       responses:
-        '201': { description: Creado, content: { application/json: { schema: { $ref: '#/components/schemas/Product' } } } }
-        '409': { $ref: '#/components/responses/Conflict' }
-        '422': { $ref: '#/components/responses/ValidationError' }
+        "201":
+          description: Creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /products/{id}:
     put:
-      tags: [catalog]
+      tags:
+        - catalog
       operationId: updateProduct
       x-status: simulated
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ProductInput' } } } }
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductInput"
       responses:
-        '200': { description: Actualizado, content: { application/json: { schema: { $ref: '#/components/schemas/Product' } } } }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/Conflict' }
-        '422': { $ref: '#/components/responses/ValidationError' }
-
+        "200":
+          description: Actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /customers:
-    get: { tags: [catalog], operationId: listCustomers, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Customer' } } } } } } }
+    get:
+      tags:
+        - catalog
+      operationId: listCustomers
+      x-status: simulated
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Customer"
+    post:
+      tags:
+        - catalog
+      operationId: createCustomer
+      x-status: simulated
+      x-approval: proposed
+      description: BR-CLI-01 (documento único). Roles cartera/admin/propietario.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerInput"
+      responses:
+        "201":
+          description: Creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /suppliers:
-    get: { tags: [catalog], operationId: listSuppliers, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Supplier' } } } } } } }
+    get:
+      tags:
+        - catalog
+      operationId: listSuppliers
+      x-status: simulated
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Supplier"
+    post:
+      tags:
+        - purchases
+      operationId: createSupplier
+      x-status: simulated
+      x-approval: proposed
+      description: Alta de proveedor. Roles comprador/admin/propietario.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupplierInput"
+      responses:
+        "201":
+          description: Creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supplier"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /employees:
-    get: { tags: [catalog], operationId: listEmployees, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Employee' } } } } } } }
+    get:
+      tags:
+        - catalog
+      operationId: listEmployees
+      x-status: simulated
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Employee"
+    post:
+      tags:
+        - catalog
+      operationId: createEmployee
+      x-status: simulated
+      x-approval: proposed
+      description: Alta de empleado/usuario. Solo admin/propietario.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeInput"
+      responses:
+        "201":
+          description: Creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /stock/levels:
-    get: { tags: [inventory], operationId: listStockLevels, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/StockLevel' } } } } } } }
+    get:
+      tags:
+        - inventory
+      operationId: listStockLevels
+      x-status: simulated
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StockLevel"
   /stock/movements:
-    get: { tags: [inventory], operationId: listStockMovements, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/StockMovement' } } } } } } }
+    get:
+      tags:
+        - inventory
+      operationId: listStockMovements
+      x-status: simulated
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StockMovement"
   /purchase-orders:
-    get: { tags: [purchases], operationId: listPurchaseOrders, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/PurchaseOrder' } } } } } } }
+    get:
+      tags:
+        - purchases
+      operationId: listPurchaseOrders
+      x-status: simulated
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PurchaseOrder"
+    post:
+      tags:
+        - purchases
+      operationId: createPurchaseOrder
+      x-status: simulated
+      x-approval: proposed
+      description: Crea una orden en estado `borrador`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PurchaseOrderCreate"
+      responses:
+        "201":
+          description: Creada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurchaseOrder"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /receivables:
-    get: { tags: [ledger], operationId: listReceivables, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Receivable' } } } } } } }
+    get:
+      tags:
+        - ledger
+      operationId: listReceivables
+      x-status: simulated
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Receivable"
   /payables:
-    get: { tags: [ledger], operationId: listPayables, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Payable' } } } } } } }
-
+    get:
+      tags:
+        - ledger
+      operationId: listPayables
+      x-status: simulated
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Payable"
   /sales:
-    get: { tags: [pos], operationId: listSales, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Sale' } } } } } } }
-
+    get:
+      tags:
+        - pos
+      operationId: listSales
+      x-status: simulated
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Sale"
   /pos/sales:
     post:
-      tags: [pos]
+      tags:
+        - pos
       operationId: createSale
       x-status: simulated
       summary: Confirma una venta (idempotente)
@@ -105,466 +374,1592 @@ paths:
         BR-VEN-01..14. El servidor fija precios, impuestos y totales (BR-GEN-06).
         `Idempotency-Key` debe ser igual a `clientOperationId`. Repetir la misma operación devuelve la misma venta con 200.
       parameters:
-        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, format: uuid } }
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SaleCreate' } } } }
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaleCreate"
       responses:
-        '201': { description: Venta creada, content: { application/json: { schema: { $ref: '#/components/schemas/SaleReceipt' } } } }
-        '200': { description: Operación ya procesada; se devuelve la venta original, content: { application/json: { schema: { $ref: '#/components/schemas/SaleReceipt' } } } }
-        '409':
+        "200":
+          description: Operación ya procesada; se devuelve la venta original
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SaleReceipt"
+        "201":
+          description: Venta creada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SaleReceipt"
+        "409":
           description: |
             Conflicto de negocio. `code` ∈ SHIFT_NOT_OPEN, STOCK_INSUFFICIENT, CREDIT_LIMIT_EXCEEDED,
             CUSTOMER_BLOCKED_OVERDUE, PRODUCT_INACTIVE, PAYMENT_INSUFFICIENT, DISCOUNT_NOT_ALLOWED,
             PRICE_BELOW_COST, APPROVAL_REQUIRED, APPROVAL_INVALID, IDEMPOTENCY_KEY_REUSED.
-          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
-        '422': { $ref: '#/components/responses/ValidationError' }
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /pos/sales/{id}/void:
     post:
-      tags: [pos]
+      tags:
+        - pos
       operationId: voidSale
       x-status: simulated
       description: BR-VEN-10. Requiere permiso `pos.refund` o turno abierto.
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SaleVoid' } } } }
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaleVoid"
       responses:
-        '200': { description: Venta anulada, content: { application/json: { schema: { $ref: '#/components/schemas/Sale' } } } }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/Conflict' }
+        "200":
+          description: Venta anulada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Sale"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
   /pos/shifts/current:
     get:
-      tags: [pos]
+      tags:
+        - pos
       operationId: getCurrentShift
       x-status: simulated
       description: Turno abierto del usuario en su caja, o 404 si no hay.
       responses:
-        '200': { description: Turno abierto, content: { application/json: { schema: { $ref: '#/components/schemas/Shift' } } } }
-        '404': { $ref: '#/components/responses/NotFound' }
+        "200":
+          description: Turno abierto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shift"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /pos/shifts:
     post:
-      tags: [pos]
+      tags:
+        - pos
       operationId: openShift
       x-status: simulated
       description: BR-CAJ-01, BR-CAJ-02. `SHIFT_ALREADY_OPEN` si la caja ya tiene turno abierto.
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ShiftOpen' } } } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShiftOpen"
       responses:
-        '201': { description: Turno abierto, content: { application/json: { schema: { $ref: '#/components/schemas/Shift' } } } }
-        '409': { $ref: '#/components/responses/Conflict' }
-        '422': { $ref: '#/components/responses/ValidationError' }
+        "201":
+          description: Turno abierto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shift"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /pos/shifts/{id}/close:
     post:
-      tags: [pos]
+      tags:
+        - pos
       operationId: closeShift
       x-status: simulated
       description: BR-CAJ-05..08. Devuelve el turno con `difference` calculada.
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ShiftClose' } } } }
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShiftClose"
       responses:
-        '200': { description: Turno cerrado, content: { application/json: { schema: { $ref: '#/components/schemas/Shift' } } } }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/Conflict' }
-        '422': { $ref: '#/components/responses/ValidationError' }
-
+        "200":
+          description: Turno cerrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shift"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /pos/shifts/{id}/movements:
     post:
-      tags: [pos]
+      tags:
+        - pos
       operationId: addShiftMovement
       x-status: simulated
       description: BR-CAJ-09. Ingresos (base/sencillo) y egresos tipificados; afectan `expectedCash`.
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ShiftMovement' } } } }
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShiftMovement"
       responses:
-        '200': { description: Turno actualizado, content: { application/json: { schema: { $ref: '#/components/schemas/Shift' } } } }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/Conflict' }
-        '422': { $ref: '#/components/responses/ValidationError' }
+        "200":
+          description: Turno actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Shift"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /auth/supervisor-approvals:
     post:
-      tags: [auth]
+      tags:
+        - auth
       operationId: requestApproval
       x-status: simulated
       description: |
         BR-VEN-04/05/14. Canjea el PIN de un supervisor por un token de un solo uso y corta vigencia, que luego
         se envía en `SaleCreate.approvalToken`. El PIN nunca viaja dentro de la venta. `below_cost` solo lo
         autoriza el propietario.
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ApprovalRequest' } } } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApprovalRequest"
       responses:
-        '200': { description: Aprobación concedida, content: { application/json: { schema: { $ref: '#/components/schemas/Approval' } } } }
-        '403': { $ref: '#/components/responses/Forbidden' }
+        "200":
+          description: Aprobación concedida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Approval"
+        "403":
+          $ref: "#/components/responses/Forbidden"
   /inventory/transfers:
-    get: { tags: [inventory], operationId: listTransfers, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Transfer' } } } } } } }
+    get:
+      tags:
+        - inventory
+      operationId: listTransfers
+      x-status: simulated
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Transfer"
     post:
-      tags: [inventory]
+      tags:
+        - inventory
       operationId: createTransfer
       x-status: simulated
       description: BR-INV-03 paso 1. Descuenta de la sede origen y deja las unidades en tránsito.
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/TransferCreate' } } } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransferCreate"
       responses:
-        '201': { description: Traslado enviado, content: { application/json: { schema: { $ref: '#/components/schemas/Transfer' } } } }
-        '409': { $ref: '#/components/responses/Conflict' }
-        '422': { $ref: '#/components/responses/ValidationError' }
+        "201":
+          description: Traslado enviado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transfer"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
   /inventory/transfers/{id}/receive:
     post:
-      tags: [inventory]
+      tags:
+        - inventory
       operationId: receiveTransfer
       x-status: simulated
       description: BR-INV-03 paso 2. Solo el encargado de la sede destino; suma al inventario destino.
-      parameters: [{ $ref: '#/components/parameters/Id' }]
+      parameters:
+        - $ref: "#/components/parameters/Id"
       responses:
-        '200': { description: Traslado recibido, content: { application/json: { schema: { $ref: '#/components/schemas/Transfer' } } } }
-        '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
-        '409': { $ref: '#/components/responses/Conflict' }
+        "200":
+          description: Traslado recibido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transfer"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
   /inventory/alerts:
-    get: { tags: [inventory], operationId: listInventoryAlerts, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/InventoryAlert' } } } } } } }
-
+    get:
+      tags:
+        - inventory
+      operationId: listInventoryAlerts
+      x-status: simulated
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InventoryAlert"
+  /customers/{id}:
+    put:
+      tags:
+        - catalog
+      operationId: updateCustomer
+      x-status: simulated
+      x-approval: proposed
+      description: Edita un cliente.
+      parameters: &a1
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerInput"
+      responses:
+        "200":
+          description: Actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Customer"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /suppliers/{id}:
+    put:
+      tags:
+        - purchases
+      operationId: updateSupplier
+      x-status: simulated
+      x-approval: proposed
+      description: Edita un proveedor.
+      parameters: *a1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupplierInput"
+      responses:
+        "200":
+          description: Actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Supplier"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /employees/{id}:
+    put:
+      tags:
+        - catalog
+      operationId: updateEmployee
+      x-status: simulated
+      x-approval: proposed
+      description: Edita un empleado (rol, sede, activo). Solo admin/propietario.
+      parameters: *a1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmployeeInput"
+      responses:
+        "200":
+          description: Actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Employee"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /branches:
+    get:
+      tags:
+        - catalog
+      operationId: listBranches
+      x-status: simulated
+      x-approval: proposed
+      description: Sedes de la compañía.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BranchList"
+  /purchase-orders/{id}/send:
+    post:
+      tags:
+        - purchases
+      operationId: sendPurchaseOrder
+      x-status: simulated
+      x-approval: proposed
+      description: "`borrador` → `enviada`."
+      parameters: *a1
+      responses:
+        "200":
+          description: Enviada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurchaseOrder"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /purchase-orders/{id}/receive:
+    post:
+      tags:
+        - purchases
+      operationId: receivePurchaseOrder
+      x-status: simulated
+      x-approval: proposed
+      description: "`enviada` → `recibida`: entrada de inventario en la sede del usuario, recálculo del costo promedio (BR-PRO-06) y cuenta por pagar a `paymentTermsDays`."
+      parameters: *a1
+      responses:
+        "200":
+          description: Recibida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurchaseOrder"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /receivables/{id}/payments:
+    post:
+      tags:
+        - ledger
+      operationId: payReceivable
+      x-status: simulated
+      x-approval: proposed
+      description: Abono. `PAYMENT_EXCEEDS_BALANCE` si supera el saldo.
+      parameters: *a1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LedgerPayment"
+      responses:
+        "200":
+          description: Abono aplicado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Receivable"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /payables/{id}/payments:
+    post:
+      tags:
+        - ledger
+      operationId: payPayable
+      x-status: simulated
+      x-approval: proposed
+      description: Pago a proveedor. `PAYMENT_EXCEEDS_BALANCE` si supera el saldo.
+      parameters: *a1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LedgerPayment"
+      responses:
+        "200":
+          description: Pago aplicado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payable"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /pos/sales/{id}/returns:
+    post:
+      tags:
+        - pos
+      operationId: returnSale
+      x-status: simulated
+      x-approval: proposed
+      description: Devolución parcial (docs/business-rules/07-devoluciones.md). `RETURN_EXCEEDS_SOLD` si supera lo vendido menos lo ya devuelto.
+      parameters: *a1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaleReturnCreate"
+      responses:
+        "201":
+          description: Devolución registrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SaleReturn"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
 components:
   securitySchemes:
-    bearerAuth: { type: http, scheme: bearer }
+    bearerAuth:
+      type: http
+      scheme: bearer
   parameters:
-    Id: { name: id, in: path, required: true, schema: { type: string } }
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
   responses:
     ValidationError:
       description: Datos inválidos (`VALIDATION_ERROR`)
-      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     Unauthorized:
       description: Sin sesión o credenciales inválidas (`UNAUTHORIZED`)
-      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     Forbidden:
       description: Sin permiso (`FORBIDDEN`)
-      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     NotFound:
       description: No encontrado (`NOT_FOUND`)
-      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     Conflict:
       description: Conflicto de negocio; `code` indica la regla
-      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
   schemas:
     Error:
       type: object
-      required: [code, message]
+      required:
+        - code
+        - message
       properties:
-        code: { type: string, minLength: 1 }
-        message: { type: string }
-        details: { type: object, additionalProperties: true }
+        code:
+          type: string
+          minLength: 1
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
     Login:
       type: object
-      required: [username, password]
+      required:
+        - username
+        - password
       properties:
-        username: { type: string, minLength: 1 }
-        password: { type: string, minLength: 1 }
+        username:
+          type: string
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
     Session:
       type: object
-      required: [user, company, branch, register]
+      required:
+        - user
+        - company
+        - branch
+        - register
       properties:
         user:
           type: object
-          required: [id, name, role]
+          required:
+            - id
+            - name
+            - role
           properties:
-            id: { type: string }
-            name: { type: string }
-            role: { type: string, enum: [cajero, bodeguero, comprador, cartera, admin, propietario] }
-        company: { $ref: '#/components/schemas/IdName' }
-        branch: { $ref: '#/components/schemas/IdName' }
-        register: { $ref: '#/components/schemas/IdName' }
+            id:
+              type: string
+            name:
+              type: string
+            role:
+              type: string
+              enum:
+                - cajero
+                - bodeguero
+                - comprador
+                - cartera
+                - admin
+                - propietario
+        company:
+          $ref: "#/components/schemas/IdName"
+        branch:
+          $ref: "#/components/schemas/IdName"
+        register:
+          $ref: "#/components/schemas/IdName"
     IdName:
       type: object
-      required: [id, name]
+      required:
+        - id
+        - name
       properties:
-        id: { type: string }
-        name: { type: string }
+        id:
+          type: string
+        name:
+          type: string
     AuthSession:
       type: object
-      required: [accessToken, expiresAt, session]
+      required:
+        - accessToken
+        - expiresAt
+        - session
       properties:
-        accessToken: { type: string, minLength: 1 }
-        expiresAt: { type: string, minLength: 10 }
-        session: { $ref: '#/components/schemas/Session' }
+        accessToken:
+          type: string
+          minLength: 1
+        expiresAt:
+          type: string
+          minLength: 10
+        session:
+          $ref: "#/components/schemas/Session"
     Product:
       x-frappe-doctype: Item
       type: object
-      required: [id, sku, name, category, unit, price, cost, taxCategory, taxRate, active]
+      required:
+        - id
+        - sku
+        - name
+        - category
+        - unit
+        - price
+        - cost
+        - taxCategory
+        - taxRate
+        - active
       properties:
-        id: { type: string }
-        sku: { type: string, minLength: 1 }
-        barcode: { type: string }
-        name: { type: string, minLength: 1 }
-        category: { type: string }
-        unit: { type: string }
-        price: { type: integer, minimum: 0 }
-        cost: { type: integer, minimum: 0 }
-        taxCategory: { type: string, enum: [gravado, exento, excluido, impoconsumo] }
-        taxRate: { type: number, minimum: 0, maximum: 1 }
-        active: { type: boolean }
+        id:
+          type: string
+        sku:
+          type: string
+          minLength: 1
+        barcode:
+          type: string
+        name:
+          type: string
+          minLength: 1
+        category:
+          type: string
+        unit:
+          type: string
+        price:
+          type: integer
+          minimum: 0
+        cost:
+          type: integer
+          minimum: 0
+        taxCategory:
+          type: string
+          enum:
+            - gravado
+            - exento
+            - excluido
+            - impoconsumo
+        taxRate:
+          type: number
+          minimum: 0
+          maximum: 1
+        active:
+          type: boolean
     ProductInput:
       type: object
-      required: [sku, name, category, unit, price, cost, taxCategory, taxRate, active]
+      required:
+        - sku
+        - name
+        - category
+        - unit
+        - price
+        - cost
+        - taxCategory
+        - taxRate
+        - active
       properties:
-        sku: { type: string, minLength: 1 }
-        barcode: { type: string }
-        name: { type: string, minLength: 1 }
-        category: { type: string }
-        unit: { type: string }
-        price: { type: integer, minimum: 0 }
-        cost: { type: integer, minimum: 0 }
-        taxCategory: { type: string, enum: [gravado, exento, excluido, impoconsumo] }
-        taxRate: { type: number, minimum: 0, maximum: 1 }
-        active: { type: boolean }
+        sku:
+          type: string
+          minLength: 1
+        barcode:
+          type: string
+        name:
+          type: string
+          minLength: 1
+        category:
+          type: string
+        unit:
+          type: string
+        price:
+          type: integer
+          minimum: 0
+        cost:
+          type: integer
+          minimum: 0
+        taxCategory:
+          type: string
+          enum:
+            - gravado
+            - exento
+            - excluido
+            - impoconsumo
+        taxRate:
+          type: number
+          minimum: 0
+          maximum: 1
+        active:
+          type: boolean
     Customer:
       x-frappe-doctype: Customer
       type: object
-      required: [id, name, documentType, taxId, taxResponsibility, active, creditLimit]
+      required:
+        - id
+        - name
+        - documentType
+        - taxId
+        - taxResponsibility
+        - active
+        - creditLimit
       properties:
-        id: { type: string }
-        name: { type: string, minLength: 1 }
-        documentType: { type: string, enum: [CC, NIT, CE, TI, PPT, PEP] }
-        taxId: { type: string }
-        taxResponsibility: { type: string, minLength: 1 }
-        phone: { type: string }
-        email: { type: string }
-        active: { type: boolean }
-        creditLimit: { type: integer, minimum: 0 }
+        id:
+          type: string
+        name:
+          type: string
+          minLength: 1
+        documentType:
+          type: string
+          enum:
+            - CC
+            - NIT
+            - CE
+            - TI
+            - PPT
+            - PEP
+        taxId:
+          type: string
+        taxResponsibility:
+          type: string
+          minLength: 1
+        phone:
+          type: string
+        email:
+          type: string
+        active:
+          type: boolean
+        creditLimit:
+          type: integer
+          minimum: 0
     Supplier:
       x-frappe-doctype: Supplier
       type: object
-      required: [id, name, taxId, active, paymentTermsDays]
+      required:
+        - id
+        - name
+        - taxId
+        - active
+        - paymentTermsDays
       properties:
-        id: { type: string }
-        name: { type: string, minLength: 1 }
-        taxId: { type: string }
-        phone: { type: string }
-        email: { type: string }
-        active: { type: boolean }
-        paymentTermsDays: { type: integer, minimum: 0 }
+        id:
+          type: string
+        name:
+          type: string
+          minLength: 1
+        taxId:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        active:
+          type: boolean
+        paymentTermsDays:
+          type: integer
+          minimum: 0
     Employee:
       x-frappe-doctype: Employee
       type: object
-      required: [id, name, role, branchId, active]
+      required:
+        - id
+        - name
+        - role
+        - branchId
+        - active
       properties:
-        id: { type: string }
-        name: { type: string, minLength: 1 }
-        role: { type: string, enum: [cajero, bodeguero, comprador, cartera, admin, propietario] }
-        branchId: { type: string }
-        active: { type: boolean }
+        id:
+          type: string
+        name:
+          type: string
+          minLength: 1
+        role:
+          type: string
+          enum:
+            - cajero
+            - bodeguero
+            - comprador
+            - cartera
+            - admin
+            - propietario
+        branchId:
+          type: string
+        active:
+          type: boolean
     PaymentMethod:
       type: string
-      enum: [efectivo, tarjeta, transferencia, nequi, daviplata, credito]
+      enum:
+        - efectivo
+        - tarjeta
+        - transferencia
+        - nequi
+        - daviplata
+        - credito
     Payment:
       type: object
-      required: [method, amount]
+      required:
+        - method
+        - amount
       properties:
-        method: { $ref: '#/components/schemas/PaymentMethod' }
-        amount: { type: integer, minimum: 0 }
+        method:
+          $ref: "#/components/schemas/PaymentMethod"
+        amount:
+          type: integer
+          minimum: 0
     SaleLine:
       type: object
-      required: [productId, quantity, unitPrice, discount]
+      required:
+        - productId
+        - quantity
+        - unitPrice
+        - discount
       properties:
-        productId: { type: string }
-        quantity: { type: number, exclusiveMinimum: 0 }
-        unitPrice: { type: integer, minimum: 0 }
-        discount: { type: integer, minimum: 0 }
+        productId:
+          type: string
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+        unitPrice:
+          type: integer
+          minimum: 0
+        discount:
+          type: integer
+          minimum: 0
     Sale:
       x-frappe-doctype: POS Invoice
       type: object
-      required: [id, number, date, customerId, cashierId, branchId, lines, payments, roundingAdjustment, total, status]
+      required:
+        - id
+        - number
+        - date
+        - customerId
+        - cashierId
+        - branchId
+        - lines
+        - payments
+        - roundingAdjustment
+        - total
+        - status
       properties:
-        id: { type: string }
-        number: { type: string }
-        date: { type: string, minLength: 10 }
-        customerId: { type: [string, 'null'] }
-        cashierId: { type: string }
-        branchId: { type: string }
-        lines: { type: array, minItems: 1, items: { $ref: '#/components/schemas/SaleLine' } }
-        payments: { type: array, minItems: 1, items: { $ref: '#/components/schemas/Payment' } }
-        roundingAdjustment: { type: integer }
-        total: { type: integer, minimum: 0 }
-        status: { type: string, enum: [pagada, credito, anulada] }
+        id:
+          type: string
+        number:
+          type: string
+        date:
+          type: string
+          minLength: 10
+        customerId:
+          type:
+            - string
+            - "null"
+        cashierId:
+          type: string
+        branchId:
+          type: string
+        lines:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/SaleLine"
+        payments:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/Payment"
+        roundingAdjustment:
+          type: integer
+        total:
+          type: integer
+          minimum: 0
+        status:
+          type: string
+          enum:
+            - pagada
+            - credito
+            - anulada
     SaleCreate:
       x-frappe-doctype: POS Invoice
       type: object
-      required: [clientOperationId, shiftId, customerId, lines, payments]
+      required:
+        - clientOperationId
+        - shiftId
+        - customerId
+        - lines
+        - payments
       properties:
-        clientOperationId: { type: string, format: uuid }
-        shiftId: { type: string }
-        customerId: { type: [string, 'null'] }
+        clientOperationId:
+          type: string
+          format: uuid
+        shiftId:
+          type: string
+        customerId:
+          type:
+            - string
+            - "null"
         lines:
           type: array
           minItems: 1
           items:
             type: object
-            required: [productId, quantity, discount]
+            required:
+              - productId
+              - quantity
+              - discount
             properties:
-              productId: { type: string }
-              quantity: { type: number, exclusiveMinimum: 0 }
-              discount: { type: integer, minimum: 0 }
-        payments: { type: array, minItems: 1, items: { $ref: '#/components/schemas/Payment' } }
-        occurredAt: { type: string, minLength: 10 }
-        offline: { type: boolean }
-        approvalToken: { type: string }
+              productId:
+                type: string
+              quantity:
+                type: number
+                exclusiveMinimum: 0
+              discount:
+                type: integer
+                minimum: 0
+        payments:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/Payment"
+        occurredAt:
+          type: string
+          minLength: 10
+        offline:
+          type: boolean
+        approvalToken:
+          type: string
     SaleReceipt:
       allOf:
-        - $ref: '#/components/schemas/Sale'
+        - $ref: "#/components/schemas/Sale"
         - type: object
-          required: [clientOperationId, change]
+          required:
+            - clientOperationId
+            - change
           properties:
-            clientOperationId: { type: string, format: uuid }
-            change: { type: integer, minimum: 0 }
+            clientOperationId:
+              type: string
+              format: uuid
+            change:
+              type: integer
+              minimum: 0
     SaleVoid:
       type: object
-      required: [reason]
+      required:
+        - reason
       properties:
-        reason: { type: string, minLength: 1 }
+        reason:
+          type: string
+          minLength: 1
     Shift:
       x-frappe-doctype: POS Opening Entry / POS Closing Entry
       type: object
-      required: [id, registerId, branchId, cashierId, openedAt, closedAt, openingCash, expectedCash, countedCash, difference, closingNote, status]
+      required:
+        - id
+        - registerId
+        - branchId
+        - cashierId
+        - openedAt
+        - closedAt
+        - openingCash
+        - expectedCash
+        - countedCash
+        - difference
+        - closingNote
+        - status
       properties:
-        id: { type: string }
-        registerId: { type: string }
-        branchId: { type: string }
-        cashierId: { type: string }
-        openedAt: { type: string, minLength: 10 }
-        closedAt: { type: [string, 'null'] }
-        openingCash: { type: integer, minimum: 0 }
-        expectedCash: { type: integer, minimum: 0 }
-        countedCash: { type: [integer, 'null'], minimum: 0 }
-        difference: { type: [integer, 'null'] }
-        closingNote: { type: [string, 'null'] }
-        status: { type: string, enum: [open, closed] }
+        id:
+          type: string
+        registerId:
+          type: string
+        branchId:
+          type: string
+        cashierId:
+          type: string
+        openedAt:
+          type: string
+          minLength: 10
+        closedAt:
+          type:
+            - string
+            - "null"
+        openingCash:
+          type: integer
+          minimum: 0
+        expectedCash:
+          type: integer
+          minimum: 0
+        countedCash:
+          type:
+            - integer
+            - "null"
+          minimum: 0
+        difference:
+          type:
+            - integer
+            - "null"
+        closingNote:
+          type:
+            - string
+            - "null"
+        status:
+          type: string
+          enum:
+            - open
+            - closed
     ShiftOpen:
       type: object
-      required: [registerId, openingCash]
+      required:
+        - registerId
+        - openingCash
       properties:
-        registerId: { type: string }
-        openingCash: { type: integer, minimum: 0 }
+        registerId:
+          type: string
+        openingCash:
+          type: integer
+          minimum: 0
     ShiftClose:
       type: object
-      required: [countedCash]
+      required:
+        - countedCash
       properties:
-        countedCash: { type: integer, minimum: 0 }
-        note: { type: string }
+        countedCash:
+          type: integer
+          minimum: 0
+        note:
+          type: string
     ShiftMovement:
       x-frappe-doctype: POS Cash Movement
       type: object
-      required: [type, category, amount]
+      required:
+        - type
+        - category
+        - amount
       properties:
-        type: { type: string, enum: [ingreso, egreso] }
-        category: { type: string, enum: [base, sencillo, pago_proveedor, transporte, sangria, otro] }
-        amount: { type: integer, exclusiveMinimum: 0 }
-        note: { type: string }
+        type:
+          type: string
+          enum:
+            - ingreso
+            - egreso
+        category:
+          type: string
+          enum:
+            - base
+            - sencillo
+            - pago_proveedor
+            - transporte
+            - sangria
+            - otro
+        amount:
+          type: integer
+          exclusiveMinimum: 0
+        note:
+          type: string
     ApprovalRequest:
       type: object
-      required: [action, pin]
+      required:
+        - action
+        - pin
       properties:
-        action: { type: string, enum: [discount, negative_stock, below_cost] }
-        pin: { type: string, minLength: 4 }
+        action:
+          type: string
+          enum:
+            - discount
+            - negative_stock
+            - below_cost
+        pin:
+          type: string
+          minLength: 4
     Approval:
       type: object
-      required: [approvalToken, action, supervisorId, expiresAt]
+      required:
+        - approvalToken
+        - action
+        - supervisorId
+        - expiresAt
       properties:
-        approvalToken: { type: string, minLength: 1 }
-        action: { type: string, enum: [discount, negative_stock, below_cost] }
-        supervisorId: { type: string }
-        expiresAt: { type: string, minLength: 10 }
+        approvalToken:
+          type: string
+          minLength: 1
+        action:
+          type: string
+          enum:
+            - discount
+            - negative_stock
+            - below_cost
+        supervisorId:
+          type: string
+        expiresAt:
+          type: string
+          minLength: 10
     TransferLine:
       type: object
-      required: [productId, quantity]
+      required:
+        - productId
+        - quantity
       properties:
-        productId: { type: string }
-        quantity: { type: number, exclusiveMinimum: 0 }
+        productId:
+          type: string
+        quantity:
+          type: number
+          exclusiveMinimum: 0
     TransferCreate:
       x-frappe-doctype: Stock Entry (Material Transfer)
       type: object
-      required: [fromBranchId, toBranchId, lines]
+      required:
+        - fromBranchId
+        - toBranchId
+        - lines
       properties:
-        fromBranchId: { type: string }
-        toBranchId: { type: string }
-        lines: { type: array, minItems: 1, items: { $ref: '#/components/schemas/TransferLine' } }
+        fromBranchId:
+          type: string
+        toBranchId:
+          type: string
+        lines:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/TransferLine"
     Transfer:
       x-frappe-doctype: Stock Entry (Material Transfer)
       type: object
-      required: [id, number, fromBranchId, toBranchId, lines, status, sentAt, receivedAt]
+      required:
+        - id
+        - number
+        - fromBranchId
+        - toBranchId
+        - lines
+        - status
+        - sentAt
+        - receivedAt
       properties:
-        id: { type: string }
-        number: { type: string }
-        fromBranchId: { type: string }
-        toBranchId: { type: string }
-        lines: { type: array, minItems: 1, items: { $ref: '#/components/schemas/TransferLine' } }
-        status: { type: string, enum: [enviado, recibido] }
-        sentAt: { type: string, minLength: 10 }
-        receivedAt: { type: [string, 'null'] }
+        id:
+          type: string
+        number:
+          type: string
+        fromBranchId:
+          type: string
+        toBranchId:
+          type: string
+        lines:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/TransferLine"
+        status:
+          type: string
+          enum:
+            - enviado
+            - recibido
+        sentAt:
+          type: string
+          minLength: 10
+        receivedAt:
+          type:
+            - string
+            - "null"
     InventoryAlert:
       type: object
-      required: [id, type, productId, branchId, createdAt, resolved]
+      required:
+        - id
+        - type
+        - productId
+        - branchId
+        - createdAt
+        - resolved
       properties:
-        id: { type: string }
-        type: { type: string, const: STOCK_NEGATIVE }
-        productId: { type: string }
-        branchId: { type: string }
-        createdAt: { type: string, minLength: 10 }
-        resolved: { type: boolean }
+        id:
+          type: string
+        type:
+          type: string
+          const: STOCK_NEGATIVE
+        productId:
+          type: string
+        branchId:
+          type: string
+        createdAt:
+          type: string
+          minLength: 10
+        resolved:
+          type: boolean
     StockMovement:
       x-frappe-doctype: Stock Ledger Entry
       type: object
-      required: [id, date, productId, branchId, type, quantity, reference]
+      required:
+        - id
+        - date
+        - productId
+        - branchId
+        - type
+        - quantity
+        - reference
       properties:
-        id: { type: string }
-        date: { type: string, minLength: 10 }
-        productId: { type: string }
-        branchId: { type: string }
-        type: { type: string, enum: [entrada, salida, ajuste, traslado_envio, traslado_recepcion] }
-        quantity: { type: number }
-        reference: { type: string }
+        id:
+          type: string
+        date:
+          type: string
+          minLength: 10
+        productId:
+          type: string
+        branchId:
+          type: string
+        type:
+          type: string
+          enum:
+            - entrada
+            - salida
+            - ajuste
+            - traslado_envio
+            - traslado_recepcion
+        quantity:
+          type: number
+        reference:
+          type: string
     StockLevel:
       type: object
-      required: [productId, branchId, onHand, inTransit, minimum]
+      required:
+        - productId
+        - branchId
+        - onHand
+        - inTransit
+        - minimum
       properties:
-        productId: { type: string }
-        branchId: { type: string }
-        onHand: { type: number, description: 'Puede ser negativo (BR-VEN-05/13)' }
-        inTransit: { type: number, minimum: 0 }
-        minimum: { type: number, minimum: 0 }
+        productId:
+          type: string
+        branchId:
+          type: string
+        onHand:
+          type: number
+          description: Puede ser negativo (BR-VEN-05/13)
+        inTransit:
+          type: number
+          minimum: 0
+        minimum:
+          type: number
+          minimum: 0
     PurchaseOrder:
       x-frappe-doctype: Purchase Order
       type: object
-      required: [id, number, date, supplierId, lines, total, status]
+      required:
+        - id
+        - number
+        - date
+        - supplierId
+        - lines
+        - total
+        - status
       properties:
-        id: { type: string }
-        number: { type: string }
-        date: { type: string, minLength: 10 }
-        supplierId: { type: string }
+        id:
+          type: string
+        number:
+          type: string
+        date:
+          type: string
+          minLength: 10
+        supplierId:
+          type: string
         lines:
           type: array
           minItems: 1
           items:
             type: object
-            required: [productId, quantity, unitCost]
+            required:
+              - productId
+              - quantity
+              - unitCost
             properties:
-              productId: { type: string }
-              quantity: { type: number, exclusiveMinimum: 0 }
-              unitCost: { type: integer, minimum: 0 }
-        total: { type: integer, minimum: 0 }
-        status: { type: string, enum: [borrador, enviada, recibida, cancelada] }
+              productId:
+                type: string
+              quantity:
+                type: number
+                exclusiveMinimum: 0
+              unitCost:
+                type: integer
+                minimum: 0
+        total:
+          type: integer
+          minimum: 0
+        status:
+          type: string
+          enum:
+            - borrador
+            - enviada
+            - recibida
+            - cancelada
     Receivable:
       x-frappe-doctype: Sales Invoice (outstanding)
       type: object
-      required: [id, customerId, saleId, issued, due, amount, paid]
+      required:
+        - id
+        - customerId
+        - saleId
+        - issued
+        - due
+        - amount
+        - paid
       properties:
-        id: { type: string }
-        customerId: { type: string }
-        saleId: { type: [string, 'null'] }
-        issued: { type: string, minLength: 10 }
-        due: { type: string, minLength: 10 }
-        amount: { type: integer, minimum: 0 }
-        paid: { type: integer, minimum: 0 }
+        id:
+          type: string
+        customerId:
+          type: string
+        saleId:
+          type:
+            - string
+            - "null"
+        issued:
+          type: string
+          minLength: 10
+        due:
+          type: string
+          minLength: 10
+        amount:
+          type: integer
+          minimum: 0
+        paid:
+          type: integer
+          minimum: 0
     Payable:
       x-frappe-doctype: Purchase Invoice (outstanding)
       type: object
-      required: [id, supplierId, purchaseOrderId, issued, due, amount, paid]
+      required:
+        - id
+        - supplierId
+        - purchaseOrderId
+        - issued
+        - due
+        - amount
+        - paid
       properties:
-        id: { type: string }
-        supplierId: { type: string }
-        purchaseOrderId: { type: [string, 'null'] }
-        issued: { type: string, minLength: 10 }
-        due: { type: string, minLength: 10 }
-        amount: { type: integer, minimum: 0 }
-        paid: { type: integer, minimum: 0 }
+        id:
+          type: string
+        supplierId:
+          type: string
+        purchaseOrderId:
+          type:
+            - string
+            - "null"
+        issued:
+          type: string
+          minLength: 10
+        due:
+          type: string
+          minLength: 10
+        amount:
+          type: integer
+          minimum: 0
+        paid:
+          type: integer
+          minimum: 0
+    CustomerInput:
+      x-frappe-doctype: Customer
+      type: object
+      required:
+        - name
+        - documentType
+        - taxId
+        - taxResponsibility
+        - active
+        - creditLimit
+      properties:
+        name:
+          type: string
+          minLength: 1
+        documentType:
+          type: string
+          enum:
+            - CC
+            - NIT
+            - CE
+            - TI
+            - PPT
+            - PEP
+        taxId:
+          type: string
+        taxResponsibility:
+          type: string
+          minLength: 1
+        phone:
+          type: string
+        email:
+          type: string
+        active:
+          type: boolean
+        creditLimit:
+          type: integer
+          minimum: 0
+    SupplierInput:
+      x-frappe-doctype: Supplier
+      type: object
+      required:
+        - name
+        - taxId
+        - active
+        - paymentTermsDays
+      properties:
+        name:
+          type: string
+          minLength: 1
+        taxId:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        active:
+          type: boolean
+        paymentTermsDays:
+          type: integer
+          minimum: 0
+    EmployeeInput:
+      x-frappe-doctype: Employee
+      type: object
+      required:
+        - name
+        - role
+        - branchId
+        - active
+      properties:
+        name:
+          type: string
+          minLength: 1
+        role:
+          type: string
+          enum:
+            - cajero
+            - bodeguero
+            - comprador
+            - cartera
+            - admin
+            - propietario
+        branchId:
+          type: string
+        active:
+          type: boolean
+    Branch:
+      x-frappe-doctype: Branch
+      type: object
+      required:
+        - id
+        - name
+        - active
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          minLength: 1
+        active:
+          type: boolean
+    BranchList:
+      type: array
+      items:
+        $ref: "#/components/schemas/Branch"
+    PurchaseOrderCreate:
+      x-frappe-doctype: Purchase Order
+      type: object
+      required:
+        - supplierId
+        - lines
+      properties:
+        supplierId:
+          type: string
+        lines:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - productId
+              - quantity
+              - unitCost
+            properties:
+              productId:
+                type: string
+              quantity:
+                type: number
+                exclusiveMinimum: 0
+              unitCost:
+                type: integer
+                minimum: 0
+    LedgerPayment:
+      x-frappe-doctype: Payment Entry
+      type: object
+      required:
+        - amount
+        - method
+      properties:
+        amount:
+          type: integer
+          exclusiveMinimum: 0
+        method:
+          type: string
+          enum:
+            - efectivo
+            - tarjeta
+            - transferencia
+            - nequi
+            - daviplata
+        note:
+          type: string
+    SaleReturnCreate:
+      x-frappe-doctype: POS Invoice (return)
+      type: object
+      required:
+        - lines
+        - reason
+      properties:
+        lines:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - productId
+              - quantity
+            properties:
+              productId:
+                type: string
+              quantity:
+                type: number
+                exclusiveMinimum: 0
+        reason:
+          type: string
+          minLength: 1
+    SaleReturn:
+      x-frappe-doctype: POS Invoice (return)
+      type: object
+      required:
+        - id
+        - number
+        - saleId
+        - date
+        - lines
+        - total
+        - reason
+      properties:
+        id:
+          type: string
+        number:
+          type: string
+        saleId:
+          type: string
+        date:
+          type: string
+          minLength: 10
+        lines:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required:
+              - productId
+              - quantity
+              - amount
+            properties:
+              productId:
+                type: string
+              quantity:
+                type: number
+                exclusiveMinimum: 0
+              amount:
+                type: integer
+                minimum: 0
+        total:
+          type: integer
+          minimum: 0
+        reason:
+          type: string

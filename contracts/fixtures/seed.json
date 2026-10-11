@@ -407,5 +407,18 @@
   ],
   "shifts": [],
   "transfers": [],
-  "alerts": []
+  "alerts": [],
+  "branches": [
+    {
+      "id": "br-001",
+      "name": "Sede Principal",
+      "active": true
+    },
+    {
+      "id": "br-002",
+      "name": "Sede Norte",
+      "active": true
+    }
+  ],
+  "saleReturns": []
 }

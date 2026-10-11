@@ -22,6 +22,9 @@ const exampleSchema: Record<string, string> = {
   shift: 'Shift', shiftOpen: 'ShiftOpen', shiftClose: 'ShiftClose', login: 'Login', authSession: 'AuthSession',
   shiftMovement: 'ShiftMovement', approvalRequest: 'ApprovalRequest', approval: 'Approval',
   transferCreate: 'TransferCreate', transfer: 'Transfer', inventoryAlert: 'InventoryAlert',
+  customerInput: 'CustomerInput', supplierInput: 'SupplierInput', employeeInput: 'EmployeeInput', branch: 'Branch',
+  purchaseOrderCreate: 'PurchaseOrderCreate', ledgerPayment: 'LedgerPayment',
+  saleReturnCreate: 'SaleReturnCreate', saleReturn: 'SaleReturn',
 };
 
 describe('contracts/openapi.yaml', () => {

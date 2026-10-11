@@ -12,7 +12,7 @@ import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
   approvalSchema, apiErrorSchema, authSessionSchema, inventoryAlertSchema, receivableSchema, saleReceiptSchema,
-  saleSchema, shiftSchema, stockLevelSchema, transferSchema, z,
+  payableSchema, purchaseOrderSchema, saleReturnSchema, saleSchema, shiftSchema, stockLevelSchema, transferSchema, z,
   type SaleCreate, type Shift,
 } from './contracts-bridge';
 import { createSchemaValidator } from './spec';
@@ -389,6 +389,98 @@ export const registerConformance = (target: string | (() => string)) => {
         token: admin, body: { fromBranchId: 'br-001', toBranchId: 'br-002', lines: [{ productId: 'prd-001', quantity: 1000000 }] },
       });
       expectError(result, 409, 'STOCK_INSUFFICIENT');
+    });
+  });
+
+  describe('conformance: compras, cartera, devoluciones y administración (v0.4.0, PROPUESTA)', () => {
+    it('orden de compra: borrador -> enviada -> recibida sube stock y abre cuenta por pagar', async () => {
+      const buyer = await login('pedro.compras');
+      const before = await stockOf(buyer, 'prd-001', 'br-001');
+      const payablesBefore = z.array(payableSchema).parse((await call('GET', '/payables', { token: buyer })).body);
+
+      const created = await call('POST', '/purchase-orders', {
+        token: buyer, body: { supplierId: 'sup-001', lines: [{ productId: 'prd-001', quantity: 10, unitCost: 2200 }] },
+      });
+      expect(created.status, JSON.stringify(created.body)).toBe(201);
+      expectSchema('PurchaseOrder', created.body);
+      const order = purchaseOrderSchema.parse(created.body);
+      expect(order.status).toBe('borrador');
+      expect(order.total).toBe(22000);
+
+      expectError(await call('POST', `/purchase-orders/${order.id}/receive`, { token: buyer, body: {} }), 409, 'INVALID_STATE');
+      const sent = await call('POST', `/purchase-orders/${order.id}/send`, { token: buyer, body: {} });
+      expect(purchaseOrderSchema.parse(sent.body).status).toBe('enviada');
+      const received = await call('POST', `/purchase-orders/${order.id}/receive`, { token: buyer, body: {} });
+      expect(received.status, JSON.stringify(received.body)).toBe(200);
+      expect(purchaseOrderSchema.parse(received.body).status).toBe('recibida');
+
+      expect((await stockOf(buyer, 'prd-001', 'br-001'))?.onHand).toBe((before?.onHand ?? 0) + 10);
+      const payablesAfter = z.array(payableSchema).parse((await call('GET', '/payables', { token: buyer })).body);
+      expect(payablesAfter.length).toBe(payablesBefore.length + 1);
+      expect(payablesAfter.some((p) => p.purchaseOrderId === order.id && p.amount === 22000)).toBe(true);
+    });
+
+    it('abono: reduce el saldo y no puede superarlo (PAYMENT_EXCEEDS_BALANCE)', async () => {
+      const token = await login('ana.cartera');
+      const list = z.array(receivableSchema).parse((await call('GET', '/receivables', { token })).body);
+      const target = list.find((r) => r.amount - r.paid > 1000);
+      expect(target).toBeDefined();
+      if (!target) return;
+
+      const paid = await call('POST', `/receivables/${target.id}/payments`, { token, body: { amount: 1000, method: 'efectivo' } });
+      expect(paid.status, JSON.stringify(paid.body)).toBe(200);
+      expectSchema('Receivable', paid.body);
+      expect(receivableSchema.parse(paid.body).paid).toBe(target.paid + 1000);
+
+      const tooMuch = await call('POST', `/receivables/${target.id}/payments`, {
+        token, body: { amount: target.amount, method: 'efectivo' },
+      });
+      expectError(tooMuch, 409, 'PAYMENT_EXCEEDS_BALANCE');
+    });
+
+    it('devolución parcial: devuelve stock, no supera lo vendido y exige motivo', async () => {
+      const token = await login('laura.gomez');
+      const shift = await ensureOpenShift(token);
+      const before = await stockOf(token, 'prd-004', shift.branchId);
+      const sold = saleReceiptSchema.parse((await sell(token, sellRequest(shift.id, {
+        lines: [{ productId: 'prd-004', quantity: 3, discount: 0 }],
+        payments: [{ method: 'efectivo', amount: 14000 }],
+      }))).body);
+
+      const ok = await call('POST', `/pos/sales/${sold.id}/returns`, {
+        token, body: { lines: [{ productId: 'prd-004', quantity: 1 }], reason: 'Producto en mal estado' },
+      });
+      expect(ok.status, JSON.stringify(ok.body)).toBe(201);
+      expectSchema('SaleReturn', ok.body);
+      expect(saleReturnSchema.parse(ok.body).total).toBe(4600);
+      expect((await stockOf(token, 'prd-004', shift.branchId))?.onHand).toBe((before?.onHand ?? 0) - 3 + 1);
+
+      const exceeds = await call('POST', `/pos/sales/${sold.id}/returns`, {
+        token, body: { lines: [{ productId: 'prd-004', quantity: 3 }], reason: 'Demasiado' },
+      });
+      expectError(exceeds, 409, 'RETURN_EXCEEDS_SOLD');
+      expectError(await call('POST', `/pos/sales/${sold.id}/returns`, {
+        token, body: { lines: [{ productId: 'prd-004', quantity: 1 }] },
+      }), 422, 'VALIDATION_ERROR');
+    });
+
+    it('empleados: solo admin/propietario crean; cliente duplicado -> CUSTOMER_DUPLICATED', async () => {
+      const cashier = await login('laura.gomez');
+      const admin = await login('maria.perez');
+      const employee = { name: 'Nuevo Empleado', role: 'cajero', branchId: 'br-001', active: true };
+
+      expectError(await call('POST', '/employees', { token: cashier, body: employee }), 403, 'FORBIDDEN');
+      const created = await call('POST', '/employees', { token: admin, body: employee });
+      expect(created.status, JSON.stringify(created.body)).toBe(201);
+      expectSchema('Employee', created.body);
+
+      const customer = {
+        name: 'Cliente Prueba', documentType: 'CC', taxId: '1010101010', taxResponsibility: 'R-99-PN',
+        active: true, creditLimit: 0,
+      };
+      const first = await call('POST', '/customers', { token: admin, body: customer });
+      expect(first.status, JSON.stringify(first.body)).toBe(201);
+      expectError(await call('POST', '/customers', { token: admin, body: customer }), 409, 'CUSTOMER_DUPLICATED');
     });
   });
 };

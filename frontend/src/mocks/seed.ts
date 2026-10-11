@@ -1,6 +1,6 @@
 import type {
-  Customer, Employee, InventoryAlert, Payable, Product, PurchaseOrder, Receivable, Sale, Shift, StockLevel,
-  StockMovement, Supplier, Transfer,
+  Branch, Customer, Employee, InventoryAlert, Payable, Product, PurchaseOrder, Receivable, Sale, Shift, StockLevel,
+  SaleReturn, StockMovement, Supplier, Transfer,
 } from '@/shared/contracts';
 
 const BRANCH = 'br-001';
@@ -61,6 +61,11 @@ export const stockLevels: StockLevel[] = [
   { productId: 'prd-002', branchId: 'br-002', onHand: 10, inTransit: 0, minimum: 5 },
 ];
 
+export const branches: Branch[] = [
+  { id: 'br-001', name: 'Sede Principal', active: true },
+  { id: 'br-002', name: 'Sede Norte', active: true },
+];
+export const saleReturns: SaleReturn[] = [];
 export const shifts: Shift[] = [];
 export const transfers: Transfer[] = [];
 export const alerts: InventoryAlert[] = [];
@@ -92,6 +97,6 @@ export const payables: Payable[] = [
 
 export const createSeed = () => structuredClone({
   products, customers, suppliers, employees, sales, stockLevels, stockMovements, purchaseOrders, receivables, payables,
-  shifts, transfers, alerts,
+  shifts, transfers, alerts, branches, saleReturns,
 });
 export type MockDb = ReturnType<typeof createSeed>;

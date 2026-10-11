@@ -20,3 +20,14 @@ export const purchaseOrderContract: Contract<typeof purchaseOrderSchema> = {
     lines: [{ productId: 'prd-001', quantity: 100, unitCost: 2100 }], total: 210000, status: 'recibida',
   },
 };
+
+export const purchaseOrderCreateSchema = z.object({
+  supplierId: z.string(),
+  lines: z.array(z.object({ productId: z.string(), quantity: z.number().positive(), unitCost: money })).min(1),
+});
+export type PurchaseOrderCreate = z.infer<typeof purchaseOrderCreateSchema>;
+export const purchaseOrderCreateContract: Contract<typeof purchaseOrderCreateSchema> = {
+  doctype: 'Purchase Order',
+  schema: purchaseOrderCreateSchema,
+  example: { supplierId: 'sup-001', lines: [{ productId: 'prd-001', quantity: 50, unitCost: 2100 }] },
+};

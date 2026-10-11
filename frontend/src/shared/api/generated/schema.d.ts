@@ -78,7 +78,8 @@ export interface paths {
         };
         get: operations["listCustomers"];
         put?: never;
-        post?: never;
+        /** @description BR-CLI-01 (documento único). Roles cartera/admin/propietario. */
+        post: operations["createCustomer"];
         delete?: never;
         options?: never;
         head?: never;
@@ -94,7 +95,8 @@ export interface paths {
         };
         get: operations["listSuppliers"];
         put?: never;
-        post?: never;
+        /** @description Alta de proveedor. Roles comprador/admin/propietario. */
+        post: operations["createSupplier"];
         delete?: never;
         options?: never;
         head?: never;
@@ -110,7 +112,8 @@ export interface paths {
         };
         get: operations["listEmployees"];
         put?: never;
-        post?: never;
+        /** @description Alta de empleado/usuario. Solo admin/propietario. */
+        post: operations["createEmployee"];
         delete?: never;
         options?: never;
         head?: never;
@@ -158,7 +161,8 @@ export interface paths {
         };
         get: operations["listPurchaseOrders"];
         put?: never;
-        post?: never;
+        /** @description Crea una orden en estado `borrador`. */
+        post: operations["createPurchaseOrder"];
         delete?: never;
         options?: never;
         head?: never;
@@ -384,6 +388,159 @@ export interface paths {
         get: operations["listInventoryAlerts"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Edita un cliente. */
+        put: operations["updateCustomer"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/suppliers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Edita un proveedor. */
+        put: operations["updateSupplier"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Edita un empleado (rol, sede, activo). Solo admin/propietario. */
+        put: operations["updateEmployee"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/branches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Sedes de la compañía. */
+        get: operations["listBranches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/purchase-orders/{id}/send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description `borrador` → `enviada`. */
+        post: operations["sendPurchaseOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/purchase-orders/{id}/receive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description `enviada` → `recibida`: entrada de inventario en la sede del usuario, recálculo del costo promedio (BR-PRO-06) y cuenta por pagar a `paymentTermsDays`. */
+        post: operations["receivePurchaseOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/receivables/{id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Abono. `PAYMENT_EXCEEDS_BALANCE` si supera el saldo. */
+        post: operations["payReceivable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/payables/{id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Pago a proveedor. `PAYMENT_EXCEEDS_BALANCE` si supera el saldo. */
+        post: operations["payPayable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pos/sales/{id}/returns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Devolución parcial (docs/business-rules/07-devoluciones.md). `RETURN_EXCEEDS_SOLD` si supera lo vendido menos lo ya devuelto. */
+        post: operations["returnSale"];
         delete?: never;
         options?: never;
         head?: never;
@@ -652,6 +809,72 @@ export interface components {
             amount: number;
             paid: number;
         };
+        CustomerInput: {
+            name: string;
+            /** @enum {string} */
+            documentType: "CC" | "NIT" | "CE" | "TI" | "PPT" | "PEP";
+            taxId: string;
+            taxResponsibility: string;
+            phone?: string;
+            email?: string;
+            active: boolean;
+            creditLimit: number;
+        };
+        SupplierInput: {
+            name: string;
+            taxId: string;
+            phone?: string;
+            email?: string;
+            active: boolean;
+            paymentTermsDays: number;
+        };
+        EmployeeInput: {
+            name: string;
+            /** @enum {string} */
+            role: "cajero" | "bodeguero" | "comprador" | "cartera" | "admin" | "propietario";
+            branchId: string;
+            active: boolean;
+        };
+        Branch: {
+            id: string;
+            name: string;
+            active: boolean;
+        };
+        BranchList: components["schemas"]["Branch"][];
+        PurchaseOrderCreate: {
+            supplierId: string;
+            lines: {
+                productId: string;
+                quantity: number;
+                unitCost: number;
+            }[];
+        };
+        LedgerPayment: {
+            amount: number;
+            /** @enum {string} */
+            method: "efectivo" | "tarjeta" | "transferencia" | "nequi" | "daviplata";
+            note?: string;
+        };
+        SaleReturnCreate: {
+            lines: {
+                productId: string;
+                quantity: number;
+            }[];
+            reason: string;
+        };
+        SaleReturn: {
+            id: string;
+            number: string;
+            saleId: string;
+            date: string;
+            lines: {
+                productId: string;
+                quantity: number;
+                amount: number;
+            }[];
+            total: number;
+            reason: string;
+        };
     };
     responses: {
         /** @description Datos inválidos (`VALIDATION_ERROR`) */
@@ -850,6 +1073,33 @@ export interface operations {
             };
         };
     };
+    createCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerInput"];
+            };
+        };
+        responses: {
+            /** @description Creado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Customer"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
     listSuppliers: {
         parameters: {
             query?: never;
@@ -870,6 +1120,33 @@ export interface operations {
             };
         };
     };
+    createSupplier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplierInput"];
+            };
+        };
+        responses: {
+            /** @description Creado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Supplier"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
     listEmployees: {
         parameters: {
             query?: never;
@@ -888,6 +1165,32 @@ export interface operations {
                     "application/json": components["schemas"]["Employee"][];
                 };
             };
+        };
+    };
+    createEmployee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmployeeInput"];
+            };
+        };
+        responses: {
+            /** @description Creado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Employee"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationError"];
         };
     };
     listStockLevels: {
@@ -948,6 +1251,32 @@ export interface operations {
                     "application/json": components["schemas"]["PurchaseOrder"][];
                 };
             };
+        };
+    };
+    createPurchaseOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PurchaseOrderCreate"];
+            };
+        };
+        responses: {
+            /** @description Creada */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrder"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationError"];
         };
     };
     listReceivables: {
@@ -1307,6 +1636,253 @@ export interface operations {
                     "application/json": components["schemas"]["InventoryAlert"][];
                 };
             };
+        };
+    };
+    updateCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerInput"];
+            };
+        };
+        responses: {
+            /** @description Actualizado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Customer"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    updateSupplier: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplierInput"];
+            };
+        };
+        responses: {
+            /** @description Actualizado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Supplier"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    updateEmployee: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmployeeInput"];
+            };
+        };
+        responses: {
+            /** @description Actualizado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Employee"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    listBranches: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BranchList"];
+                };
+            };
+        };
+    };
+    sendPurchaseOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Enviada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrder"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    receivePurchaseOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recibida */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrder"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    payReceivable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LedgerPayment"];
+            };
+        };
+        responses: {
+            /** @description Abono aplicado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Receivable"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    payPayable: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LedgerPayment"];
+            };
+        };
+        responses: {
+            /** @description Pago aplicado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Payable"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    returnSale: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaleReturnCreate"];
+            };
+        };
+        responses: {
+            /** @description Devolución registrada */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaleReturn"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
         };
     };
 }

@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import {
-  saleCreateSchema, saleVoidSchema, type InventoryAlert, type Sale, type SaleCreate, type SaleReceipt,
+  saleCreateSchema, saleReturnCreateSchema, saleVoidSchema, type InventoryAlert, type Sale, type SaleCreate,
+  type SaleReceipt, type SaleReturn,
 } from '@/shared/contracts';
 import { computeTotals, lineGross } from '@/shared/utils/pricing';
 import { db, mockNow, nextId, state } from '../db';
@@ -214,6 +215,70 @@ export const saleHandlers = [
     const receipt: SaleReceipt = { ...sale, clientOperationId: body.clientOperationId, change };
     state.idempotency.set(body.clientOperationId, { fingerprint: fingerprint(body), receipt });
     return HttpResponse.json(receipt, { status: 201 });
+  }),
+
+  // PROPUESTA (docs/business-rules/07-devoluciones.md): devolución parcial.
+  http.post('/api/v1/pos/sales/:id/returns', async ({ request, params }) => {
+    const user = authenticate(request);
+    if (!user) return unauthorized();
+    if (!canSell(user.role)) return forbidden();
+    const sale = db.sales.find((s) => s.id === params.id);
+    if (!sale) return notFound('Venta');
+    const parsed = saleReturnCreateSchema.safeParse(await request.json());
+    if (!parsed.success) return validationError('La devolución exige líneas y motivo');
+    if (sale.status === 'anulada') return failure(409, 'SALE_ALREADY_VOIDED', 'La venta está anulada');
+
+    const alreadyReturned = (productId: string) =>
+      db.saleReturns.filter((r) => r.saleId === sale.id)
+        .flatMap((r) => r.lines).filter((l) => l.productId === productId)
+        .reduce((sum, l) => sum + l.quantity, 0);
+
+    const lines: SaleReturn['lines'] = [];
+    for (const requested of parsed.data.lines) {
+      const sold = sale.lines.find((l) => l.productId === requested.productId);
+      if (!sold) return validationError(`El producto no está en la venta: ${requested.productId}`);
+      const available = sold.quantity - alreadyReturned(requested.productId);
+      if (requested.quantity > available + 1e-9) {
+        return failure(409, 'RETURN_EXCEEDS_SOLD', 'La devolución supera lo vendido', {
+          productId: requested.productId, available, requested: requested.quantity,
+        });
+      }
+      // Descuento proporcional a la cantidad devuelta.
+      const gross = sold.unitPrice * requested.quantity;
+      const discount = (sold.discount * requested.quantity) / sold.quantity;
+      lines.push({ productId: requested.productId, quantity: requested.quantity, amount: Math.round(gross - discount) });
+    }
+
+    const date = mockNow().toISOString().slice(0, 10);
+    const meta = state.saleMeta.get(sale.id);
+    const branchId = meta?.branchId ?? sale.branchId;
+    const saleReturn: SaleReturn = {
+      id: nextId('ret'),
+      number: `DEV-${String(db.saleReturns.length + 1).padStart(4, '0')}`,
+      saleId: sale.id,
+      date,
+      lines,
+      total: lines.reduce((sum, l) => sum + l.amount, 0),
+      reason: parsed.data.reason,
+    };
+    db.saleReturns.push(saleReturn);
+
+    for (const l of lines) {
+      stockLevel(l.productId, branchId).onHand += l.quantity;
+      db.stockMovements.push({
+        id: nextId('stk'), date, productId: l.productId, branchId, type: 'entrada',
+        quantity: l.quantity, reference: `${saleReturn.number} (devolución de ${sale.number})`,
+      });
+    }
+
+    // El efectivo devuelto sale de la caja si el turno de la venta sigue abierto.
+    const shift = meta ? db.shifts.find((s) => s.id === meta.shiftId) : undefined;
+    if (shift?.status === 'open' && meta) {
+      const refund = Math.min(saleReturn.total, meta.cashNet);
+      shift.expectedCash -= refund;
+      meta.cashNet -= refund;
+    }
+    return HttpResponse.json(saleReturn, { status: 201 });
   }),
 
   // BR-VEN-10

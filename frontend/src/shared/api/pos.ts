@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  approvalSchema, saleReceiptSchema, saleSchema, shiftSchema,
-  type Approval, type ApprovalRequest, type Sale, type SaleCreate, type SaleReceipt, type SaleVoid,
+  approvalSchema, saleReceiptSchema, saleReturnSchema, saleSchema, shiftSchema,
+  type Approval, type ApprovalRequest, type Sale, type SaleCreate, type SaleReceipt, type SaleReturn,
+  type SaleReturnCreate, type SaleVoid,
   type Shift, type ShiftClose, type ShiftMovement, type ShiftOpen,
 } from '@/shared/contracts';
 import { api, ApiError } from './client';
@@ -89,3 +90,17 @@ export const useRequestApproval = () =>
   useMutation<Approval, ApiError, ApprovalRequest>({
     mutationFn: (input) => api.post('/auth/supervisor-approvals', input, approvalSchema),
   });
+
+/** Devolución parcial de una venta (PROPUESTA, docs/business-rules/07-devoluciones.md). */
+export const useReturnSale = () => {
+  const queryClient = useQueryClient();
+  return useMutation<SaleReturn, ApiError, { saleId: string; input: SaleReturnCreate }>({
+    mutationFn: ({ saleId, input }) => api.post(`/pos/sales/${saleId}/returns`, input, saleReturnSchema),
+    onSuccess: () => {
+      for (const key of ['sales', 'stock-levels', 'stock-movements']) {
+        void queryClient.invalidateQueries({ queryKey: [key] });
+      }
+      void queryClient.invalidateQueries({ queryKey: currentShiftKey });
+    },
+  });
+};

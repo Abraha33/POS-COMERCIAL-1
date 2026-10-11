@@ -1,0 +1,10 @@
+{
+  "name": "Ferretería El Tornillo",
+  "documentType": "NIT",
+  "taxId": "901555777-4",
+  "taxResponsibility": "R-99-PN",
+  "phone": "3105550000",
+  "email": "compras@eltornillo.example",
+  "active": true,
+  "creditLimit": 500000
+}

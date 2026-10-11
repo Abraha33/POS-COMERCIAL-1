@@ -51,3 +51,39 @@ export const employeeContract: Contract<typeof employeeSchema> = {
   schema: employeeSchema,
   example: { id: 'emp-001', name: 'Laura Gómez', role: 'cajero', branchId: 'br-001', active: true },
 };
+
+/** Cuerpos de alta/edición (el servidor asigna el `id`). */
+export const customerInputSchema = customerSchema.omit({ id: true });
+export type CustomerInput = z.infer<typeof customerInputSchema>;
+export const customerInputContract: Contract<typeof customerInputSchema> = {
+  doctype: 'Customer',
+  schema: customerInputSchema,
+  example: {
+    name: 'Ferretería El Tornillo', documentType: 'NIT', taxId: '901555777-4', taxResponsibility: 'R-99-PN',
+    phone: '3105550000', email: 'compras@eltornillo.example', active: true, creditLimit: 500000,
+  },
+};
+
+export const supplierInputSchema = supplierSchema.omit({ id: true });
+export type SupplierInput = z.infer<typeof supplierInputSchema>;
+export const supplierInputContract: Contract<typeof supplierInputSchema> = {
+  doctype: 'Supplier',
+  schema: supplierInputSchema,
+  example: { name: 'Importadora Sur', taxId: '800999111-5', active: true, paymentTermsDays: 45 },
+};
+
+export const employeeInputSchema = employeeSchema.omit({ id: true });
+export type EmployeeInput = z.infer<typeof employeeInputSchema>;
+export const employeeInputContract: Contract<typeof employeeInputSchema> = {
+  doctype: 'Employee',
+  schema: employeeInputSchema,
+  example: { name: 'Julián Torres', role: 'comprador', branchId: 'br-001', active: true },
+};
+
+export const branchSchema = z.object({ id: z.string(), name: z.string().min(1), active: z.boolean() });
+export type Branch = z.infer<typeof branchSchema>;
+export const branchContract: Contract<typeof branchSchema> = {
+  doctype: 'Branch',
+  schema: branchSchema,
+  example: { id: 'br-001', name: 'Sede Principal', active: true },
+};
