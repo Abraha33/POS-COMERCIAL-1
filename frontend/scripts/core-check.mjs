@@ -49,6 +49,16 @@ try {
 } catch {
   vitestFiles = {};
 }
+
+const genOut = path.join(tmp, 'schema.d.ts');
+const genRun = run('tipos generados desde openapi.yaml', ['exec', 'openapi-typescript', '../contracts/openapi.yaml', '-o', `"${genOut}"`]);
+let genFresh = false;
+try {
+  const norm = (t) => t.replaceAll(String.fromCharCode(13), '');
+  genFresh = genRun.ok && norm(readFileSync(genOut, 'utf8')) === norm(read('src/shared/api/generated/schema.d.ts'));
+} catch {
+  genFresh = false;
+}
 rmSync(tmp, { recursive: true, force: true });
 
 const e2e = run('playwright (smoke + a11y)', ['exec', 'playwright', 'test']);
@@ -86,9 +96,15 @@ gate(1, 'La aplicación compila y navega',
 }
 
 // ---- Gate 4
-gate(4, 'Contratos compartidos con tipos y ejemplos',
-  has('src/shared/contracts/registry.ts') && vitestFiles['contracts.test.ts'] === true,
-  'src/tests/contracts.test.ts debe existir y pasar');
+{
+  const problems = [];
+  if (!has('src/shared/contracts/registry.ts')) problems.push('falta registry.ts');
+  if (vitestFiles['contracts.test.ts'] !== true) problems.push('contracts.test.ts no pasa (ejemplos Zod vs contracts/examples)');
+  if (vitestFiles['openapi.test.ts'] !== true) problems.push('openapi.test.ts no pasa (spec válida, ejemplos vs OpenAPI, mocks vs contrato)');
+  if (!has('../contracts/openapi.yaml')) problems.push('falta contracts/openapi.yaml');
+  if (!genFresh) problems.push('tipos generados desactualizados: ejecuta `pnpm gen:api` y commitea');
+  gate(4, 'Contratos compartidos con tipos y ejemplos', problems.length === 0, problems.join('; '));
+}
 
 // ---- Gate 5
 gate(5, 'Mocks coherentes entre módulos',

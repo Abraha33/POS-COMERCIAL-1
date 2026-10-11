@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const isoDate = z.string().min(10);
-export const money = z.number().nonnegative();
+export const money = z.number().int().nonnegative();
 
 export const paginated = <T extends z.ZodType>(item: T) =>
   z.object({ items: z.array(item), total: z.number().int().nonnegative() });

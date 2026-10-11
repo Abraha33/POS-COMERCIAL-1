@@ -1,0 +1,5 @@
+{
+  "code": "STOCK_INSUFFICIENT",
+  "message": "Existencias insuficientes para SKU-001",
+  "details": { "productId": "prd-001", "available": 1, "requested": 2 }
+}

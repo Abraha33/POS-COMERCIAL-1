@@ -7,12 +7,15 @@ docs/       architecture/ (propiedad de módulos, ramas, mapa de pantallas)  · 
 tests/      integration/ (pruebas entre frontend y backend; vacío por ahora)
 ```
 
-`backend/` (Frappe/ERPNext) aún no existe.
+`backend/` (Frappe/ERPNext): solo alcance y requisitos, sin código ni instancia.
+
+Estado del contrato: **v0.2.0, propuesta pendiente de aprobación** (`docs/business-rules/99-preguntas-abiertas.md`).
 
 ## Comandos (desde `frontend/`)
 ```bash
 pnpm install
 pnpm dev          # http://localhost:5188
+pnpm gen:api      # regenera tipos desde contracts/openapi.yaml
 pnpm core:check   # 8 gates; imprime READY FOR PARALLEL SCREEN CONSTRUCTION si todo pasa
 ```
 

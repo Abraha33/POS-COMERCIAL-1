@@ -6,3 +6,5 @@ export * from './stock';
 export * from './purchase';
 export * from './ledger';
 export * from './session';
+export * from './pos';
+export * from './auth';

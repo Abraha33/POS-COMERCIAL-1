@@ -17,8 +17,13 @@ Toda respuesta HTTP se valida contra su schema en `frontend/src/shared/api/clien
 | Payable | `ledger.ts` | Purchase Invoice (saldo pendiente) |
 
 ## Endpoints simulados (MSW)
-`/api/products` (GET, POST, PUT `/:id`), `/api/customers`, `/api/suppliers`, `/api/employees`, `/api/sales`,
-`/api/stock/levels`, `/api/stock/movements`, `/api/purchase-orders`, `/api/receivables`, `/api/payables`.
+`/api/v1/products` (GET, POST, PUT `/:id`), `/customers`, `/suppliers`, `/employees`, `/sales`,
+`/stock/levels`, `/stock/movements`, `/purchase-orders`, `/receivables`, `/payables` (todos bajo `/api/v1`).
+
+## Operaciones transaccionales (propuesta v0.2.0)
+`POST /api/v1/pos/sales` (idempotente), `POST /api/v1/pos/sales/{id}/void`, `GET /api/v1/pos/shifts/current`,
+`POST /api/v1/pos/shifts`, `POST /api/v1/pos/shifts/{id}/close`, `POST /api/v1/auth/login`, `GET /api/v1/auth/session`.
+Reglas: `docs/business-rules/`. Detalle y verificaciones automáticas: `contracts/README.md`.
 
 ## Pendiente de la integración real
 Mapeo campo a campo contra Frappe (nombres y tipos), autenticación, paginación del lado servidor,

@@ -6,7 +6,7 @@ export class ApiError extends Error {
   }
 }
 
-const url = (path: string) => new URL(`/api${path}`, window.location.origin).toString();
+const url = (path: string) => new URL(`/api/v1${path}`, window.location.origin).toString();
 
 const send = async (path: string, init?: RequestInit): Promise<unknown> => {
   const response = await fetch(url(path), {

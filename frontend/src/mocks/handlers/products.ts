@@ -3,9 +3,9 @@ import { productInputSchema } from '@/shared/contracts';
 import { db } from '../db';
 
 export const productHandlers = [
-  http.get('/api/products', () => HttpResponse.json(db.products)),
+  http.get('/api/v1/products', () => HttpResponse.json(db.products)),
 
-  http.post('/api/products', async ({ request }) => {
+  http.post('/api/v1/products', async ({ request }) => {
     const parsed = productInputSchema.safeParse(await request.json());
     if (!parsed.success) return HttpResponse.json({ error: parsed.error.message }, { status: 422 });
     const product = { id: `prd-${String(db.products.length + 1).padStart(3, '0')}`, ...parsed.data };
@@ -13,7 +13,7 @@ export const productHandlers = [
     return HttpResponse.json(product, { status: 201 });
   }),
 
-  http.put('/api/products/:id', async ({ request, params }) => {
+  http.put('/api/v1/products/:id', async ({ request, params }) => {
     const parsed = productInputSchema.safeParse(await request.json());
     if (!parsed.success) return HttpResponse.json({ error: parsed.error.message }, { status: 422 });
     const index = db.products.findIndex((p) => p.id === params.id);

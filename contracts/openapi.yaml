@@ -1,63 +1,228 @@
 openapi: 3.1.0
 info:
   title: ERP/POS API
-  version: 0.1.0
+  version: 0.2.0
   description: |
     Contrato compartido entre frontend (React) y backend (Frappe/ERPNext).
-    Cambios solo vía PR `contract:` revisado por el integrador; ver docs/architecture/BRANCHING.md.
-    Estado: borrador derivado de los mocks MSW. Los endpoints marcados `x-status: simulated`
-    existen solo como mock; el backend real debe implementarlos o proponer cambios aquí primero.
+
+    **Estado: PROPUESTA — pendiente de aprobación del dueño del negocio.** Las reglas que lo sustentan están en
+    docs/business-rules/ (cada operación cita su BR-XXX). Cambios solo vía PR `contract:` revisado por el integrador
+    (docs/architecture/BRANCHING.md).
+
+    `x-status`: `simulated` = solo existe como mock MSW; `proposed` = definido aquí, sin mock ni backend todavía.
+    Dinero: entero en COP (BR-GEN-01). Errores: `Error` (BR-GEN-09).
 servers:
-  - url: /api
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - { name: auth }
+  - { name: catalog }
+  - { name: pos }
+  - { name: inventory }
+  - { name: purchases }
+  - { name: ledger }
+
 paths:
+  /auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      x-status: proposed
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Login' } } } }
+      responses:
+        '200': { description: Sesión iniciada, content: { application/json: { schema: { $ref: '#/components/schemas/AuthSession' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/session:
+    get:
+      tags: [auth]
+      operationId: getSession
+      x-status: proposed
+      responses:
+        '200': { description: Sesión vigente, content: { application/json: { schema: { $ref: '#/components/schemas/Session' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
   /products:
     get:
+      tags: [catalog]
       operationId: listProducts
       x-status: simulated
       responses:
         '200': { description: Lista de productos, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Product' } } } } }
     post:
+      tags: [catalog]
       operationId: createProduct
       x-status: simulated
+      description: BR-PRO-01, BR-PRO-02, BR-PRO-07.
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ProductInput' } } } }
       responses:
         '201': { description: Creado, content: { application/json: { schema: { $ref: '#/components/schemas/Product' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/ValidationError' }
   /products/{id}:
     put:
+      tags: [catalog]
       operationId: updateProduct
       x-status: simulated
-      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      parameters: [{ $ref: '#/components/parameters/Id' }]
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ProductInput' } } } }
       responses:
         '200': { description: Actualizado, content: { application/json: { schema: { $ref: '#/components/schemas/Product' } } } }
-        '404': { description: No encontrado }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/ValidationError' }
+
   /customers:
-    get: { operationId: listCustomers, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Customer' } } } } } } }
+    get: { tags: [catalog], operationId: listCustomers, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Customer' } } } } } } }
   /suppliers:
-    get: { operationId: listSuppliers, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Supplier' } } } } } } }
+    get: { tags: [catalog], operationId: listSuppliers, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Supplier' } } } } } } }
   /employees:
-    get: { operationId: listEmployees, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Employee' } } } } } } }
-  /sales:
-    get: { operationId: listSales, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Sale' } } } } } } }
+    get: { tags: [catalog], operationId: listEmployees, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Employee' } } } } } } }
   /stock/levels:
-    get: { operationId: listStockLevels, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/StockLevel' } } } } } } }
+    get: { tags: [inventory], operationId: listStockLevels, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/StockLevel' } } } } } } }
   /stock/movements:
-    get: { operationId: listStockMovements, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/StockMovement' } } } } } } }
+    get: { tags: [inventory], operationId: listStockMovements, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/StockMovement' } } } } } } }
   /purchase-orders:
-    get: { operationId: listPurchaseOrders, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/PurchaseOrder' } } } } } } }
+    get: { tags: [purchases], operationId: listPurchaseOrders, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/PurchaseOrder' } } } } } } }
   /receivables:
-    get: { operationId: listReceivables, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Receivable' } } } } } } }
+    get: { tags: [ledger], operationId: listReceivables, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Receivable' } } } } } } }
   /payables:
-    get: { operationId: listPayables, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Payable' } } } } } } }
+    get: { tags: [ledger], operationId: listPayables, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Payable' } } } } } } }
+
+  /sales:
+    get: { tags: [pos], operationId: listSales, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Sale' } } } } } } }
+
+  /pos/sales:
+    post:
+      tags: [pos]
+      operationId: createSale
+      x-status: proposed
+      summary: Confirma una venta (idempotente)
+      description: |
+        BR-VEN-01..09, BR-VEN-11, BR-VEN-12. El servidor fija precios, impuestos y totales (BR-GEN-06).
+        `Idempotency-Key` debe ser igual a `clientOperationId`. Repetir la misma operación devuelve la misma venta con 200.
+      parameters:
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string, format: uuid } }
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SaleCreate' } } } }
+      responses:
+        '201': { description: Venta creada, content: { application/json: { schema: { $ref: '#/components/schemas/SaleReceipt' } } } }
+        '200': { description: Operación ya procesada; se devuelve la venta original, content: { application/json: { schema: { $ref: '#/components/schemas/SaleReceipt' } } } }
+        '409':
+          description: |
+            Conflicto de negocio. `code` ∈ SHIFT_NOT_OPEN, STOCK_INSUFFICIENT, CREDIT_LIMIT_EXCEEDED,
+            PRODUCT_INACTIVE, IDEMPOTENCY_KEY_REUSED.
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /pos/sales/{id}/void:
+    post:
+      tags: [pos]
+      operationId: voidSale
+      x-status: proposed
+      description: BR-VEN-10. Requiere permiso `pos.refund` o turno abierto.
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SaleVoid' } } } }
+      responses:
+        '200': { description: Venta anulada, content: { application/json: { schema: { $ref: '#/components/schemas/Sale' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /pos/shifts/current:
+    get:
+      tags: [pos]
+      operationId: getCurrentShift
+      x-status: proposed
+      description: Turno abierto del usuario en su caja, o 404 si no hay.
+      responses:
+        '200': { description: Turno abierto, content: { application/json: { schema: { $ref: '#/components/schemas/Shift' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /pos/shifts:
+    post:
+      tags: [pos]
+      operationId: openShift
+      x-status: proposed
+      description: BR-CAJ-01, BR-CAJ-02. `SHIFT_ALREADY_OPEN` si la caja ya tiene turno abierto.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ShiftOpen' } } } }
+      responses:
+        '201': { description: Turno abierto, content: { application/json: { schema: { $ref: '#/components/schemas/Shift' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /pos/shifts/{id}/close:
+    post:
+      tags: [pos]
+      operationId: closeShift
+      x-status: proposed
+      description: BR-CAJ-05..08. Devuelve el turno con `difference` calculada.
+      parameters: [{ $ref: '#/components/parameters/Id' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ShiftClose' } } } }
+      responses:
+        '200': { description: Turno cerrado, content: { application/json: { schema: { $ref: '#/components/schemas/Shift' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
 
 components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer }
+  parameters:
+    Id: { name: id, in: path, required: true, schema: { type: string } }
   responses:
     ValidationError:
-      description: Datos inválidos
-      content: { application/json: { schema: { type: object, required: [error], properties: { error: { type: string } } } } }
+      description: Datos inválidos (`VALIDATION_ERROR`)
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Unauthorized:
+      description: Sin sesión o credenciales inválidas (`UNAUTHORIZED`)
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Forbidden:
+      description: Sin permiso (`FORBIDDEN`)
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    NotFound:
+      description: No encontrado (`NOT_FOUND`)
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Conflict:
+      description: Conflicto de negocio; `code` indica la regla
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
   schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string, minLength: 1 }
+        message: { type: string }
+        details: { type: object, additionalProperties: true }
+    Login:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string, minLength: 1 }
+        password: { type: string, minLength: 1 }
+    Session:
+      type: object
+      required: [user, company, branch, register]
+      properties:
+        user:
+          type: object
+          required: [id, name, role]
+          properties:
+            id: { type: string }
+            name: { type: string }
+            role: { type: string, enum: [cajero, bodeguero, comprador, cartera, admin, propietario] }
+        company: { $ref: '#/components/schemas/IdName' }
+        branch: { $ref: '#/components/schemas/IdName' }
+        register: { $ref: '#/components/schemas/IdName' }
+    IdName:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+    AuthSession:
+      type: object
+      required: [accessToken, expiresAt, session]
+      properties:
+        accessToken: { type: string, minLength: 1 }
+        expiresAt: { type: string, minLength: 10 }
+        session: { $ref: '#/components/schemas/Session' }
     Product:
       x-frappe-doctype: Item
       type: object
@@ -69,8 +234,8 @@ components:
         name: { type: string, minLength: 1 }
         category: { type: string }
         unit: { type: string }
-        price: { type: number, minimum: 0 }
-        cost: { type: number, minimum: 0 }
+        price: { type: integer, minimum: 0 }
+        cost: { type: integer, minimum: 0 }
         taxRate: { type: number, minimum: 0, maximum: 1 }
         active: { type: boolean }
     ProductInput:
@@ -82,8 +247,8 @@ components:
         name: { type: string, minLength: 1 }
         category: { type: string }
         unit: { type: string }
-        price: { type: number, minimum: 0 }
-        cost: { type: number, minimum: 0 }
+        price: { type: integer, minimum: 0 }
+        cost: { type: integer, minimum: 0 }
         taxRate: { type: number, minimum: 0, maximum: 1 }
         active: { type: boolean }
     Customer:
@@ -97,7 +262,7 @@ components:
         phone: { type: string }
         email: { type: string }
         active: { type: boolean }
-        creditLimit: { type: number, minimum: 0 }
+        creditLimit: { type: integer, minimum: 0 }
     Supplier:
       x-frappe-doctype: Supplier
       type: object
@@ -120,14 +285,17 @@ components:
         role: { type: string, enum: [cajero, bodeguero, comprador, cartera, admin, propietario] }
         branchId: { type: string }
         active: { type: boolean }
+    PaymentMethod:
+      type: string
+      enum: [efectivo, tarjeta, transferencia, credito]
     SaleLine:
       type: object
       required: [productId, quantity, unitPrice, discount]
       properties:
         productId: { type: string }
         quantity: { type: number, exclusiveMinimum: 0 }
-        unitPrice: { type: number, minimum: 0 }
-        discount: { type: number, minimum: 0 }
+        unitPrice: { type: integer, minimum: 0 }
+        discount: { type: integer, minimum: 0 }
     Sale:
       x-frappe-doctype: POS Invoice
       type: object
@@ -135,21 +303,81 @@ components:
       properties:
         id: { type: string }
         number: { type: string }
-        date: { type: string, format: date }
+        date: { type: string, minLength: 10 }
         customerId: { type: [string, 'null'] }
         cashierId: { type: string }
         branchId: { type: string }
         lines: { type: array, minItems: 1, items: { $ref: '#/components/schemas/SaleLine' } }
-        paymentMethod: { type: string, enum: [efectivo, tarjeta, transferencia, credito] }
-        total: { type: number, minimum: 0 }
+        paymentMethod: { $ref: '#/components/schemas/PaymentMethod' }
+        total: { type: integer, minimum: 0 }
         status: { type: string, enum: [pagada, credito, anulada] }
+    SaleCreate:
+      x-frappe-doctype: POS Invoice
+      type: object
+      required: [clientOperationId, shiftId, customerId, lines, paymentMethod]
+      properties:
+        clientOperationId: { type: string, format: uuid }
+        shiftId: { type: string }
+        customerId: { type: [string, 'null'] }
+        lines:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [productId, quantity, discount]
+            properties:
+              productId: { type: string }
+              quantity: { type: number, exclusiveMinimum: 0 }
+              discount: { type: integer, minimum: 0 }
+        paymentMethod: { $ref: '#/components/schemas/PaymentMethod' }
+        amountTendered: { type: integer, minimum: 0 }
+    SaleReceipt:
+      allOf:
+        - $ref: '#/components/schemas/Sale'
+        - type: object
+          required: [clientOperationId, change]
+          properties:
+            clientOperationId: { type: string, format: uuid }
+            change: { type: integer, minimum: 0 }
+    SaleVoid:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 1 }
+    Shift:
+      x-frappe-doctype: POS Opening Entry / POS Closing Entry
+      type: object
+      required: [id, registerId, cashierId, openedAt, closedAt, openingCash, expectedCash, countedCash, difference, status]
+      properties:
+        id: { type: string }
+        registerId: { type: string }
+        cashierId: { type: string }
+        openedAt: { type: string, minLength: 10 }
+        closedAt: { type: [string, 'null'] }
+        openingCash: { type: integer, minimum: 0 }
+        expectedCash: { type: integer, minimum: 0 }
+        countedCash: { type: [integer, 'null'], minimum: 0 }
+        difference: { type: [integer, 'null'] }
+        status: { type: string, enum: [open, closed] }
+    ShiftOpen:
+      type: object
+      required: [registerId, openingCash]
+      properties:
+        registerId: { type: string }
+        openingCash: { type: integer, minimum: 0 }
+    ShiftClose:
+      type: object
+      required: [countedCash]
+      properties:
+        countedCash: { type: integer, minimum: 0 }
+        note: { type: string }
     StockMovement:
       x-frappe-doctype: Stock Ledger Entry
       type: object
       required: [id, date, productId, branchId, type, quantity, reference]
       properties:
         id: { type: string }
-        date: { type: string, format: date }
+        date: { type: string, minLength: 10 }
         productId: { type: string }
         branchId: { type: string }
         type: { type: string, enum: [entrada, salida, ajuste, traslado] }
@@ -170,7 +398,7 @@ components:
       properties:
         id: { type: string }
         number: { type: string }
-        date: { type: string, format: date }
+        date: { type: string, minLength: 10 }
         supplierId: { type: string }
         lines:
           type: array
@@ -181,8 +409,8 @@ components:
             properties:
               productId: { type: string }
               quantity: { type: number, exclusiveMinimum: 0 }
-              unitCost: { type: number, minimum: 0 }
-        total: { type: number, minimum: 0 }
+              unitCost: { type: integer, minimum: 0 }
+        total: { type: integer, minimum: 0 }
         status: { type: string, enum: [borrador, enviada, recibida, cancelada] }
     Receivable:
       x-frappe-doctype: Sales Invoice (outstanding)
@@ -192,10 +420,10 @@ components:
         id: { type: string }
         customerId: { type: string }
         saleId: { type: [string, 'null'] }
-        issued: { type: string, format: date }
-        due: { type: string, format: date }
-        amount: { type: number, minimum: 0 }
-        paid: { type: number, minimum: 0 }
+        issued: { type: string, minLength: 10 }
+        due: { type: string, minLength: 10 }
+        amount: { type: integer, minimum: 0 }
+        paid: { type: integer, minimum: 0 }
     Payable:
       x-frappe-doctype: Purchase Invoice (outstanding)
       type: object
@@ -204,7 +432,7 @@ components:
         id: { type: string }
         supplierId: { type: string }
         purchaseOrderId: { type: [string, 'null'] }
-        issued: { type: string, format: date }
-        due: { type: string, format: date }
-        amount: { type: number, minimum: 0 }
-        paid: { type: number, minimum: 0 }
+        issued: { type: string, minLength: 10 }
+        due: { type: string, minLength: 10 }
+        amount: { type: integer, minimum: 0 }
+        paid: { type: integer, minimum: 0 }

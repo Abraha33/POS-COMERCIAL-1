@@ -1,0 +1,10 @@
+{
+  "clientOperationId": "3f2b8c1e-5a47-4d0e-9b1a-6c2d7e8f9a10",
+  "shiftId": "sh-001",
+  "customerId": "cus-001",
+  "lines": [
+    { "productId": "prd-001", "quantity": 2, "discount": 0 }
+  ],
+  "paymentMethod": "efectivo",
+  "amountTendered": 10000
+}

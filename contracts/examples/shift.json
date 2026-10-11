@@ -1,0 +1,12 @@
+{
+  "id": "sh-001",
+  "registerId": "reg-001",
+  "cashierId": "emp-001",
+  "openedAt": "2026-10-01T13:00:00Z",
+  "closedAt": null,
+  "openingCash": 100000,
+  "expectedCash": 105600,
+  "countedCash": null,
+  "difference": null,
+  "status": "open"
+}
