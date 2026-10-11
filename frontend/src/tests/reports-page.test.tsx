@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
@@ -6,11 +6,6 @@ import { AppProviders } from '@/app/providers/AppProviders';
 import { createAppRouter } from '@/routes';
 import { setAccessToken } from '@/shared/api/client';
 import { mockTokenForRole } from '@/mocks/test-users';
-
-// jsdom no dibuja canvas: la tabla equivalente y el resumen textual son lo que se verifica.
-vi.mock('primereact/chart', () => ({
-  Chart: ({ ariaLabel }: { ariaLabel?: string }) => <canvas role="img" aria-label={ariaLabel} data-testid="chart-canvas" />,
-}));
 
 const renderReports = async () => {
   setAccessToken(mockTokenForRole('propietario'));
@@ -29,8 +24,9 @@ describe('Reportes', () => {
     const sales = await screen.findByRole('region', { name: 'Ventas' }, { timeout: 5000 });
     expect(within(sales).getByText('Total vendido').nextSibling).toHaveTextContent('453.600');
     expect(within(sales).getByText('Ticket promedio').nextSibling).toHaveTextContent('151.200');
-    expect(screen.getAllByTestId('chart-canvas')).toHaveLength(2);
-    expect(screen.getByRole('img', { name: /ventas por día/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('figure')).toHaveLength(2);
+    expect(screen.getByRole('figure', { name: /ventas por día/i })).toBeInTheDocument();
+    expect(screen.queryByText('br-001')).not.toBeInTheDocument();
 
     const receivable = screen.getByRole('region', { name: 'Cuentas por cobrar' });
     expect(within(receivable).getByText('Saldo total').nextSibling).toHaveTextContent('300.000');

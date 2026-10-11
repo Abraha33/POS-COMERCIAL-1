@@ -4,19 +4,27 @@ import { Column } from 'primereact/column';
 import { confirmDialog } from 'primereact/confirmdialog';
 import { DataTable } from 'primereact/datatable';
 import { InputText } from 'primereact/inputtext';
-import { Tag } from 'primereact/tag';
 import { roleSchema, type Employee, type EmployeeInput, type Role } from '@/shared/contracts';
 import { useBranches, useEmployees } from '@/shared/api/queries';
 import { useSaveEmployee } from '@/shared/api/ledger';
 import { ApiError } from '@/shared/api/client';
-import { EmptyState, ErrorState, LoadingState } from '@/shared/ui';
+import { EmptyState, ErrorState, LoadingState, StatusTag, type StatusDef } from '@/shared/ui';
 import { roleLabels } from '@/app/config/permissions';
 import { useSession } from '@/app/providers/SessionProvider';
 import { useNotify } from '@/app/providers/ToastProvider';
 import { EmployeeFormDialog } from './EmployeeFormDialog';
 import { FORBIDDEN_MESSAGE } from './labels';
+import { useNarrow } from './useNarrow';
 
 type StatusFilter = 'all' | 'active' | 'inactive';
+
+/** Rol como etiqueta: texto + icono; el tono solo distingue los roles con más privilegio. */
+const roleMap: Record<string, StatusDef> = Object.fromEntries(
+  roleSchema.options.map((r): [string, StatusDef] => [
+    `role-${r}`,
+    { label: roleLabels[r], tone: r === 'propietario' || r === 'admin' ? 'info' : 'neutral', icon: 'pi pi-user' },
+  ]),
+);
 
 const errorText = (error: Error): string =>
   error instanceof ApiError && error.code === 'FORBIDDEN' ? FORBIDDEN_MESSAGE : error.message;
@@ -32,6 +40,7 @@ export const EmployeesTab = () => {
   const notify = useNotify();
   const { can, session } = useSession();
   const canManage = can('admin.manage');
+  const narrow = useNarrow();
 
   const [search, setSearch] = useState('');
   const [role, setRole] = useState<Role | 'all'>('all');
@@ -92,6 +101,21 @@ export const EmployeesTab = () => {
     });
   };
 
+  const actionsFor = (e: Employee) =>
+    canManage ? (
+      <div className="flex gap-1">
+        <Button icon="pi pi-pencil" text rounded aria-label={`Editar ${e.name}`} onClick={() => openEdit(e)} />
+        <Button
+          icon={e.active ? 'pi pi-ban' : 'pi pi-replay'}
+          text
+          rounded
+          severity={e.active ? 'danger' : undefined}
+          aria-label={`${e.active ? 'Desactivar' : 'Reactivar'} ${e.name}`}
+          onClick={() => askToggleActive(e)}
+        />
+      </div>
+    ) : null;
+
   if (employees.isLoading || branches.isLoading) return <LoadingState label="Cargando empleados…" />;
   if (employees.error) return <ErrorState error={employees.error} onRetry={() => void employees.refetch()} />;
   if (branches.error) return <ErrorState error={branches.error} onRetry={() => void branches.refetch()} />;
@@ -99,11 +123,11 @@ export const EmployeesTab = () => {
   return (
     <div>
       {canManage ? null : (
-        <p role="alert" className="p-3 border-1 surface-border border-round" data-testid="admin-readonly-notice">
+        <p role="alert" className="admin__note" data-testid="admin-readonly-notice">
           {FORBIDDEN_MESSAGE}
         </p>
       )}
-      <div className="app-row mb-3">
+      <div className="admin__toolbar">
         <span className="p-input-icon-left">
           <i className="pi pi-search" />
           <InputText
@@ -135,40 +159,43 @@ export const EmployeesTab = () => {
             <option value="inactive">Inactivos</option>
           </select>
         </div>
-        {canManage ? <Button label="Nuevo empleado" icon="pi pi-plus" onClick={openNew} className="ml-auto" /> : null}
+        {canManage ? <Button label="Nuevo empleado" icon="pi pi-plus" onClick={openNew} className="admin__toolbar-action" /> : null}
       </div>
 
       {visibleRows.length === 0 ? (
         <EmptyState message="Ningún empleado coincide con los filtros." />
+      ) : narrow ? (
+        <ul className="admin__cards" aria-label="Empleados">
+          {visibleRows.map((e) => (
+            <li key={e.id} className="admin__card">
+              <div className="admin__card-head">
+                <span>{e.name}</span>
+                <StatusTag status={e.active ? 'active' : 'inactive'} />
+              </div>
+              <div className="admin__card-meta">
+                <StatusTag status={`role-${e.role}`} map={roleMap} />
+                <span>{branchNames.get(e.branchId) ?? 'Sede desconocida'}</span>
+              </div>
+              {actionsFor(e)}
+            </li>
+          ))}
+        </ul>
       ) : (
         <div className="app-table-scroll">
           <DataTable value={visibleRows} paginator rows={10} stripedRows size="small" dataKey="id">
             <Column field="name" header="Nombre" sortable />
-            <Column field="role" header="Rol" sortable body={(e: Employee) => roleLabels[e.role]} />
+            <Column field="role" header="Rol" sortable body={(e: Employee) => <StatusTag status={`role-${e.role}`} map={roleMap} />} />
             <Column
               field="branchId" header="Sede" sortable
               body={(e: Employee) => branchNames.get(e.branchId) ?? 'Sede desconocida'}
             />
             <Column
               field="active" header="Estado" sortable
-              body={(e: Employee) => <Tag value={e.active ? 'Activo' : 'Inactivo'} severity={e.active ? 'success' : 'warning'} />}
+              body={(e: Employee) => <StatusTag status={e.active ? 'active' : 'inactive'} />}
             />
             <Column
               header="Acciones"
-              body={(e: Employee) =>
-                canManage ? (
-                  <div className="flex gap-1">
-                    <Button icon="pi pi-pencil" text rounded aria-label={`Editar ${e.name}`} onClick={() => openEdit(e)} />
-                    <Button
-                      icon={e.active ? 'pi pi-ban' : 'pi pi-replay'}
-                      text
-                      rounded
-                      severity={e.active ? 'danger' : undefined}
-                      aria-label={`${e.active ? 'Desactivar' : 'Reactivar'} ${e.name}`}
-                      onClick={() => askToggleActive(e)}
-                    />
-                  </div>
-                ) : null}
+              body={actionsFor}
             />
           </DataTable>
         </div>
