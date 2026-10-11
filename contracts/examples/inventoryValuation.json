@@ -1,0 +1,14 @@
+{
+  "branchId": "br-001",
+  "costBasis": "product_cost",
+  "totalValue": 84000,
+  "items": [
+    {
+      "productId": "prd-001",
+      "branchId": "br-001",
+      "onHand": 40,
+      "unitCost": 2100,
+      "value": 84000
+    }
+  ]
+}

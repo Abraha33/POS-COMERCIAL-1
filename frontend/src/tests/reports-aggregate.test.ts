@@ -6,7 +6,8 @@ import {
 
 const sale = (over: Partial<Sale>): Sale => ({
   id: 's', number: 'N', date: '2026-10-01', customerId: null, cashierId: 'emp-001', branchId: 'br-001',
-  lines: [{ productId: 'p', quantity: 1, unitPrice: 1000, discount: 0 }],
+  shiftId: null,
+  lines: [{ productId: 'p', quantity: 1, unitPrice: 1000, discount: 0, returnedQuantity: 0 }],
   payments: [{ method: 'efectivo', amount: 1000 }], roundingAdjustment: 0, total: 1000, status: 'pagada', ...over,
 });
 

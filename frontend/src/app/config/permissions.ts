@@ -1,19 +1,7 @@
-import type { Permission, Role } from '@/shared/contracts';
+import type { Role } from '@/shared/contracts';
 
-const all: Permission[] = [
-  'pos.sell', 'pos.refund', 'products.view', 'products.edit', 'inventory.view', 'inventory.adjust',
-  'purchases.view', 'purchases.create', 'customers.view', 'receivables.view', 'payables.view',
-  'reports.view', 'admin.manage',
-];
-
-export const rolePermissions: Record<Role, readonly Permission[]> = {
-  propietario: all,
-  admin: all,
-  cajero: ['pos.sell', 'products.view', 'customers.view'],
-  bodeguero: ['products.view', 'inventory.view', 'inventory.adjust'],
-  comprador: ['products.view', 'inventory.view', 'purchases.view', 'purchases.create', 'payables.view'],
-  cartera: ['customers.view', 'receivables.view', 'payables.view', 'reports.view'],
-};
+/** La matriz vive en el contrato (la comparten UI y mocks); se reexporta aquí para las features. */
+export { rolePermissions } from '@/shared/contracts';
 
 export const roleLabels: Record<Role, string> = {
   propietario: 'Propietario',

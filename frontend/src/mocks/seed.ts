@@ -1,6 +1,6 @@
 import type {
-  Branch, Customer, Employee, InventoryAlert, Payable, Product, PurchaseOrder, Receivable, Sale, Shift, StockLevel,
-  SaleReturn, StockMovement, Supplier, Transfer,
+  Branch, Company, CustomerRecord, Employee, InventoryAlert, InventoryCount, PayableRecord, Product, PurchaseOrder,
+  ReceivablePayment, ReceivableRecord, Sale, Shift, StockLevel, SaleReturn, StockMovement, Supplier, Transfer,
 } from '@/shared/contracts';
 
 const BRANCH = 'br-001';
@@ -14,15 +14,16 @@ export const products: Product[] = [
   { id: 'prd-006', sku: 'SKU-006', name: 'Café molido 250 g', category: 'Bebidas', unit: 'und', price: 8900, cost: 6900, taxCategory: 'excluido', taxRate: 0, active: false },
 ];
 
-export const customers: Customer[] = [
+/** Clientes tal como se persisten; la API añade `outstandingBalance` y `overdueBalance` (mocks/derive.ts). */
+export const customers: CustomerRecord[] = [
   { id: 'cus-001', name: 'Tienda La Esquina', documentType: 'NIT', taxId: '900123456-1', taxResponsibility: 'R-99-PN', phone: '3001112233', email: 'compras@laesquina.example', active: true, creditLimit: 1_500_000 },
   { id: 'cus-002', name: 'Restaurante El Sazón', documentType: 'NIT', taxId: '901234567-2', taxResponsibility: 'R-99-PN', email: 'admin@elsazon.example', active: true, creditLimit: 800_000 },
   { id: 'cus-003', name: 'Cliente mostrador', documentType: 'CC', taxId: '222222222222', taxResponsibility: 'R-99-PN', active: true, creditLimit: 0 },
 ];
 
 export const suppliers: Supplier[] = [
-  { id: 'sup-001', name: 'Distribuidora Andina', taxId: '800765432-9', active: true, paymentTermsDays: 30 },
-  { id: 'sup-002', name: 'Lácteos del Valle', taxId: '800111222-3', active: true, paymentTermsDays: 15 },
+  { id: 'sup-001', name: 'Distribuidora Andina', taxId: '800765432-9', active: true, paymentTermsDays: 30, taxResponsibility: 'O-13' },
+  { id: 'sup-002', name: 'Lácteos del Valle', taxId: '800111222-3', active: true, paymentTermsDays: 15, taxResponsibility: 'R-99-PN' },
 ];
 
 export const employees: Employee[] = [
@@ -37,18 +38,18 @@ export const employees: Employee[] = [
 
 export const sales: Sale[] = [
   {
-    id: 'sal-001', number: 'POS-0001', date: '2026-10-01', customerId: 'cus-003', cashierId: 'emp-001', branchId: BRANCH,
-    lines: [{ productId: 'prd-001', quantity: 2, unitPrice: 2800, discount: 0 }], payments: [{ method: 'efectivo', amount: 5600 }], roundingAdjustment: 0, total: 5600, status: 'pagada',
+    id: 'sal-001', number: 'POS-0001', date: '2026-10-01', customerId: 'cus-003', cashierId: 'emp-001', branchId: BRANCH, shiftId: null,
+    lines: [{ productId: 'prd-001', quantity: 2, unitPrice: 2800, discount: 0, returnedQuantity: 0 }], payments: [{ method: 'efectivo', amount: 5600 }], roundingAdjustment: 0, total: 5600, status: 'pagada',
   },
   {
-    id: 'sal-002', number: 'POS-0002', date: '2026-09-20', customerId: 'cus-001', cashierId: 'emp-001', branchId: BRANCH,
-    lines: [{ productId: 'prd-002', quantity: 32, unitPrice: 12500, discount: 0 }], payments: [{ method: 'credito', amount: 400000 }], roundingAdjustment: 0, total: 400000, status: 'credito',
+    id: 'sal-002', number: 'POS-0002', date: '2026-09-20', customerId: 'cus-001', cashierId: 'emp-001', branchId: BRANCH, shiftId: null,
+    lines: [{ productId: 'prd-002', quantity: 32, unitPrice: 12500, discount: 0, returnedQuantity: 0 }], payments: [{ method: 'credito', amount: 400000 }], roundingAdjustment: 0, total: 400000, status: 'credito',
   },
   {
-    id: 'sal-003', number: 'POS-0003', date: '2026-10-03', customerId: 'cus-002', cashierId: 'emp-001', branchId: BRANCH,
+    id: 'sal-003', number: 'POS-0003', date: '2026-10-03', customerId: 'cus-002', cashierId: 'emp-001', branchId: BRANCH, shiftId: null,
     lines: [
-      { productId: 'prd-003', quantity: 5, unitPrice: 4200, discount: 0 },
-      { productId: 'prd-004', quantity: 6, unitPrice: 4600, discount: 600 },
+      { productId: 'prd-003', quantity: 5, unitPrice: 4200, discount: 0, returnedQuantity: 0 },
+      { productId: 'prd-004', quantity: 6, unitPrice: 4600, discount: 600, returnedQuantity: 0 },
     ],
     payments: [{ method: 'efectivo', amount: 20000 }, { method: 'nequi', amount: 28000 }], roundingAdjustment: 0, total: 48000, status: 'pagada',
   },
@@ -87,16 +88,24 @@ export const purchaseOrders: PurchaseOrder[] = [
   },
 ];
 
-export const receivables: Receivable[] = [
-  { id: 'rec-001', customerId: 'cus-001', saleId: 'sal-002', issued: '2026-09-20', due: '2026-10-20', amount: 400000, paid: 100000 },
+export const receivables: ReceivableRecord[] = [
+  { id: 'rec-001', customerId: 'cus-001', saleId: 'sal-002', branchId: BRANCH, issued: '2026-09-20', due: '2026-10-20', amount: 400000, paid: 100000 },
 ];
 
-export const payables: Payable[] = [
-  { id: 'pay-001', supplierId: 'sup-001', purchaseOrderId: 'po-001', issued: '2026-09-28', due: '2026-10-28', amount: 210000, paid: 0 },
+export const payables: PayableRecord[] = [
+  { id: 'pay-001', supplierId: 'sup-001', purchaseOrderId: 'po-001', branchId: BRANCH, issued: '2026-09-28', due: '2026-10-28', amount: 210000, paid: 0 },
 ];
+
+/** Datos de la empresa (GET/PUT /company, v0.5.0). */
+export const company: Company = {
+  id: 'co-001', name: 'Comercial Demo S.A.S.', taxId: '900555444-3', taxResponsibility: 'O-13',
+  address: 'Calle 10 # 5-20, Bogotá', phone: '6015550000', email: 'contabilidad@comercialdemo.example',
+};
+export const receivablePayments: ReceivablePayment[] = [];
+export const inventoryCounts: InventoryCount[] = [];
 
 export const createSeed = () => structuredClone({
   products, customers, suppliers, employees, sales, stockLevels, stockMovements, purchaseOrders, receivables, payables,
-  shifts, transfers, alerts, branches, saleReturns,
+  shifts, transfers, alerts, branches, saleReturns, company, receivablePayments, inventoryCounts,
 });
 export type MockDb = ReturnType<typeof createSeed>;

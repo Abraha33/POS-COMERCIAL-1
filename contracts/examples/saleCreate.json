@@ -3,9 +3,16 @@
   "shiftId": "sh-001",
   "customerId": "cus-001",
   "lines": [
-    { "productId": "prd-001", "quantity": 2, "discount": 0 }
+    {
+      "productId": "prd-001",
+      "quantity": 2,
+      "discount": 0
+    }
   ],
   "payments": [
-    { "method": "efectivo", "amount": 10000 }
+    {
+      "method": "efectivo",
+      "amount": 10000
+    }
   ]
 }

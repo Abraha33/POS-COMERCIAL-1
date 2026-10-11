@@ -1,0 +1,16 @@
+{
+  "customerId": "cus-001",
+  "amount": 100000,
+  "payments": [
+    {
+      "id": "rpay-001",
+      "receivableId": "rec-001",
+      "customerId": "cus-001",
+      "date": "2026-10-11",
+      "amount": 100000,
+      "method": "transferencia",
+      "note": "Abono parcial"
+    }
+  ],
+  "balanceAfter": 200000
+}

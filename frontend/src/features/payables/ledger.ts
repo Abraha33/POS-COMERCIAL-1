@@ -1,10 +1,6 @@
 import type { Payable } from '@/shared/contracts';
+import { today as clockToday } from '@/shared/utils/clock';
 
-/**
- * Fecha de referencia de cartera. SUP: mientras responde MSW (reloj fijo `mockNow`) se usa una constante;
- * con backend real la fecha la fija el servidor.
- */
-export const LEDGER_REFERENCE_DATE = '2026-10-11';
 /** PROPUESTA: un pago se destaca como "próximo" si vence en los siguientes 7 días. */
 export const SOON_DAYS = 7;
 
@@ -16,7 +12,7 @@ const toUtc = (iso: string): number => {
 const toIso = (ms: number): string => new Date(ms).toISOString().slice(0, 10);
 
 /** Días hasta el vencimiento (negativo si ya venció). */
-export const daysUntilDue = (due: string, today: string = LEDGER_REFERENCE_DATE): number =>
+export const daysUntilDue = (due: string, today: string = clockToday()): number =>
   Math.round((toUtc(due) - toUtc(today)) / DAY_MS);
 
 export const balanceOf = (p: Pick<Payable, 'amount' | 'paid'>): number => p.amount - p.paid;
@@ -24,7 +20,9 @@ export const balanceOf = (p: Pick<Payable, 'amount' | 'paid'>): number => p.amou
 export type PayableStatus = 'pagada' | 'vigente' | 'proxima' | 'vencida';
 
 /** El periodo de gracia (BR-CLI-06) es de clientes; en pagos a proveedores vencida = pasó la fecha. */
-export const payableStatus = (p: Payable, today: string = LEDGER_REFERENCE_DATE): PayableStatus => {
+type PayableAmounts = Partial<Payable> & Pick<Payable, 'amount' | 'paid' | 'due'>;
+
+export const payableStatus = (p: PayableAmounts, today: string = clockToday()): PayableStatus => {
   if (balanceOf(p) <= 0) return 'pagada';
   const left = daysUntilDue(p.due, today);
   if (left < 0) return 'vencida';
@@ -52,9 +50,9 @@ export const shortDate = (iso: string): string => {
 
 export type PayableTotals = { balance: number; overdue: number; dueSoon: number; openCount: number };
 
-export const totalsOf = (rows: Payable[], today: string = LEDGER_REFERENCE_DATE): PayableTotals => {
+export const totalsOf = (rows: PayableAmounts[], today: string = clockToday()): PayableTotals => {
   const open = rows.filter((p) => balanceOf(p) > 0);
-  const sum = (list: Payable[]) => list.reduce((acc, p) => acc + balanceOf(p), 0);
+  const sum = (list: PayableAmounts[]) => list.reduce((acc, p) => acc + balanceOf(p), 0);
   return {
     balance: sum(open),
     overdue: sum(open.filter((p) => payableStatus(p, today) === 'vencida')),

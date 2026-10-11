@@ -6,7 +6,8 @@ import {
 import { computeTotals, lineGross } from '@/shared/utils/pricing';
 import { db, mockNow, nextId, state } from '../db';
 import {
-  authenticate, canRefund, canSell, discountCap, failure, forbidden, notFound, unauthorized, validationError,
+  authenticate, canRefund, canSell, discountCap, failure, forbidden, hasPermission, notFound, unauthorized,
+  validationError,
 } from '../http';
 
 const GRACE_DAYS = 3;
@@ -181,8 +182,10 @@ export const saleHandlers = [
       customerId: body.customerId,
       cashierId: user.id,
       branchId: shift.branchId,
+      shiftId: shift.id,
       lines: lines.map((l) => ({
         productId: l.product.id, quantity: l.quantity, unitPrice: l.unitPrice, discount: l.discount,
+        returnedQuantity: 0,
       })),
       payments: body.payments,
       roundingAdjustment: totals.roundingAdjustment,
@@ -203,7 +206,7 @@ export const saleHandlers = [
 
     if (creditAmount > 0 && body.customerId) {
       db.receivables.push({
-        id: nextId('rec'), customerId: body.customerId, saleId: sale.id, issued: date,
+        id: nextId('rec'), customerId: body.customerId, saleId: sale.id, branchId: shift.branchId, issued: date,
         due: addDays(date, CREDIT_TERM_DAYS), amount: creditAmount, paid: 0,
       });
     }
@@ -215,6 +218,15 @@ export const saleHandlers = [
     const receipt: SaleReceipt = { ...sale, clientOperationId: body.clientOperationId, change };
     state.idempotency.set(body.clientOperationId, { fingerprint: fingerprint(body), receipt });
     return HttpResponse.json(receipt, { status: 201 });
+  }),
+
+  // PROPUESTA v0.5.0: devoluciones ya registradas de una venta.
+  http.get('/api/v1/pos/sales/:id/returns', ({ request, params }) => {
+    const user = authenticate(request);
+    if (!user) return unauthorized();
+    if (!canSell(user.role) && !hasPermission(user, 'reports.view')) return forbidden();
+    if (!db.sales.some((s) => s.id === params.id)) return notFound('Venta');
+    return HttpResponse.json(db.saleReturns.filter((r) => r.saleId === params.id));
   }),
 
   // PROPUESTA (docs/business-rules/07-devoluciones.md): devolución parcial.
@@ -262,6 +274,11 @@ export const saleHandlers = [
       reason: parsed.data.reason,
     };
     db.saleReturns.push(saleReturn);
+    // Mantiene `returnedQuantity` por línea (derivado de las devoluciones).
+    for (const l of lines) {
+      const soldLine = sale.lines.find((s) => s.productId === l.productId);
+      if (soldLine) soldLine.returnedQuantity += l.quantity;
+    }
 
     for (const l of lines) {
       stockLevel(l.productId, branchId).onHand += l.quantity;

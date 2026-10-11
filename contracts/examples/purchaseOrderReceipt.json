@@ -1,0 +1,28 @@
+{
+  "id": "po-002",
+  "number": "PO-0002",
+  "date": "2026-10-05",
+  "supplierId": "sup-002",
+  "lines": [
+    {
+      "productId": "prd-004",
+      "quantity": 60,
+      "unitCost": 3700
+    }
+  ],
+  "total": 222000,
+  "status": "recibida",
+  "effect": {
+    "branchId": "br-001",
+    "payableId": "pay-002",
+    "lines": [
+      {
+        "productId": "prd-004",
+        "stockBefore": 85,
+        "stockAfter": 145,
+        "avgCostBefore": 3700,
+        "avgCostAfter": 3700
+      }
+    ]
+  }
+}

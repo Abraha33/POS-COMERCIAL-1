@@ -4,7 +4,10 @@
   "fromBranchId": "br-001",
   "toBranchId": "br-002",
   "lines": [
-    { "productId": "prd-001", "quantity": 20 }
+    {
+      "productId": "prd-001",
+      "quantity": 20
+    }
   ],
   "status": "enviado",
   "sentAt": "2026-10-01T15:00:00Z",

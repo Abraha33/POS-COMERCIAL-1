@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import {
-  inventoryAlertSchema, transferSchema, type InventoryAlert, type Transfer, type TransferCreate,
+  inventoryAlertSchema, inventoryCountSchema, stockAdjustmentResultSchema, transferSchema, type InventoryAlert,
+  type InventoryCount, type InventoryCountCreate, type StockAdjustmentCreate, type StockAdjustmentResult,
+  type Transfer, type TransferCreate,
 } from '@/shared/contracts';
 import { api, type ApiError } from './client';
 
@@ -40,6 +42,33 @@ export const useReceiveTransfer = () => {
   const invalidate = useInvalidateInventory();
   return useMutation<Transfer, ApiError, { transferId: string }>({
     mutationFn: ({ transferId }) => api.post(`/inventory/transfers/${transferId}/receive`, {}, transferSchema),
+    onSuccess: invalidate,
+  });
+};
+
+const useInvalidateStock = () => {
+  const queryClient = useQueryClient();
+  return () => {
+    for (const key of ['stock-levels', 'stock-movements', 'inventory-alerts']) {
+      void queryClient.invalidateQueries({ queryKey: [key] });
+    }
+  };
+};
+
+/** Ajuste manual con signo; resuelve las alertas STOCK_NEGATIVE (PROPUESTA v0.5.0). */
+export const useCreateStockAdjustment = () => {
+  const invalidate = useInvalidateStock();
+  return useMutation<StockAdjustmentResult, ApiError, StockAdjustmentCreate>({
+    mutationFn: (input) => api.post('/inventory/adjustments', input, stockAdjustmentResultSchema),
+    onSuccess: invalidate,
+  });
+};
+
+/** Conteo físico: devuelve las diferencias y genera los ajustes (PROPUESTA v0.5.0). */
+export const useCreateInventoryCount = () => {
+  const invalidate = useInvalidateStock();
+  return useMutation<InventoryCount, ApiError, InventoryCountCreate>({
+    mutationFn: (input) => api.post('/inventory/counts', input, inventoryCountSchema),
     onSuccess: invalidate,
   });
 };

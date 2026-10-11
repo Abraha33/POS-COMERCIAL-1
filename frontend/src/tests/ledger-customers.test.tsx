@@ -50,7 +50,7 @@ describe('Clientes: mora (BR-CLI-06)', () => {
 
 describe('Clientes: pantalla', () => {
   it('lista el saldo pendiente y la mora del cliente', async () => {
-    db.receivables.push({ id: 'rec-090', customerId: 'cus-001', saleId: null, issued: '2026-08-01', due: '2026-09-01', amount: 50000, paid: 0 });
+    db.receivables.push({ id: 'rec-090', customerId: 'cus-001', saleId: null, branchId: 'br-001', issued: '2026-08-01', due: '2026-09-01', amount: 50000, paid: 0 });
     await renderCustomers();
     const row = (await screen.findByText('Tienda La Esquina', undefined, { timeout: 5000 })).closest('tr');
     expect(row).not.toBeNull();

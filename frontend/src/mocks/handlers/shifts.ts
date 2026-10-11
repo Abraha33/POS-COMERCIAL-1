@@ -1,7 +1,9 @@
 import { http, HttpResponse } from 'msw';
 import { shiftCloseSchema, shiftMovementSchema, shiftOpenSchema, type Shift } from '@/shared/contracts';
 import { db, mockNow, nextId } from '../db';
-import { authenticate, canSell, failure, forbidden, notFound, unauthorized, validationError } from '../http';
+import {
+  authenticate, canSell, failure, forbidden, hasPermission, notFound, unauthorized, validationError,
+} from '../http';
 
 const INCOME_CATEGORIES = ['base', 'sencillo'];
 
@@ -11,6 +13,26 @@ export const shiftHandlers = [
     if (!user) return unauthorized();
     const shift = db.shifts.find((s) => s.cashierId === user.id && s.status === 'open');
     return shift ? HttpResponse.json(shift) : notFound('Turno abierto');
+  }),
+
+  // PROPUESTA v0.5.0: historial de turnos con cuadre. reports.view ve todos; el cajero, los propios.
+  http.get('/api/v1/pos/shifts', ({ request }) => {
+    const user = authenticate(request);
+    if (!user) return unauthorized();
+    const all = hasPermission(user, 'reports.view');
+    if (!all && !canSell(user.role)) return forbidden();
+    const query = new URL(request.url).searchParams;
+    const from = query.get('from') || null;
+    const to = query.get('to') || null;
+    const branchId = query.get('branchId') || null;
+    const shifts = db.shifts.filter((s) => {
+      if (!all && s.cashierId !== user.id) return false;
+      const opened = s.openedAt.slice(0, 10);
+      if (from && opened < from) return false;
+      if (to && opened > to) return false;
+      return branchId === null || s.branchId === branchId;
+    });
+    return HttpResponse.json(shifts);
   }),
 
   // BR-CAJ-01/02

@@ -1,8 +1,12 @@
 import type { Approval, Role, SaleReceipt } from '@/shared/contracts';
+import { setClock } from '@/shared/utils/clock';
 import { createSeed, type MockDb } from './seed';
 
 /** Reloj fijo de los mocks: los vencimientos de cartera son deterministas en tests. */
 export const mockNow = (): Date => new Date('2026-10-11T15:00:00Z');
+
+// Con mocks, el reloj de la aplicación (`shared/utils/clock`) es el reloj fijo de los mocks.
+setClock(mockNow);
 
 type RuntimeState = {
   /** Idempotency-Key -> huella del cuerpo y recibo devuelto (BR-VEN-11). */

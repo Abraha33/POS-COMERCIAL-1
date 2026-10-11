@@ -1,0 +1,41 @@
+{
+  "from": "2026-10-01",
+  "to": "2026-10-11",
+  "branchId": null,
+  "salesCount": 2,
+  "voidedCount": 0,
+  "grossTotal": 53600,
+  "returnsTotal": 0,
+  "netTotal": 53600,
+  "averageTicket": 26800,
+  "creditTotal": 0,
+  "byPaymentMethod": [
+    {
+      "method": "efectivo",
+      "amount": 25600
+    },
+    {
+      "method": "nequi",
+      "amount": 28000
+    }
+  ],
+  "byDay": [
+    {
+      "date": "2026-10-01",
+      "count": 1,
+      "total": 5600
+    },
+    {
+      "date": "2026-10-03",
+      "count": 1,
+      "total": 48000
+    }
+  ],
+  "topProducts": [
+    {
+      "productId": "prd-004",
+      "quantity": 6,
+      "total": 27000
+    }
+  ]
+}

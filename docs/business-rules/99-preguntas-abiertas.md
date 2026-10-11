@@ -28,3 +28,16 @@ Respuestas recibidas a las 12 preguntas. Las reglas resultantes están en `00`�
 | A6 | ¿Impoconsumo 8 % se activa ya (restaurantes/bebidas)? | Soportado, no activado |
 | A7 | Catálogo de `taxResponsibility` (códigos DIAN) | Texto libre validado como no vacío |
 | A8 | Quién autoriza con PIN | `admin` y `propietario`; `below_cost` solo `propietario` |
+
+## Preguntas abiertas v0.5.0 (PROPUESTA, ver `08-*`)
+| ID | Duda | Valor por defecto del contrato |
+|----|------|--------------------------------|
+| B1 | A7: ¿el catálogo DIAN de `taxResponsibility` es O-13, O-15, O-23, O-47, R-99-PN? | Sí, cerrado; fuera del catálogo = 422 |
+| B2 | ¿Las cuentas por pagar tienen periodo de gracia? | No (`en_gracia` nunca aplica) |
+| B3 | ¿El abono en efectivo de un cliente entra al turno de caja? (BR-CAR-03) | No |
+| B4 | ¿Un ajuste puede dejar el stock negativo? | No (`STOCK_INSUFFICIENT`) |
+| B5 | ¿El bodeguero ajusta/cuenta solo su sede? | Sí |
+| B6 | Costo promedio ponderado **por sede** (BR-INV-05): ¿cómo se modela? | `Product.cost` global en el mock (`costBasis=product_cost`) |
+| B7 | ¿`GET /employees`, `GET /branches` exigen `admin.manage`? | No (abiertos a cualquier sesión) |
+| B8 | ¿Se puede anular un abono o devolver a crédito (BR-DEV-06)? | No modelado |
+| B9 | ¿Qué rol aprueba conteos con diferencias grandes? | Sin umbral |

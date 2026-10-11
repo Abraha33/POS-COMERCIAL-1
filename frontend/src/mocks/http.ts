@@ -1,5 +1,5 @@
 import { HttpResponse } from 'msw';
-import type { Employee, ApiErrorBody, Role } from '@/shared/contracts';
+import { roleHasPermission, type Employee, type ApiErrorBody, type Permission, type Role } from '@/shared/contracts';
 import { db } from './db';
 import { tokenForEmployee, testUsers } from './test-users';
 
@@ -41,4 +41,9 @@ export const discountCap = (role: Role): number => {
   return 0;
 };
 
-export const branchName = (branchId: string): string => (branchId === 'br-002' ? 'Sede Norte' : 'Sede Principal');
+/** ¿El rol del empleado tiene el permiso? Misma matriz que la UI (`shared/contracts/session.ts`). */
+export const hasPermission = (user: Employee, permission: Permission): boolean =>
+  roleHasPermission(user.role, permission);
+
+export const branchName = (branchId: string): string =>
+  db.branches.find((b) => b.id === branchId)?.name ?? branchId;

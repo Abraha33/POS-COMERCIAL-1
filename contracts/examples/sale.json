@@ -5,11 +5,21 @@
   "customerId": "cus-001",
   "cashierId": "emp-001",
   "branchId": "br-001",
+  "shiftId": "sh-001",
   "lines": [
-    { "productId": "prd-001", "quantity": 2, "unitPrice": 2800, "discount": 0 }
+    {
+      "productId": "prd-001",
+      "quantity": 2,
+      "unitPrice": 2800,
+      "discount": 0,
+      "returnedQuantity": 0
+    }
   ],
   "payments": [
-    { "method": "efectivo", "amount": 5600 }
+    {
+      "method": "efectivo",
+      "amount": 5600
+    }
   ],
   "roundingAdjustment": 0,
   "total": 5600,

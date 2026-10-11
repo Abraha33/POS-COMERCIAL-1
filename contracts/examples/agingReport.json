@@ -1,0 +1,66 @@
+{
+  "asOf": "2026-10-11",
+  "branchId": null,
+  "receivables": {
+    "total": 300000,
+    "overdueTotal": 0,
+    "buckets": [
+      {
+        "key": "current",
+        "count": 1,
+        "amount": 300000
+      },
+      {
+        "key": "d1_30",
+        "count": 0,
+        "amount": 0
+      },
+      {
+        "key": "d31_60",
+        "count": 0,
+        "amount": 0
+      },
+      {
+        "key": "d61_90",
+        "count": 0,
+        "amount": 0
+      },
+      {
+        "key": "d90_plus",
+        "count": 0,
+        "amount": 0
+      }
+    ]
+  },
+  "payables": {
+    "total": 210000,
+    "overdueTotal": 0,
+    "buckets": [
+      {
+        "key": "current",
+        "count": 1,
+        "amount": 210000
+      },
+      {
+        "key": "d1_30",
+        "count": 0,
+        "amount": 0
+      },
+      {
+        "key": "d31_60",
+        "count": 0,
+        "amount": 0
+      },
+      {
+        "key": "d61_90",
+        "count": 0,
+        "amount": 0
+      },
+      {
+        "key": "d90_plus",
+        "count": 0,
+        "amount": 0
+      }
+    ]
+  }
+}

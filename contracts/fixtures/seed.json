@@ -116,14 +116,16 @@
       "name": "Distribuidora Andina",
       "taxId": "800765432-9",
       "active": true,
-      "paymentTermsDays": 30
+      "paymentTermsDays": 30,
+      "taxResponsibility": "O-13"
     },
     {
       "id": "sup-002",
       "name": "Lácteos del Valle",
       "taxId": "800111222-3",
       "active": true,
-      "paymentTermsDays": 15
+      "paymentTermsDays": 15,
+      "taxResponsibility": "R-99-PN"
     }
   ],
   "employees": [
@@ -185,12 +187,14 @@
       "customerId": "cus-003",
       "cashierId": "emp-001",
       "branchId": "br-001",
+      "shiftId": null,
       "lines": [
         {
           "productId": "prd-001",
           "quantity": 2,
           "unitPrice": 2800,
-          "discount": 0
+          "discount": 0,
+          "returnedQuantity": 0
         }
       ],
       "payments": [
@@ -210,12 +214,14 @@
       "customerId": "cus-001",
       "cashierId": "emp-001",
       "branchId": "br-001",
+      "shiftId": null,
       "lines": [
         {
           "productId": "prd-002",
           "quantity": 32,
           "unitPrice": 12500,
-          "discount": 0
+          "discount": 0,
+          "returnedQuantity": 0
         }
       ],
       "payments": [
@@ -235,18 +241,21 @@
       "customerId": "cus-002",
       "cashierId": "emp-001",
       "branchId": "br-001",
+      "shiftId": null,
       "lines": [
         {
           "productId": "prd-003",
           "quantity": 5,
           "unitPrice": 4200,
-          "discount": 0
+          "discount": 0,
+          "returnedQuantity": 0
         },
         {
           "productId": "prd-004",
           "quantity": 6,
           "unitPrice": 4600,
-          "discount": 600
+          "discount": 600,
+          "returnedQuantity": 0
         }
       ],
       "payments": [
@@ -388,6 +397,7 @@
       "id": "rec-001",
       "customerId": "cus-001",
       "saleId": "sal-002",
+      "branchId": "br-001",
       "issued": "2026-09-20",
       "due": "2026-10-20",
       "amount": 400000,
@@ -399,6 +409,7 @@
       "id": "pay-001",
       "supplierId": "sup-001",
       "purchaseOrderId": "po-001",
+      "branchId": "br-001",
       "issued": "2026-09-28",
       "due": "2026-10-28",
       "amount": 210000,
@@ -420,5 +431,16 @@
       "active": true
     }
   ],
-  "saleReturns": []
+  "saleReturns": [],
+  "company": {
+    "id": "co-001",
+    "name": "Comercial Demo S.A.S.",
+    "taxId": "900555444-3",
+    "taxResponsibility": "O-13",
+    "address": "Calle 10 # 5-20, Bogotá",
+    "phone": "6015550000",
+    "email": "contabilidad@comercialdemo.example"
+  },
+  "receivablePayments": [],
+  "inventoryCounts": []
 }

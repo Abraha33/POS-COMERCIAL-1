@@ -25,6 +25,11 @@ const exampleSchema: Record<string, string> = {
   customerInput: 'CustomerInput', supplierInput: 'SupplierInput', employeeInput: 'EmployeeInput', branch: 'Branch',
   purchaseOrderCreate: 'PurchaseOrderCreate', ledgerPayment: 'LedgerPayment',
   saleReturnCreate: 'SaleReturnCreate', saleReturn: 'SaleReturn',
+  receivablePayment: 'ReceivablePayment', customerPaymentResult: 'CustomerPaymentResult',
+  purchaseOrderReceipt: 'PurchaseOrderReceipt', stockAdjustmentCreate: 'StockAdjustmentCreate',
+  stockAdjustmentResult: 'StockAdjustmentResult', inventoryCountCreate: 'InventoryCountCreate',
+  inventoryCount: 'InventoryCount', salesSummary: 'SalesSummary', agingReport: 'AgingReport',
+  inventoryValuation: 'InventoryValuation', branchInput: 'BranchInput', company: 'Company', companyInput: 'CompanyInput',
 };
 
 describe('contracts/openapi.yaml', () => {

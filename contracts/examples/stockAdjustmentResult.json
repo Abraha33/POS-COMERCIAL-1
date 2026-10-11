@@ -1,0 +1,21 @@
+{
+  "movement": {
+    "id": "stk-004",
+    "date": "2026-10-11",
+    "productId": "prd-001",
+    "branchId": "br-001",
+    "type": "ajuste",
+    "quantity": 5,
+    "reference": "Ajuste: Producto hallado en bodega"
+  },
+  "level": {
+    "productId": "prd-001",
+    "branchId": "br-001",
+    "onHand": 45,
+    "inTransit": 0,
+    "minimum": 20
+  },
+  "resolvedAlertIds": [
+    "alt-001"
+  ]
+}

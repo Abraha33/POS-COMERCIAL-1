@@ -16,7 +16,7 @@ import './ledger.css';
 
 type StatusFilter = 'abiertas' | 'todas' | ReceivableStatus;
 
-type Row = Receivable & {
+type Row = Omit<Receivable, 'status' | 'balance'> & {
   customerName: string;
   balance: number;
   status: ReceivableStatus;
@@ -59,8 +59,7 @@ export const ReceivablesPage = () => {
   }, [allRows, filter, search]);
 
   const totals = accountOf(receivables.data ?? []);
-  // PROPUESTA: no existe `receivables.pay`; el abono sigue al permiso de ver cartera y el servidor decide (403).
-  const canPay = can('receivables.view');
+  const canPay = can('receivables.pay');
   const target = allRows.find((r) => r.id === targetId) ?? null;
 
   const openPay = (row: Row) => { setPayError(null); setTargetId(row.id); };

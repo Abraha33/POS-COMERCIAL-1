@@ -189,7 +189,7 @@ export const OrderDetailDialog = ({ orderId, onHide }: Props) => {
                 </Can>
               ) : null}
               {order.status === 'enviada' ? (
-                <Can permission="purchases.create">
+                <Can permission="purchases.receive">
                   <Button type="button" label="Recibir mercancía" icon="pi pi-inbox" onClick={askReceive} />
                 </Can>
               ) : null}

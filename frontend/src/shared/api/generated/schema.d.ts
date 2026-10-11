@@ -279,7 +279,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * @description Historial de turnos con cuadre y diferencia. Filtros opcionales por fecha de apertura (`from`, `to`,
+         *     inclusivos) y sede. Con `reports.view` ve todos los turnos; el cajero solo los propios; el resto, 403.
+         */
+        get: operations["listShifts"];
         put?: never;
         /** @description BR-CAJ-01, BR-CAJ-02. `SHIFT_ALREADY_OPEN` si la caja ya tiene turno abierto. */
         post: operations["openShift"];
@@ -488,7 +492,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description `enviada` → `recibida`: entrada de inventario en la sede del usuario, recálculo del costo promedio (BR-PRO-06) y cuenta por pagar a `paymentTermsDays`. */
+        /**
+         * @description `enviada` → `recibida`: entrada de inventario en la sede del usuario, recálculo del costo promedio (BR-PRO-06)
+         *     y cuenta por pagar a `paymentTermsDays`. Exige `purchases.receive`. v0.5.0: la respuesta incluye `effect`
+         *     (stock y costo antes/después por línea y la cuenta por pagar creada).
+         */
         post: operations["receivePurchaseOrder"];
         delete?: never;
         options?: never;
@@ -503,7 +511,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** @description Historial de abonos de una cuenta por cobrar (más reciente primero). */
+        get: operations["listReceivablePayments"];
         put?: never;
         /** @description Abono. `PAYMENT_EXCEEDS_BALANCE` si supera el saldo. */
         post: operations["payReceivable"];
@@ -537,10 +546,189 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** @description Devoluciones ya registradas de una venta (BR-DEV-01); la UI las usa para limitar la cantidad devolvible. */
+        get: operations["listSaleReturns"];
         put?: never;
         /** @description Devolución parcial (docs/business-rules/07-devoluciones.md). `RETURN_EXCEEDS_SOLD` si supera lo vendido menos lo ya devuelto. */
         post: operations["returnSale"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/customers/{id}/payments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Abono a la cuenta del cliente con imputación automática a las facturas más antiguas primero (BR-CLI-05).
+         *     Crea un registro de abono por factura afectada. `PAYMENT_EXCEEDS_BALANCE` si supera el saldo total.
+         *     Exige `receivables.pay`.
+         */
+        post: operations["payCustomer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/purchase-orders/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description `borrador` o `enviada` → `cancelada`. Una orden `recibida` o ya `cancelada` responde 409 `INVALID_STATE`.
+         *     Exige `purchases.create`. No afecta inventario ni cartera (aún no hubo recepción).
+         */
+        post: operations["cancelPurchaseOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/inventory/adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Ajuste manual de existencias (BR-INV-02/06). `quantity` es un entero con signo distinto de 0; genera un
+         *     movimiento `ajuste` y resuelve las alertas `STOCK_NEGATIVE` del producto y sede si la existencia queda
+         *     en 0 o más. Exige `inventory.adjust`; el bodeguero solo en su sede. `STOCK_INSUFFICIENT` si el ajuste
+         *     dejaría la existencia por debajo de 0.
+         */
+        post: operations["createStockAdjustment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/inventory/counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Conteo físico de una sede. Por cada línea con diferencia respecto a la existencia del sistema genera un
+         *     movimiento `ajuste` y devuelve las diferencias. Exige `inventory.adjust`; el bodeguero solo en su sede.
+         */
+        post: operations["createInventoryCount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports/sales-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Resumen de ventas del periodo (fechas inclusivas `YYYY-MM-DD`; sin fechas = todo) y sede opcional.
+         *     Las ventas anuladas no suman. Exige `reports.view`.
+         */
+        get: operations["getSalesSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports/aging": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Antigüedad de cartera por cobrar y por pagar a la fecha `asOf` (por defecto, hoy). Saldos abiertos por
+         *     tramo de días vencidos. Exige `reports.view`.
+         */
+        get: operations["getAgingReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/reports/inventory-valuation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Valor del inventario por producto y sede (BR-INV-05: costo promedio ponderado). `costBasis` indica
+         *     qué costo se usó; el mock usa el costo vigente del producto (`product_cost`). Exige `reports.view`.
+         */
+        get: operations["getInventoryValuation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/branches/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description Edita nombre y estado de una sede. Solo admin/propietario (`admin.manage`). */
+        put: operations["updateBranch"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/company": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Datos de la empresa. Solo admin/propietario (`admin.manage`). */
+        get: operations["getCompany"];
+        /** @description Actualiza los datos de la empresa. Solo admin/propietario (`admin.manage`). */
+        put: operations["updateCompany"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -615,11 +803,15 @@ export interface components {
             /** @enum {string} */
             documentType: "CC" | "NIT" | "CE" | "TI" | "PPT" | "PEP";
             taxId: string;
-            taxResponsibility: string;
+            taxResponsibility: components["schemas"]["TaxResponsibility"];
             phone?: string;
             email?: string;
             active: boolean;
             creditLimit: number;
+            /** @description Derivado (servidor). Saldo pendiente de todas las facturas abiertas. */
+            outstandingBalance: number;
+            /** @description Derivado (servidor). Saldo de facturas `vencida` (fuera del periodo de gracia, BR-CLI-06). */
+            overdueBalance: number;
         };
         Supplier: {
             id: string;
@@ -629,6 +821,7 @@ export interface components {
             email?: string;
             active: boolean;
             paymentTermsDays: number;
+            taxResponsibility?: components["schemas"]["TaxResponsibility"];
         };
         Employee: {
             id: string;
@@ -649,6 +842,8 @@ export interface components {
             quantity: number;
             unitPrice: number;
             discount: number;
+            /** @description Cantidad ya devuelta de la línea (BR-DEV-01). Derivado de las devoluciones (servidor). */
+            returnedQuantity: number;
         };
         Sale: {
             id: string;
@@ -657,6 +852,8 @@ export interface components {
             customerId: string | null;
             cashierId: string;
             branchId: string;
+            /** @description Turno en que se hizo la venta; permite anticipar el `FORBIDDEN` de anulación con turno cerrado. `null` en datos previos a v0.5.0. */
+            shiftId: string | null;
             lines: components["schemas"]["SaleLine"][];
             payments: components["schemas"]["Payment"][];
             roundingAdjustment: number;
@@ -791,30 +988,48 @@ export interface components {
             /** @enum {string} */
             status: "borrador" | "enviada" | "recibida" | "cancelada";
         };
+        /**
+         * @description Derivado (servidor). `pagada` si saldo 0; `vigente` si no ha vencido; `en_gracia` si venció hace 1-3 días
+         *     (BR-CLI-06); `vencida` después. Las cuentas por pagar no tienen gracia (nunca `en_gracia`, PROPUESTA).
+         * @enum {string}
+         */
+        LedgerStatus: "vigente" | "en_gracia" | "vencida" | "pagada";
         Receivable: {
             id: string;
             customerId: string;
             saleId: string | null;
+            branchId: string;
             issued: string;
             due: string;
             amount: number;
             paid: number;
+            /** @description Derivado (servidor). amount - paid. */
+            balance: number;
+            status: components["schemas"]["LedgerStatus"];
+            /** @description Derivado (servidor). Días transcurridos desde `due` (0 si no ha vencido o está pagada). */
+            daysOverdue: number;
         };
         Payable: {
             id: string;
             supplierId: string;
             purchaseOrderId: string | null;
+            branchId: string;
             issued: string;
             due: string;
             amount: number;
             paid: number;
+            /** @description Derivado (servidor). amount - paid. */
+            balance: number;
+            status: components["schemas"]["LedgerStatus"];
+            /** @description Derivado (servidor). Días transcurridos desde `due` (0 si no ha vencido o está pagada). */
+            daysOverdue: number;
         };
         CustomerInput: {
             name: string;
             /** @enum {string} */
             documentType: "CC" | "NIT" | "CE" | "TI" | "PPT" | "PEP";
             taxId: string;
-            taxResponsibility: string;
+            taxResponsibility: components["schemas"]["TaxResponsibility"];
             phone?: string;
             email?: string;
             active: boolean;
@@ -827,6 +1042,7 @@ export interface components {
             email?: string;
             active: boolean;
             paymentTermsDays: number;
+            taxResponsibility?: components["schemas"]["TaxResponsibility"];
         };
         EmployeeInput: {
             name: string;
@@ -874,6 +1090,160 @@ export interface components {
             }[];
             total: number;
             reason: string;
+        };
+        /**
+         * @description Catálogo cerrado de responsabilidades tributarias DIAN (A7, PROPUESTA).
+         * @enum {string}
+         */
+        TaxResponsibility: "O-13" | "O-15" | "O-23" | "O-47" | "R-99-PN";
+        BranchInput: {
+            name: string;
+            active: boolean;
+        };
+        Company: {
+            id: string;
+            name: string;
+            taxId: string;
+            taxResponsibility: components["schemas"]["TaxResponsibility"];
+            address?: string;
+            phone?: string;
+            email?: string;
+        };
+        CompanyInput: {
+            name: string;
+            taxId: string;
+            taxResponsibility: components["schemas"]["TaxResponsibility"];
+            address?: string;
+            phone?: string;
+            email?: string;
+        };
+        ReceivablePayment: {
+            id: string;
+            receivableId: string;
+            customerId: string;
+            date: string;
+            amount: number;
+            /** @enum {string} */
+            method: "efectivo" | "tarjeta" | "transferencia" | "nequi" | "daviplata";
+            note?: string;
+        };
+        CustomerPaymentResult: {
+            customerId: string;
+            amount: number;
+            /** @description Un abono por factura afectada, de la más antigua a la más reciente (BR-CLI-05). */
+            payments: components["schemas"]["ReceivablePayment"][];
+            /** @description Saldo pendiente total del cliente tras el abono. */
+            balanceAfter: number;
+        };
+        PurchaseOrderReceipt: components["schemas"]["PurchaseOrder"] & {
+            effect?: {
+                branchId: string;
+                payableId: string;
+                lines: {
+                    productId: string;
+                    stockBefore: number;
+                    stockAfter: number;
+                    avgCostBefore: number;
+                    avgCostAfter: number;
+                }[];
+            };
+        };
+        StockAdjustmentCreate: {
+            productId: string;
+            branchId: string;
+            /** @description Entero con signo distinto de 0 (positivo suma, negativo resta). */
+            quantity: number;
+            reason: string;
+        };
+        StockAdjustmentResult: {
+            movement: components["schemas"]["StockMovement"];
+            level: components["schemas"]["StockLevel"];
+            resolvedAlertIds: string[];
+        };
+        InventoryCountCreate: {
+            branchId: string;
+            lines: {
+                productId: string;
+                counted: number;
+            }[];
+        };
+        InventoryCount: {
+            id: string;
+            number: string;
+            branchId: string;
+            date: string;
+            lines: {
+                productId: string;
+                systemQuantity: number;
+                counted: number;
+                /** @description counted - systemQuantity. */
+                difference: number;
+                /** @description Movimiento `ajuste` generado; `null` si no hubo diferencia. */
+                movementId: string | null;
+            }[];
+            resolvedAlertIds: string[];
+        };
+        SalesSummary: {
+            from: string | null;
+            to: string | null;
+            branchId: string | null;
+            salesCount: number;
+            voidedCount: number;
+            grossTotal: number;
+            returnsTotal: number;
+            /** @description grossTotal - returnsTotal. */
+            netTotal: number;
+            averageTicket: number;
+            creditTotal: number;
+            byPaymentMethod: {
+                method: components["schemas"]["PaymentMethod"];
+                amount: number;
+            }[];
+            byDay: {
+                date: string;
+                count: number;
+                total: number;
+            }[];
+            topProducts: {
+                productId: string;
+                quantity: number;
+                total: number;
+            }[];
+        };
+        AgingBucket: {
+            /** @enum {string} */
+            key: "current" | "d1_30" | "d31_60" | "d61_90" | "d90_plus";
+            count: number;
+            amount: number;
+        };
+        AgingSide: {
+            total: number;
+            overdueTotal: number;
+            buckets: components["schemas"]["AgingBucket"][];
+        };
+        AgingReport: {
+            asOf: string;
+            branchId: string | null;
+            receivables: components["schemas"]["AgingSide"];
+            payables: components["schemas"]["AgingSide"];
+        };
+        InventoryValuation: {
+            branchId: string | null;
+            /**
+             * @description `branch_weighted_average` = costo promedio ponderado por sede (BR-INV-05, objetivo);
+             *     `product_cost` = costo vigente del producto (lo que sirve el mock hoy).
+             * @enum {string}
+             */
+            costBasis: "product_cost" | "branch_weighted_average";
+            totalValue: number;
+            items: {
+                productId: string;
+                branchId: string;
+                onHand: number;
+                unitCost: number;
+                /** @description max(onHand, 0) × unitCost. */
+                value: number;
+            }[];
         };
     };
     responses: {
@@ -925,6 +1295,12 @@ export interface components {
     };
     parameters: {
         Id: string;
+        /** @description Fecha inicial inclusiva `YYYY-MM-DD`. */
+        From: string;
+        /** @description Fecha final inclusiva `YYYY-MM-DD`. */
+        To: string;
+        /** @description Limita el resultado a una sede. */
+        BranchIdQuery: string;
     };
     requestBodies: never;
     headers: never;
@@ -1438,6 +1814,34 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
+    listShifts: {
+        parameters: {
+            query?: {
+                /** @description Fecha inicial inclusiva `YYYY-MM-DD`. */
+                from?: components["parameters"]["From"];
+                /** @description Fecha final inclusiva `YYYY-MM-DD`. */
+                to?: components["parameters"]["To"];
+                /** @description Limita el resultado a una sede. */
+                branchId?: components["parameters"]["BranchIdQuery"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Shift"][];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
     openShift: {
         parameters: {
             query?: never;
@@ -1787,12 +2191,36 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PurchaseOrder"];
+                    "application/json": components["schemas"]["PurchaseOrderReceipt"];
                 };
             };
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+        };
+    };
+    listReceivablePayments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReceivablePayment"][];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     payReceivable: {
@@ -1855,6 +2283,30 @@ export interface operations {
             422: components["responses"]["ValidationError"];
         };
     };
+    listSaleReturns: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaleReturn"][];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+        };
+    };
     returnSale: {
         parameters: {
             query?: never;
@@ -1882,6 +2334,267 @@ export interface operations {
             403: components["responses"]["Forbidden"];
             404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    payCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LedgerPayment"];
+            };
+        };
+        responses: {
+            /** @description Abono imputado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerPaymentResult"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    cancelPurchaseOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cancelada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PurchaseOrder"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    createStockAdjustment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StockAdjustmentCreate"];
+            };
+        };
+        responses: {
+            /** @description Ajuste registrado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockAdjustmentResult"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    createInventoryCount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InventoryCountCreate"];
+            };
+        };
+        responses: {
+            /** @description Conteo registrado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryCount"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    getSalesSummary: {
+        parameters: {
+            query?: {
+                /** @description Fecha inicial inclusiva `YYYY-MM-DD`. */
+                from?: components["parameters"]["From"];
+                /** @description Fecha final inclusiva `YYYY-MM-DD`. */
+                to?: components["parameters"]["To"];
+                /** @description Limita el resultado a una sede. */
+                branchId?: components["parameters"]["BranchIdQuery"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SalesSummary"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getAgingReport: {
+        parameters: {
+            query?: {
+                asOf?: string;
+                /** @description Limita el resultado a una sede. */
+                branchId?: components["parameters"]["BranchIdQuery"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgingReport"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    getInventoryValuation: {
+        parameters: {
+            query?: {
+                /** @description Limita el resultado a una sede. */
+                branchId?: components["parameters"]["BranchIdQuery"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InventoryValuation"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    updateBranch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BranchInput"];
+            };
+        };
+        responses: {
+            /** @description Actualizada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Branch"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            422: components["responses"]["ValidationError"];
+        };
+    };
+    getCompany: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Company"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+        };
+    };
+    updateCompany: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompanyInput"];
+            };
+        };
+        responses: {
+            /** @description Actualizada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Company"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
             422: components["responses"]["ValidationError"];
         };
     };

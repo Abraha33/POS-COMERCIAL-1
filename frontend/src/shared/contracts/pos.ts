@@ -59,7 +59,8 @@ export const saleReceiptContract: Contract<typeof saleReceiptSchema> = {
   schema: saleReceiptSchema,
   example: {
     id: 'sal-001', number: 'POS-0001', date: '2026-10-01', customerId: 'cus-001', cashierId: 'emp-001',
-    branchId: 'br-001', lines: [{ productId: 'prd-001', quantity: 2, unitPrice: 2800, discount: 0 }],
+    branchId: 'br-001', shiftId: 'sh-001',
+    lines: [{ productId: 'prd-001', quantity: 2, unitPrice: 2800, discount: 0, returnedQuantity: 0 }],
     payments: [{ method: 'efectivo', amount: 10000 }], roundingAdjustment: 0, total: 5600, status: 'pagada',
     clientOperationId: '3f2b8c1e-5a47-4d0e-9b1a-6c2d7e8f9a10', change: 4400,
   },

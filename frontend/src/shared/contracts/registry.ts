@@ -1,12 +1,19 @@
 import { productContract } from './product';
 import {
   customerContract, supplierContract, employeeContract, customerInputContract, supplierInputContract,
-  employeeInputContract, branchContract,
+  employeeInputContract, branchContract, branchInputContract, companyContract, companyInputContract,
 } from './party';
 import { saleContract } from './sale';
 import { stockMovementContract, transferContract, transferCreateContract, inventoryAlertContract } from './stock';
-import { purchaseOrderContract, purchaseOrderCreateContract } from './purchase';
-import { receivableContract, payableContract, ledgerPaymentContract } from './ledger';
+import { purchaseOrderContract, purchaseOrderCreateContract, purchaseOrderReceiptContract } from './purchase';
+import {
+  stockAdjustmentCreateContract, stockAdjustmentResultContract, inventoryCountCreateContract, inventoryCountContract,
+} from './inventory';
+import { salesSummaryContract, agingReportContract, inventoryValuationContract } from './reports';
+import {
+  receivableContract, payableContract, ledgerPaymentContract, receivablePaymentContract,
+  customerPaymentResultContract,
+} from './ledger';
 import {
   apiErrorContract, saleCreateContract, saleReceiptContract, saleVoidContract,
   shiftContract, shiftOpenContract, shiftCloseContract, shiftMovementContract,
@@ -51,4 +58,18 @@ export const contracts = {
   ledgerPayment: ledgerPaymentContract,
   saleReturnCreate: saleReturnCreateContract,
   saleReturn: saleReturnContract,
+  // v0.5.0 (PROPUESTA)
+  receivablePayment: receivablePaymentContract,
+  customerPaymentResult: customerPaymentResultContract,
+  purchaseOrderReceipt: purchaseOrderReceiptContract,
+  stockAdjustmentCreate: stockAdjustmentCreateContract,
+  stockAdjustmentResult: stockAdjustmentResultContract,
+  inventoryCountCreate: inventoryCountCreateContract,
+  inventoryCount: inventoryCountContract,
+  salesSummary: salesSummaryContract,
+  agingReport: agingReportContract,
+  inventoryValuation: inventoryValuationContract,
+  branchInput: branchInputContract,
+  company: companyContract,
+  companyInput: companyInputContract,
 } as const;

@@ -1,7 +1,12 @@
 import { http, HttpResponse } from 'msw';
-import { transferCreateSchema, type Transfer } from '@/shared/contracts';
+import {
+  inventoryCountCreateSchema, stockAdjustmentCreateSchema, transferCreateSchema, type InventoryCount,
+  type StockAdjustmentResult, type StockMovement, type Transfer,
+} from '@/shared/contracts';
 import { db, mockNow, nextId } from '../db';
-import { authenticate, failure, forbidden, notFound, unauthorized, validationError } from '../http';
+import {
+  authenticate, failure, forbidden, hasPermission, notFound, unauthorized, validationError,
+} from '../http';
 
 const level = (productId: string, branchId: string) => {
   let found = db.stockLevels.find((l) => l.productId === productId && l.branchId === branchId);
@@ -10,6 +15,30 @@ const level = (productId: string, branchId: string) => {
     db.stockLevels.push(found);
   }
   return found;
+};
+
+
+/** BR-INV-02: un ajuste que deja la existencia en 0 o más resuelve las alertas STOCK_NEGATIVE de esa sede. */
+const resolveAlerts = (productId: string, branchId: string): string[] => {
+  if (level(productId, branchId).onHand < 0) return [];
+  const resolved: string[] = [];
+  for (const alert of db.alerts) {
+    if (!alert.resolved && alert.productId === productId && alert.branchId === branchId) {
+      alert.resolved = true;
+      resolved.push(alert.id);
+    }
+  }
+  return resolved;
+};
+
+const pushAdjustment = (productId: string, branchId: string, quantity: number, reference: string): StockMovement => {
+  const movement: StockMovement = {
+    id: nextId('stk'), date: mockNow().toISOString().slice(0, 10), productId, branchId, type: 'ajuste', quantity,
+    reference,
+  };
+  level(productId, branchId).onHand += quantity;
+  db.stockMovements.push(movement);
+  return movement;
 };
 
 export const inventoryHandlers = [
@@ -80,5 +109,69 @@ export const inventoryHandlers = [
     transfer.status = 'recibido';
     transfer.receivedAt = receivedAt;
     return HttpResponse.json(transfer);
+  }),
+
+  // PROPUESTA v0.5.0: ajuste manual con signo (BR-INV-02/06).
+  http.post('/api/v1/inventory/adjustments', async ({ request }) => {
+    const user = authenticate(request);
+    if (!user) return unauthorized();
+    if (!hasPermission(user, 'inventory.adjust')) return forbidden();
+    const parsed = stockAdjustmentCreateSchema.safeParse(await request.json());
+    if (!parsed.success) return validationError('Ajuste con formato inválido');
+    const { productId, branchId, quantity, reason } = parsed.data;
+    if (!db.products.some((p) => p.id === productId)) return validationError(`Producto inexistente: ${productId}`);
+    if (!db.branches.some((b) => b.id === branchId)) return validationError('Sede inexistente');
+    const isManager = user.role === 'admin' || user.role === 'propietario';
+    if (!isManager && user.branchId !== branchId) return forbidden('Solo puedes ajustar el inventario de tu sede');
+
+    const available = level(productId, branchId).onHand;
+    if (available + quantity < 0) {
+      return failure(409, 'STOCK_INSUFFICIENT', 'El ajuste dejaría la existencia por debajo de cero', {
+        productId, available, requested: quantity,
+      });
+    }
+    const movement = pushAdjustment(productId, branchId, quantity, `Ajuste: ${reason.trim()}`);
+    const result: StockAdjustmentResult = {
+      movement, level: { ...level(productId, branchId) }, resolvedAlertIds: resolveAlerts(productId, branchId),
+    };
+    return HttpResponse.json(result, { status: 201 });
+  }),
+
+  // PROPUESTA v0.5.0: conteo físico; cada diferencia genera un ajuste.
+  http.post('/api/v1/inventory/counts', async ({ request }) => {
+    const user = authenticate(request);
+    if (!user) return unauthorized();
+    if (!hasPermission(user, 'inventory.adjust')) return forbidden();
+    const parsed = inventoryCountCreateSchema.safeParse(await request.json());
+    if (!parsed.success) return validationError('Conteo con formato inválido');
+    const { branchId, lines } = parsed.data;
+    if (!db.branches.some((b) => b.id === branchId)) return validationError('Sede inexistente');
+    const isManager = user.role === 'admin' || user.role === 'propietario';
+    if (!isManager && user.branchId !== branchId) return forbidden('Solo puedes contar el inventario de tu sede');
+    for (const l of lines) {
+      if (!db.products.some((p) => p.id === l.productId)) return validationError(`Producto inexistente: ${l.productId}`);
+    }
+    if (new Set(lines.map((l) => l.productId)).size !== lines.length) {
+      return validationError('Un producto aparece más de una vez en el conteo');
+    }
+
+    const number = `CNT-${String(db.inventoryCounts.length + 1).padStart(4, '0')}`;
+    const resolvedAlertIds: string[] = [];
+    const countLines: InventoryCount['lines'] = lines.map((l) => {
+      const systemQuantity = level(l.productId, branchId).onHand;
+      const difference = Math.round((l.counted - systemQuantity) * 1000) / 1000;
+      let movementId: string | null = null;
+      if (difference !== 0) {
+        movementId = pushAdjustment(l.productId, branchId, difference, `Conteo ${number}`).id;
+        resolvedAlertIds.push(...resolveAlerts(l.productId, branchId));
+      }
+      return { productId: l.productId, systemQuantity, counted: l.counted, difference, movementId };
+    });
+    const count: InventoryCount = {
+      id: nextId('cnt'), number, branchId, date: mockNow().toISOString().slice(0, 10), lines: countLines,
+      resolvedAlertIds,
+    };
+    db.inventoryCounts.push(count);
+    return HttpResponse.json(count, { status: 201 });
   }),
 ];

@@ -1,3 +1,4 @@
+import { today as clockToday } from '@/shared/utils/clock';
 import { useMemo, useState } from 'react';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
@@ -12,14 +13,14 @@ import { useSession } from '@/app/providers/SessionProvider';
 import { useNotify } from '@/app/providers/ToastProvider';
 import { PaymentDialog } from './PaymentDialog';
 import {
-  balanceOf, daysUntilDue, payableStatus, shortDate, statusLabels, totalsOf, weekEnd, weekStart, LEDGER_REFERENCE_DATE,
+  balanceOf, daysUntilDue, payableStatus, shortDate, statusLabels, totalsOf, weekEnd, weekStart,
   type PayableStatus,
 } from './ledger';
 import './ledger.css';
 
 type ViewFilter = 'abiertas' | 'pagadas';
 
-type Row = Payable & {
+type Row = Omit<Payable, 'status' | 'balance'> & {
   supplierName: string;
   balance: number;
   status: PayableStatus;
@@ -33,7 +34,7 @@ const OVERDUE_KEY = 'vencidas';
 /** Agrupa por semana de vencimiento (lunes a domingo); las ya vencidas van primero en su propio grupo. */
 const groupByWeek = (rows: Row[]): Group[] => {
   const groups = new Map<string, Group>();
-  const thisWeek = weekStart(LEDGER_REFERENCE_DATE);
+  const thisWeek = weekStart(clockToday());
   for (const row of rows) {
     const overdue = row.status === 'vencida';
     const start = weekStart(row.due);
@@ -94,8 +95,7 @@ export const PayablesPage = () => {
 
   const groups = useMemo(() => (view === 'abiertas' ? groupByWeek(rows) : []), [rows, view]);
   const totals = totalsOf(payables.data ?? []);
-  // PROPUESTA: no existe `payables.pay`; el pago sigue al permiso de ver cuentas por pagar y el servidor decide (403).
-  const canPay = can('payables.view');
+  const canPay = can('payables.pay');
   const target = allRows.find((r) => r.id === targetId) ?? null;
 
   const openPay = (row: Row) => { setPayError(null); setTargetId(row.id); };

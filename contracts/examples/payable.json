@@ -2,8 +2,12 @@
   "id": "pay-001",
   "supplierId": "sup-001",
   "purchaseOrderId": "po-001",
+  "branchId": "br-001",
   "issued": "2026-09-28",
   "due": "2026-10-28",
   "amount": 210000,
-  "paid": 0
+  "paid": 0,
+  "balance": 210000,
+  "status": "vigente",
+  "daysOverdue": 0
 }

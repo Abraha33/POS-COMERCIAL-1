@@ -2,20 +2,29 @@ import { useState, type ReactNode } from 'react';
 import { PrimeReactProvider } from 'primereact/api';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfirmDialog } from 'primereact/confirmdialog';
-import type { Role } from '@/shared/contracts';
+import type { Role, Session } from '@/shared/contracts';
 import { SessionProvider } from './SessionProvider';
 import { ToastProvider } from './ToastProvider';
+import { configurePrimeLocale } from '@/app/config/primeLocale';
+
+// Arranque: textos de PrimeReact en español (idempotente).
+configurePrimeLocale();
 
 export const AppProviders = ({
-  children, initialRole, onRoleChange,
-}: { children: ReactNode; initialRole?: Role; onRoleChange?: (role: Role) => void }) => {
+  children, initialRole, onRoleChange, sessionFor,
+}: {
+  children: ReactNode;
+  initialRole?: Role;
+  onRoleChange?: (role: Role) => void;
+  sessionFor?: (role: Role) => Session | null;
+}) => {
   const [client] = useState(
     () => new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } }),
   );
   return (
     <PrimeReactProvider value={{ ripple: true }}>
       <QueryClientProvider client={client}>
-        <SessionProvider initialRole={initialRole} onRoleChange={onRoleChange}>
+        <SessionProvider initialRole={initialRole} onRoleChange={onRoleChange} sessionFor={sessionFor}>
           <ToastProvider>
             <ConfirmDialog />
             {children}

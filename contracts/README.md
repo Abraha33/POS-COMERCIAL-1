@@ -1,6 +1,6 @@
 # contracts/
 
-Fuente compartida entre frontend y backend. **Versión 0.3.0 — reglas aprobadas por el dueño; implementación y validación contra Frappe pendientes** (ver
+Fuente compartida entre frontend y backend. **Versión 0.5.0 — reglas aprobadas por el dueño; implementación y validación contra Frappe pendientes** (ver
 `docs/business-rules/99-preguntas-abiertas.md`, aclaraciones A1–A8).
 
 - `openapi.yaml`: operaciones, esquemas, errores y seguridad. Prefijo `/api/v1`.

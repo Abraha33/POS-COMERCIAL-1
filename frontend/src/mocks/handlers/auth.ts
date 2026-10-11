@@ -11,9 +11,10 @@ export const sessionFor = (employeeId: string): Session | null => {
   if (!employee) return null;
   return {
     user: { id: employee.id, name: employee.name, role: employee.role },
-    company: { id: 'co-001', name: 'Comercial Demo S.A.S.' },
+    company: { id: db.company.id, name: db.company.name },
     branch: { id: employee.branchId, name: branchName(employee.branchId) },
-    register: { id: employee.branchId === 'br-002' ? 'reg-002' : 'reg-001', name: 'Caja 1' },
+    // Una caja por sede en el seed: reg-00N para br-00N.
+    register: { id: `reg-${employee.branchId.slice(-3)}`, name: 'Caja 1' },
   };
 };
 
