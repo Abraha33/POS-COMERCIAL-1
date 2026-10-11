@@ -1,0 +1,157 @@
+#!/usr/bin/env node
+/**
+ * core:check — verifica los 8 gates del núcleo. Solo si TODOS pasan imprime
+ * "READY FOR PARALLEL SCREEN CONSTRUCTION" y escribe CORE_READY.md.
+ * Si falla alguno, borra CORE_READY.md y sale con código 1.
+ */
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
+const root = path.resolve(import.meta.dirname, '..');
+const read = (rel) => readFileSync(path.join(root, rel), 'utf8');
+const has = (rel) => existsSync(path.join(root, rel));
+
+const run = (label, args) => {
+  process.stdout.write(`  · ${label} … `);
+  const r = spawnSync('pnpm', args, { cwd: root, shell: true, encoding: 'utf8' });
+  const ok = r.status === 0;
+  console.log(ok ? 'ok' : 'FALLÓ');
+  return { ok, out: `${r.stdout ?? ''}${r.stderr ?? ''}` };
+};
+
+const tail = (text, n = 12) => text.trim().split('\n').slice(-n).join('\n');
+const gates = [];
+const gate = (id, name, ok, detail = '') => gates.push({ id, name, ok, detail });
+
+console.log('\nERP/POS — verificación del núcleo\n');
+
+// ---- Módulos declarados (fuente de verdad para gates 3, 6, 8)
+const modulesSrc = read('src/app/config/modules.ts');
+const moduleIds = [...modulesSrc.matchAll(/\{ id: '([a-z]+)', label/g)].map((m) => m[1]);
+
+// ---- Ejecuciones pesadas (una sola vez cada una)
+console.log('Ejecutando comprobaciones:');
+const typecheck = run('tsc --noEmit', ['typecheck']);
+const build = run('vite build', ['exec', 'vite', 'build']);
+const lint = run('eslint (límites entre módulos)', ['lint']);
+
+const tmp = mkdtempSync(path.join(tmpdir(), 'core-check-'));
+const vitestOut = path.join(tmp, 'vitest.json');
+const vitest = run('vitest', ['exec', 'vitest', 'run', '--reporter=json', `--outputFile="${vitestOut}"`]);
+let vitestFiles = {};
+try {
+  const json = JSON.parse(readFileSync(vitestOut, 'utf8'));
+  for (const f of json.testResults) {
+    vitestFiles[path.basename(f.name)] = f.assertionResults.length > 0 && f.status === 'passed';
+  }
+} catch {
+  vitestFiles = {};
+}
+rmSync(tmp, { recursive: true, force: true });
+
+const e2e = run('playwright (smoke + a11y)', ['exec', 'playwright', 'test']);
+const storybook = run('storybook build', ['exec', 'storybook', 'build', '--quiet']);
+
+// ---- Gate 1
+gate(1, 'La aplicación compila y navega',
+  typecheck.ok && build.ok && e2e.ok,
+  [!typecheck.ok && `tsc:\n${tail(typecheck.out)}`, !build.ok && `build:\n${tail(build.out)}`, !e2e.ok && `e2e:\n${tail(e2e.out)}`]
+    .filter(Boolean).join('\n'));
+
+// ---- Gate 2
+{
+  const problems = [];
+  if (!has('src/app/layouts/AppShell.tsx')) problems.push('falta AppShell');
+  if (!/PrimeReactProvider/.test(has('src/app/providers/AppProviders.tsx') ? read('src/app/providers/AppProviders.tsx') : '')) problems.push('falta PrimeReactProvider');
+  if (!/primereact\/resources\/themes\//.test(read('src/main.tsx'))) problems.push('tema PrimeReact no importado en main.tsx');
+  if (!/"primereact":\s*"10\.9\.9"/.test(read('package.json'))) problems.push('PrimeReact no está fijado en 10.9.9');
+  if (vitestFiles['app.test.tsx'] !== true) problems.push('app.test.tsx (shell/permisos) no pasa');
+  gate(2, 'App Shell y PrimeReact configurados', problems.length === 0, problems.join('; '));
+}
+
+// ---- Gate 3
+{
+  const problems = [];
+  const ownership = has('docs/MODULE_OWNERSHIP.md') ? read('docs/MODULE_OWNERSHIP.md') : '';
+  const routes = read('src/routes/index.tsx');
+  if (moduleIds.length === 0) problems.push('no se pudo leer src/app/config/modules.ts');
+  for (const id of moduleIds) {
+    if (!has(`src/features/${id}/index.ts`)) problems.push(`${id}: falta src/features/${id}/index.ts`);
+    if (!routes.includes(`@/features/${id}'`)) problems.push(`${id}: sin ruta ancla en src/routes`);
+    if (!ownership.includes(`\`${id}\``)) problems.push(`${id}: sin dueño en docs/MODULE_OWNERSHIP.md`);
+  }
+  gate(3, 'Mapa de rutas y propiedad por módulo', problems.length === 0, problems.join('; '));
+}
+
+// ---- Gate 4
+gate(4, 'Contratos compartidos con tipos y ejemplos',
+  has('src/shared/contracts/registry.ts') && vitestFiles['contracts.test.ts'] === true,
+  'src/tests/contracts.test.ts debe existir y pasar');
+
+// ---- Gate 5
+gate(5, 'Mocks coherentes entre módulos',
+  vitestFiles['seed-integrity.test.ts'] === true,
+  'src/tests/seed-integrity.test.ts debe existir y pasar');
+
+// ---- Gate 6
+{
+  const problems = [];
+  for (const f of ['ScreenTemplate', 'DataTablePage', 'FormField']) {
+    if (!has(`src/shared/ui/${f}.tsx`)) problems.push(`falta shared/ui/${f}`);
+  }
+  const slice = has('src/features/products') ? readdirSync(path.join(root, 'src/features/products')).map((f) => read(`src/features/products/${f}`)).join('\n') : '';
+  if (!/DataTablePage/.test(slice)) problems.push('slice de Productos no usa DataTablePage');
+  if (!/FormField/.test(slice)) problems.push('slice de Productos no usa FormField');
+  gate(6, 'Plantillas de pantalla, formulario y tabla en uso', problems.length === 0, problems.join('; '));
+}
+
+// ---- Gate 7
+gate(7, 'Storybook, Vitest y Playwright ejecutan en verde',
+  storybook.ok && vitest.ok && e2e.ok,
+  [!storybook.ok && `storybook:\n${tail(storybook.out)}`, !vitest.ok && `vitest:\n${tail(vitest.out)}`, !e2e.ok && 'playwright falló (ver gate 1)']
+    .filter(Boolean).join('\n'));
+
+// ---- Gate 8
+{
+  const problems = [];
+  if (!has('docs/BRANCHING.md')) problems.push('falta docs/BRANCHING.md');
+  if (!lint.ok) problems.push(`eslint:\n${tail(lint.out)}`);
+  gate(8, 'Reglas de ramas e integración vigentes', problems.length === 0, problems.join('; '));
+}
+
+// ---- Informe
+const allOk = gates.every((g) => g.ok);
+console.log('\nGate  Resultado  Descripción');
+for (const g of gates) console.log(`  ${g.id}   ${g.ok ? '  ✅     ' : '  ❌     '} ${g.name}`);
+for (const g of gates.filter((x) => !x.ok)) console.log(`\n❌ Gate ${g.id} — ${g.name}\n${g.detail}`);
+
+const gitHead = spawnSync('git', ['rev-parse', '--short', 'HEAD'], { cwd: root, encoding: 'utf8' });
+const commit = gitHead.status === 0 ? gitHead.stdout.trim() : 'sin commits';
+const readyFile = path.join(root, 'CORE_READY.md');
+
+if (allOk) {
+  const body = [
+    '# CORE READY — READY FOR PARALLEL SCREEN CONSTRUCTION',
+    '',
+    `Verificado: ${new Date().toISOString()}  ·  commit: ${commit}`,
+    '',
+    '| Gate | Resultado | Descripción |',
+    '|------|-----------|-------------|',
+    ...gates.map((g) => `| ${g.id} | ✅ | ${g.name} |`),
+    '',
+    'Este archivo lo genera `pnpm core:check` y se borra si el chequeo vuelve a fallar.',
+    'Reglas para los agentes: `docs/BRANCHING.md` y `docs/MODULE_OWNERSHIP.md`.',
+    '',
+  ].join('\n');
+  writeFileSync(readyFile, body);
+  console.log('\n✅ CORE READY — READY FOR PARALLEL SCREEN CONSTRUCTION');
+  console.log('   Se puede iniciar la construcción paralela de pantallas por módulo.');
+  console.log('   Detalle en CORE_READY.md\n');
+  process.exit(0);
+} else {
+  if (existsSync(readyFile)) rmSync(readyFile);
+  console.log('\n⛔ NOT READY — el núcleo no cumple todos los gates. No iniciar construcción paralela.\n');
+  process.exit(1);
+}

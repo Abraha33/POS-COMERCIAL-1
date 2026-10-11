@@ -1,0 +1,84 @@
+import type {
+  Customer, Employee, Payable, Product, PurchaseOrder, Receivable, Sale, StockLevel, StockMovement, Supplier,
+} from '@/shared/contracts';
+
+const BRANCH = 'br-001';
+
+export const products: Product[] = [
+  { id: 'prd-001', sku: 'SKU-001', barcode: '7701234567890', name: 'Arroz 500 g', category: 'Granos', unit: 'und', price: 2800, cost: 2100, taxRate: 0, active: true },
+  { id: 'prd-002', sku: 'SKU-002', barcode: '7701234567891', name: 'Aceite 1 L', category: 'Aceites', unit: 'und', price: 12500, cost: 9800, taxRate: 0.19, active: true },
+  { id: 'prd-003', sku: 'SKU-003', barcode: '7701234567892', name: 'Azúcar 1 kg', category: 'Granos', unit: 'und', price: 4200, cost: 3300, taxRate: 0, active: true },
+  { id: 'prd-004', sku: 'SKU-004', barcode: '7701234567893', name: 'Leche entera 1 L', category: 'Lácteos', unit: 'und', price: 4600, cost: 3700, taxRate: 0, active: true },
+  { id: 'prd-005', sku: 'SKU-005', barcode: '7701234567894', name: 'Detergente 1 kg', category: 'Aseo', unit: 'und', price: 9800, cost: 7400, taxRate: 0.19, active: true },
+  { id: 'prd-006', sku: 'SKU-006', name: 'Café molido 250 g', category: 'Bebidas', unit: 'und', price: 8900, cost: 6900, taxRate: 0, active: false },
+];
+
+export const customers: Customer[] = [
+  { id: 'cus-001', name: 'Tienda La Esquina', taxId: '900123456-1', phone: '3001112233', active: true, creditLimit: 1_500_000 },
+  { id: 'cus-002', name: 'Restaurante El Sazón', taxId: '901234567-2', active: true, creditLimit: 800_000 },
+  { id: 'cus-003', name: 'Cliente mostrador', taxId: '222222222-2', active: true, creditLimit: 0 },
+];
+
+export const suppliers: Supplier[] = [
+  { id: 'sup-001', name: 'Distribuidora Andina', taxId: '800765432-9', active: true, paymentTermsDays: 30 },
+  { id: 'sup-002', name: 'Lácteos del Valle', taxId: '800111222-3', active: true, paymentTermsDays: 15 },
+];
+
+export const employees: Employee[] = [
+  { id: 'emp-001', name: 'Laura Gómez', role: 'cajero', branchId: BRANCH, active: true },
+  { id: 'emp-002', name: 'Andrés Rojas', role: 'bodeguero', branchId: BRANCH, active: true },
+  { id: 'emp-003', name: 'María Pérez', role: 'admin', branchId: BRANCH, active: true },
+];
+
+export const sales: Sale[] = [
+  {
+    id: 'sal-001', number: 'POS-0001', date: '2026-10-01', customerId: 'cus-003', cashierId: 'emp-001', branchId: BRANCH,
+    lines: [{ productId: 'prd-001', quantity: 2, unitPrice: 2800, discount: 0 }], paymentMethod: 'efectivo', total: 5600, status: 'pagada',
+  },
+  {
+    id: 'sal-002', number: 'POS-0002', date: '2026-09-20', customerId: 'cus-001', cashierId: 'emp-001', branchId: BRANCH,
+    lines: [{ productId: 'prd-002', quantity: 32, unitPrice: 12500, discount: 0 }], paymentMethod: 'credito', total: 400000, status: 'credito',
+  },
+  {
+    id: 'sal-003', number: 'POS-0003', date: '2026-10-03', customerId: 'cus-002', cashierId: 'emp-001', branchId: BRANCH,
+    lines: [
+      { productId: 'prd-003', quantity: 5, unitPrice: 4200, discount: 0 },
+      { productId: 'prd-004', quantity: 6, unitPrice: 4600, discount: 600 },
+    ],
+    paymentMethod: 'tarjeta', total: 48000, status: 'pagada',
+  },
+];
+
+export const stockLevels: StockLevel[] = products.map((p, i) => ({
+  productId: p.id, branchId: BRANCH, onHand: 40 + i * 15, minimum: 20,
+}));
+
+export const stockMovements: StockMovement[] = [
+  { id: 'stk-001', date: '2026-09-29', productId: 'prd-001', branchId: BRANCH, type: 'entrada', quantity: 100, reference: 'PO-0001' },
+  { id: 'stk-002', date: '2026-10-01', productId: 'prd-001', branchId: BRANCH, type: 'salida', quantity: 2, reference: 'POS-0001' },
+  { id: 'stk-003', date: '2026-10-03', productId: 'prd-003', branchId: BRANCH, type: 'salida', quantity: 5, reference: 'POS-0003' },
+];
+
+export const purchaseOrders: PurchaseOrder[] = [
+  {
+    id: 'po-001', number: 'PO-0001', date: '2026-09-28', supplierId: 'sup-001',
+    lines: [{ productId: 'prd-001', quantity: 100, unitCost: 2100 }], total: 210000, status: 'recibida',
+  },
+  {
+    id: 'po-002', number: 'PO-0002', date: '2026-10-05', supplierId: 'sup-002',
+    lines: [{ productId: 'prd-004', quantity: 60, unitCost: 3700 }], total: 222000, status: 'enviada',
+  },
+];
+
+export const receivables: Receivable[] = [
+  { id: 'rec-001', customerId: 'cus-001', saleId: 'sal-002', issued: '2026-09-20', due: '2026-10-20', amount: 400000, paid: 100000 },
+];
+
+export const payables: Payable[] = [
+  { id: 'pay-001', supplierId: 'sup-001', purchaseOrderId: 'po-001', issued: '2026-09-28', due: '2026-10-28', amount: 210000, paid: 0 },
+];
+
+export const createSeed = () => structuredClone({
+  products, customers, suppliers, employees, sales, stockLevels, stockMovements, purchaseOrders, receivables, payables,
+});
+export type MockDb = ReturnType<typeof createSeed>;
