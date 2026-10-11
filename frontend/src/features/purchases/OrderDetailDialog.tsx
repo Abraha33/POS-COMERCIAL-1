@@ -2,15 +2,15 @@ import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
-import { Tag } from 'primereact/tag';
 import type { PurchaseOrder } from '@/shared/contracts';
 import { useReceivePurchaseOrder, useSendPurchaseOrder } from '@/shared/api/ledger';
 import { usePayables, usePurchaseOrders, useStockLevels } from '@/shared/api/queries';
+import { ConfirmAction, MoneyText, StatusTag } from '@/shared/ui';
 import { formatMoney } from '@/shared/utils/format';
 import { Can } from '@/app/guards/RouteGuard';
 import { useSession } from '@/app/providers/SessionProvider';
 import { useNotify } from '@/app/providers/ToastProvider';
-import { STATUS_LABEL, STATUS_SEVERITY, explainError } from './labels';
+import { ORDER_STATUS_MAP, explainError } from './labels';
 import { useLookups } from './useLookups';
 
 type Props = { orderId: string | null; onHide: () => void };
@@ -102,6 +102,13 @@ export const OrderDetailDialog = ({ orderId, onHide }: Props) => {
   const refreshing = products.isFetching || levels.isFetching || payables.isFetching;
   const payable = order ? payables.data?.find((p) => p.purchaseOrderId === order.id) : undefined;
   const showEffect = Boolean(order && snapshot && snapshot.orderId === order.id && order.status === 'recibida');
+  const totalUnits = order ? order.lines.reduce((sum, l) => sum + l.quantity, 0) : 0;
+  const confirmMessage = order
+    ? `Vas a recibir la orden ${order.number} de ${supplierName}. Es todo o nada: no hay recepción parcial. ` +
+      `Suma ${totalUnits} unidades al stock de ${session.branch.name}, recalcula el costo promedio ponderado ` +
+      `de cada producto y crea una cuenta por pagar por ${formatMoney(order.total)}` +
+      `${supplier ? `, a ${supplier.paymentTermsDays} días` : ''}. Esta acción no se puede deshacer desde esta pantalla.`
+    : '';
 
   return (
     <>
@@ -121,7 +128,7 @@ export const OrderDetailDialog = ({ orderId, onHide }: Props) => {
                 <strong>{supplierName}</strong>
                 <span className="purch__hint"> · {order.date}</span>
               </span>
-              <Tag value={STATUS_LABEL[order.status]} severity={STATUS_SEVERITY[order.status]} />
+              <StatusTag status={order.status} map={ORDER_STATUS_MAP} />
             </div>
 
             <div className="app-table-scroll mt-3" role="region" aria-label={`Líneas de la orden ${order.number}`} tabIndex={0}>
@@ -139,19 +146,41 @@ export const OrderDetailDialog = ({ orderId, onHide }: Props) => {
                   {order.lines.map((l) => (
                     <tr key={l.productId}>
                       <td>{productById.get(l.productId)?.name ?? 'Producto desconocido'}</td>
-                      <td className="purch__num">{l.quantity}</td>
-                      <td className="purch__num">{formatMoney(l.unitCost)}</td>
-                      <td className="purch__num">{formatMoney(Math.round(l.quantity * l.unitCost))}</td>
+                      <td className="purch__num" data-label="Cantidad">{l.quantity}</td>
+                      <td className="purch__num" data-label="Costo unitario">{formatMoney(l.unitCost)}</td>
+                      <td className="purch__num" data-label="Subtotal">{formatMoney(Math.round(l.quantity * l.unitCost))}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
             <p className="purch__num mt-3 mb-0">
-              Total: <span className="purch__total" data-testid="order-total">{formatMoney(order.total)}</span>
+              Total: <span className="purch__total" data-testid="order-total"><MoneyText value={order.total} strong /></span>
             </p>
 
             {error ? <p className="purch__error" role="alert">{error}</p> : null}
+
+            {order.status === 'enviada' ? (
+              <div className="purch__panel" data-testid="receive-preview">
+                <h3>Si recibes esta orden</h3>
+                <ul className="m-0 pl-3">
+                  {order.lines.map((l) => {
+                    const product = productById.get(l.productId);
+                    const now = onHandOf(l.productId);
+                    return (
+                      <li key={l.productId}>
+                        <strong>{product?.name ?? 'Producto'}</strong>: stock {now} pasa a {now + l.quantity}; el costo
+                        promedio actual ({formatMoney(product?.cost ?? 0)}) se recalcula.
+                      </li>
+                    );
+                  })}
+                </ul>
+                <p className="mb-0 mt-2">
+                  Cuenta por pagar: <strong>{formatMoney(order.total)}</strong>
+                  {supplier ? `, a ${supplier.paymentTermsDays} días` : ''}.
+                </p>
+              </div>
+            ) : null}
 
             {showEffect && snapshot ? (
               <div className="purch__panel purch__effect" data-testid="receive-effect" role="status">
@@ -179,7 +208,8 @@ export const OrderDetailDialog = ({ orderId, onHide }: Props) => {
               </div>
             ) : null}
 
-            <div className="purch__actions">
+            <div className="app-dialog__footer">
+              <Button type="button" label="Cerrar" severity="secondary" outlined onClick={onHide} />
               {order.status === 'borrador' ? (
                 <Can permission="purchases.create">
                   <Button
@@ -193,44 +223,20 @@ export const OrderDetailDialog = ({ orderId, onHide }: Props) => {
                   <Button type="button" label="Recibir mercancía" icon="pi pi-inbox" onClick={askReceive} />
                 </Can>
               ) : null}
-              <Button type="button" label="Cerrar" severity="secondary" outlined onClick={onHide} />
             </div>
           </>
         )}
       </Dialog>
 
-      <Dialog
-        header="Confirmar recepción"
+      <ConfirmAction
         visible={confirming && Boolean(order)}
-        onHide={() => setConfirming(false)}
-        style={{ width: 'min(32rem, 95vw)' }}
-        modal
-      >
-        {order ? (
-          <>
-            <p className="mt-0">
-              Vas a recibir la orden <strong>{order.number}</strong> de <strong>{supplierName}</strong>. Es todo o nada:
-              no hay recepción parcial.
-            </p>
-            <ul className="pl-3">
-              <li>Suma {order.lines.reduce((sum, l) => sum + l.quantity, 0)} unidades al stock de {session.branch.name}.</li>
-              <li>Recalcula el costo promedio ponderado de cada producto.</li>
-              <li>
-                Crea una cuenta por pagar por {formatMoney(order.total)}
-                {supplier ? `, a ${supplier.paymentTermsDays} días` : ''}.
-              </li>
-            </ul>
-            <p className="purch__hint">Esta acción no se puede deshacer desde esta pantalla.</p>
-            <div className="purch__actions">
-              <Button type="button" label="Cancelar" severity="secondary" outlined onClick={() => setConfirming(false)} />
-              <Button
-                type="button" label="Confirmar recepción" icon="pi pi-check"
-                loading={receive.isPending} onClick={handleReceive}
-              />
-            </div>
-          </>
-        ) : null}
-      </Dialog>
+        title="Confirmar recepción"
+        message={confirmMessage}
+        confirmLabel="Confirmar recepción"
+        loading={receive.isPending}
+        onConfirm={handleReceive}
+        onCancel={() => setConfirming(false)}
+      />
     </>
   );
 };

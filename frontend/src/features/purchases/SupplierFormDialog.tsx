@@ -2,14 +2,12 @@ import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
-import { Dialog } from 'primereact/dialog';
 import { InputNumber } from 'primereact/inputnumber';
 import { InputText } from 'primereact/inputtext';
 import type { Supplier } from '@/shared/contracts';
 import { useSaveSupplier } from '@/shared/api/ledger';
-import { FormField } from '@/shared/ui';
+import { FormDialog, FormField } from '@/shared/ui';
 import { useNotify } from '@/app/providers/ToastProvider';
 import { explainError } from './labels';
 
@@ -76,14 +74,18 @@ export const SupplierFormDialog = ({ visible, supplier, onHide }: Props) => {
   };
 
   return (
-    <Dialog
-      header={supplier ? 'Editar proveedor' : 'Nuevo proveedor'}
+    <FormDialog
       visible={visible}
+      title={supplier ? 'Editar proveedor' : 'Nuevo proveedor'}
       onHide={onHide}
-      style={{ width: 'min(30rem, 95vw)' }}
-      modal
+      onSubmit={() => void handleSubmit(onSubmit)()}
+      submitLabel="Guardar proveedor"
+      submitIcon="pi pi-check"
+      loading={save.isPending}
+      error={serverError}
+      width="min(30rem, 95vw)"
     >
-      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+      <div>
         <FormField id="sup-name" label="Nombre" error={errors.name?.message}>
           <InputText id="sup-name" className="w-full" {...register('name')} />
         </FormField>
@@ -119,12 +121,7 @@ export const SupplierFormDialog = ({ visible, supplier, onHide }: Props) => {
             </div>
           )}
         />
-        {serverError ? <p className="purch__error" role="alert">{serverError}</p> : null}
-        <div className="purch__actions">
-          <Button type="button" label="Cancelar" severity="secondary" outlined onClick={onHide} />
-          <Button type="submit" label="Guardar proveedor" icon="pi pi-check" loading={save.isPending} />
-        </div>
-      </form>
-    </Dialog>
+      </div>
+    </FormDialog>
   );
 };
