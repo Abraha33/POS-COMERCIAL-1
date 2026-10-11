@@ -123,9 +123,14 @@ gate(1, 'La aplicación compila y navega',
   for (const f of ['ScreenTemplate', 'DataTablePage', 'FormField']) {
     if (!has(`src/shared/ui/${f}.tsx`)) problems.push(`falta shared/ui/${f}`);
   }
-  const slice = has('src/features/products') ? readdirSync(path.join(root, 'src/features/products')).map((f) => read(`src/features/products/${f}`)).join('\n') : '';
-  if (!/DataTablePage/.test(slice)) problems.push('slice de Productos no usa DataTablePage');
-  if (!/FormField/.test(slice)) problems.push('slice de Productos no usa FormField');
+  const featuresDir = path.join(root, 'src/features');
+  const sources = readdirSync(featuresDir, { recursive: true })
+    .map(String).filter((f) => f.endsWith('.tsx'))
+    .map((f) => read(`src/features/${f.split(path.sep).join('/')}`));
+  const count = (re) => sources.filter((src) => re.test(src)).length;
+  if (count(/ScreenTemplate|DataTablePage/) < 5) problems.push('menos de 5 archivos de features usan ScreenTemplate/DataTablePage');
+  if (count(/from 'primereact\/datatable'|DataTablePage/) < 5) problems.push('las tablas no usan DataTable de PrimeReact / DataTablePage');
+  if (count(/FormField/) < 1) problems.push('ninguna feature usa FormField');
   gate(6, 'Plantillas de pantalla, formulario y tabla en uso', problems.length === 0, problems.join('; '));
 }
 
