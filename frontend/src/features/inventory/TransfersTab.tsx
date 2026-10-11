@@ -2,17 +2,18 @@ import { useMemo, useState } from 'react';
 import { Button } from 'primereact/button';
 import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
-import { Tag } from 'primereact/tag';
 import type { Transfer, TransferCreate } from '@/shared/contracts';
 import { ApiError } from '@/shared/api/client';
 import { useCreateTransfer, useReceiveTransfer, useTransfers } from '@/shared/api/inventory';
 import { useStockLevels } from '@/shared/api/queries';
+import { StatusTag } from '@/shared/ui';
 import { Can } from '@/app/guards/RouteGuard';
 import { useNotify } from '@/app/providers/ToastProvider';
 import { useSession } from '@/app/providers/SessionProvider';
 import { QueryState } from './QueryState';
 import { TransferDialog } from './TransferDialog';
-import { formatDate, useBranchLabel, useProductLookup } from './lookups';
+import { flowStatusMap, formatDate, useBranchLabel, useProductLookup } from './lookups';
+import { useIsMobile } from './useIsMobile';
 
 const createErrorMessage = (e: Error): string => {
   if (e instanceof ApiError && e.code === 'STOCK_INSUFFICIENT') {
@@ -32,6 +33,7 @@ export const TransfersTab = () => {
   const { session } = useSession();
   const { products, nameOf } = useProductLookup();
   const branchLabel = useBranchLabel();
+  const isMobile = useIsMobile();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [receiveError, setReceiveError] = useState<string | null>(null);
@@ -81,6 +83,60 @@ export const TransfersTab = () => {
   const summarize = (t: Transfer): string =>
     t.lines.map((l) => `${nameOf(l.productId)} × ${l.quantity}`).join(', ');
 
+  const route = (t: Transfer): string => `${branchLabel(t.fromBranchId)} → ${branchLabel(t.toBranchId)}`;
+
+  const rowAction = (t: Transfer) =>
+    t.status === 'enviado' ? (
+      <Can permission="inventory.adjust">
+        <Button
+          label="Recibir"
+          icon="pi pi-download"
+          size="small"
+          aria-label={`Recibir ${t.number}`}
+          loading={receivingId === t.id}
+          onClick={() => handleReceive(t)}
+        />
+      </Can>
+    ) : (
+      <span className="text-color-secondary">Recibido {t.receivedAt ? formatDate(t.receivedAt) : ''}</span>
+    );
+
+  const cards = (
+    <ul className="inv-cards" aria-label="Traslados">
+      {rows.map((t) => (
+        <li key={t.id} className="inv-card">
+          <div className="inv-card__head">
+            <div>
+              <h2 className="inv-card__name">{t.number}</h2>
+              <p className="inv-card__meta">{route(t)} · {formatDate(t.sentAt)}</p>
+            </div>
+            <StatusTag status={t.status} map={flowStatusMap} />
+          </div>
+          <p className="inv-card__meta">{summarize(t)}</p>
+          <div className="inv-card__actions">{rowAction(t)}</div>
+        </li>
+      ))}
+    </ul>
+  );
+
+  const table = (
+    <div className="app-table-scroll">
+      <DataTable value={rows} paginator rows={10} stripedRows size="small" dataKey="id">
+        <Column field="number" header="Traslado" sortable />
+        <Column header="Origen → destino" body={route} />
+        <Column header="Productos" body={summarize} />
+        <Column field="sentAt" header="Enviado" sortable body={(t: Transfer) => formatDate(t.sentAt)} />
+        <Column
+          field="status"
+          header="Estado"
+          sortable
+          body={(t: Transfer) => <StatusTag status={t.status} map={flowStatusMap} />}
+        />
+        <Column header="Acciones" body={rowAction} />
+      </DataTable>
+    </div>
+  );
+
   return (
     <>
       <div className="flex justify-content-end mb-3">
@@ -89,7 +145,7 @@ export const TransfersTab = () => {
         </Can>
       </div>
       {receiveError ? (
-        <div role="alert" className="p-3 mb-3 border-round surface-card" style={{ border: '1px solid var(--app-danger)' }}>
+        <div role="alert" className="app-dialog__error mb-3">
           <i className="pi pi-exclamation-circle mr-2" aria-hidden="true" />
           {receiveError}
         </div>
@@ -101,43 +157,7 @@ export const TransfersTab = () => {
         emptyMessage="Aún no hay traslados. Crea el primero con «Nuevo traslado»."
         onRetry={() => void transfers.refetch()}
       >
-        <div className="app-table-scroll">
-          <DataTable value={rows} paginator rows={10} stripedRows size="small" dataKey="id">
-            <Column field="number" header="Traslado" sortable />
-            <Column header="Origen → destino" body={(t: Transfer) => `${branchLabel(t.fromBranchId)} → ${branchLabel(t.toBranchId)}`} />
-            <Column header="Productos" body={summarize} />
-            <Column field="sentAt" header="Enviado" sortable body={(t: Transfer) => formatDate(t.sentAt)} />
-            <Column
-              field="status"
-              header="Estado"
-              sortable
-              body={(t: Transfer) => (
-                <Tag
-                  value={t.status === 'enviado' ? 'Enviado' : 'Recibido'}
-                  severity={t.status === 'enviado' ? 'info' : 'success'}
-                />
-              )}
-            />
-            <Column
-              header="Acciones"
-              body={(t: Transfer) =>
-                t.status === 'enviado' ? (
-                  <Can permission="inventory.adjust">
-                    <Button
-                      label="Recibir"
-                      icon="pi pi-download"
-                      size="small"
-                      aria-label={`Recibir ${t.number}`}
-                      loading={receivingId === t.id}
-                      onClick={() => handleReceive(t)}
-                    />
-                  </Can>
-                ) : (
-                  <span className="text-color-secondary">Recibido {t.receivedAt ? formatDate(t.receivedAt) : ''}</span>
-                )}
-            />
-          </DataTable>
-        </div>
+        {isMobile ? cards : table}
       </QueryState>
       <TransferDialog
         visible={dialogOpen}

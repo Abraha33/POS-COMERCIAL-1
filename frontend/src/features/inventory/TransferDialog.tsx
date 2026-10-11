@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from 'primereact/button';
-import { Dialog } from 'primereact/dialog';
 import type { Product, StockLevel, TransferCreate } from '@/shared/contracts';
-import { FormField } from '@/shared/ui';
+import { FormDialog, FormField } from '@/shared/ui';
 
 type Line = { key: number; productId: string; quantity: string };
 
@@ -69,7 +68,17 @@ export const TransferDialog = ({
   };
 
   return (
-    <Dialog header="Nuevo traslado" visible={visible} onHide={onHide} style={{ width: 'min(40rem, 95vw)' }} modal>
+    <FormDialog
+      title="Nuevo traslado"
+      visible={visible}
+      onHide={onHide}
+      onSubmit={submit}
+      submitLabel="Enviar traslado"
+      submitIcon="pi pi-send"
+      loading={saving}
+      error={serverError}
+      width="min(40rem, 95vw)"
+    >
       <p className="mt-0 text-color-secondary">
         El traslado se envía ahora: descuenta de la sede origen y queda en tránsito hasta que la sede destino lo reciba.
       </p>
@@ -149,12 +158,6 @@ export const TransferDialog = ({
           <ul className="m-0 pl-3">{errors.map((e) => <li key={e}>{e}</li>)}</ul>
         </div>
       ) : null}
-      {serverError ? <p role="alert" className="p-error mt-0">{serverError}</p> : null}
-
-      <div className="flex justify-content-end gap-2">
-        <Button type="button" label="Cancelar" severity="secondary" outlined onClick={onHide} />
-        <Button type="button" label="Enviar traslado" icon="pi pi-send" loading={saving} onClick={submit} />
-      </div>
-    </Dialog>
+    </FormDialog>
   );
 };

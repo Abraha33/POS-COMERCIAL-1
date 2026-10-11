@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { Product, StockMovement } from '@/shared/contracts';
-import { useProducts } from '@/shared/api/queries';
+import { useBranches, useProducts } from '@/shared/api/queries';
 import { useSession } from '@/app/providers/SessionProvider';
 
 /** Producto por id para mostrar el nombre (nunca el id) en las tablas. */
@@ -12,13 +12,13 @@ export const useProductLookup = () => {
   return { products: query.data as Product[] | undefined, byId, nameOf, skuOf, isLoading: query.isLoading };
 };
 
-/**
- * No hay contrato de sedes: el nombre solo se conoce para la sede de la sesión.
- * PROPUESTA: GET /branches (ver docs/qa/requests/lane-b.md).
- */
+/** Nombre de la sede desde `GET /branches`; si aún no carga, la sede de la sesión o `Sede <id>`. */
 export const useBranchLabel = () => {
   const { session } = useSession();
-  return (branchId: string): string => (branchId === session.branch.id ? session.branch.name : `Sede ${branchId}`);
+  const branches = useBranches();
+  const names = useMemo(() => new Map((branches.data ?? []).map((b) => [b.id, b.name])), [branches.data]);
+  return (branchId: string): string =>
+    names.get(branchId) ?? (branchId === session.branch.id ? session.branch.name : `Sede ${branchId}`);
 };
 
 export const movementTypeLabels: Record<StockMovement['type'], string> = {
@@ -35,3 +35,27 @@ export const formatDate = (iso: string): string => {
 };
 
 export const formatQuantity = (value: number): string => value.toLocaleString('es-CO');
+
+export type StockState = 'negative' | 'low' | 'ok';
+
+/** BR-INV-02: negativo si onHand < 0; bajo mínimo si onHand < mínimo. */
+export const stockState = (onHand: number, minimum: number): StockState => {
+  if (onHand < 0) return 'negative';
+  if (onHand < minimum) return 'low';
+  return 'ok';
+};
+
+/** Mapa para `StatusTag`: Normal / Bajo stock / Negativo. */
+export const stockStatusMap = {
+  negative: { label: 'Negativo', tone: 'danger', icon: 'pi pi-exclamation-triangle' },
+  low: { label: 'Bajo stock', tone: 'warning', icon: 'pi pi-arrow-down' },
+  ok: { label: 'Normal', tone: 'success', icon: 'pi pi-check-circle' },
+} as const;
+
+/** Mapa para `StatusTag` de traslados y alertas. */
+export const flowStatusMap = {
+  enviado: { label: 'Enviado', tone: 'info', icon: 'pi pi-send' },
+  recibido: { label: 'Recibido', tone: 'success', icon: 'pi pi-check-circle' },
+  resolved: { label: 'Resuelta', tone: 'success', icon: 'pi pi-check-circle' },
+  pendiente: { label: 'Pendiente', tone: 'warning', icon: 'pi pi-exclamation-triangle' },
+} as const;

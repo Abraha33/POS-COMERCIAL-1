@@ -33,7 +33,7 @@ describe('Inventario: existencias', () => {
     expect((await screen.findAllByText('Arroz 500 g', {}, T)).length).toBe(2); // una fila por sede
     expect(screen.queryByText('prd-001')).not.toBeInTheDocument();
     expect(screen.getByText('Negativo')).toBeInTheDocument();
-    expect(screen.getByText('Bajo mínimo')).toBeInTheDocument();
+    expect(screen.getByText('Bajo stock')).toBeInTheDocument();
   });
 
   it('filtra por sede y por búsqueda', async () => {
@@ -97,7 +97,7 @@ describe('Inventario: traslados', () => {
     await user.click(within(dialog).getByRole('button', { name: /enviar traslado/i }));
 
     expect(await screen.findByText('TRF-0001', {}, T)).toBeInTheDocument();
-    expect(screen.getByText('Enviado', { selector: '.p-tag-value' })).toBeInTheDocument();
+    expect(screen.getByText('Enviado', { selector: '.app-status' })).toBeInTheDocument();
     expect(db.transfers).toHaveLength(1);
     expect(db.transfers[0]?.lines[0]).toEqual({ productId: 'prd-001', quantity: 7 });
   });
@@ -129,7 +129,7 @@ describe('Inventario: traslados', () => {
     await renderInventory('emp-005', 'bodeguero'); // Sofía Ruiz, br-002
     await openTransfers(user);
     await user.click(await screen.findByRole('button', { name: /recibir trf-0001/i }, T));
-    expect(await screen.findByText('Recibido', { selector: '.p-tag-value' }, T)).toBeInTheDocument();
+    expect(await screen.findByText('Recibido', { selector: '.app-status' }, T)).toBeInTheDocument();
     expect(db.transfers[0]?.status).toBe('recibido');
   });
 

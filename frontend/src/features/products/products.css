@@ -1,0 +1,31 @@
+/* Estilos locales del módulo Productos: solo tokens --app-*. */
+.prd-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr));
+  gap: var(--app-gap);
+  align-items: end;
+  margin-bottom: var(--app-gap);
+}
+.prd-toolbar .field { margin-bottom: 0; }
+.prd-toolbar .p-input-icon-left { display: block; }
+.prd-toolbar .p-input-icon-left > .p-inputtext { width: 100%; padding-left: 2.5rem; }
+@media (max-width: 767px) {
+  .prd-toolbar { grid-template-columns: minmax(0, 1fr); }
+}
+.prd-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--app-gap); }
+.prd-card {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-lg);
+  box-shadow: var(--app-shadow-card);
+  padding: var(--app-gap);
+  display: grid;
+  gap: 0.5rem;
+}
+.prd-card__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
+.prd-card__name { margin: 0; font-size: var(--app-font-size-base); font-weight: 700; overflow-wrap: anywhere; }
+.prd-card__meta { margin: 0; color: var(--app-text-muted); font-size: var(--app-font-size-sm); overflow-wrap: anywhere; }
+.prd-card__facts { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; margin: 0; }
+.prd-card__facts dt { color: var(--app-text-muted); font-size: var(--app-font-size-sm); }
+.prd-card__facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.prd-card__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
