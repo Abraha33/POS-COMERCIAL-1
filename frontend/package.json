@@ -20,6 +20,7 @@
     "@hookform/resolvers": "^5.9.1",
     "@tanstack/react-query": "^5.104.1",
     "@tanstack/react-router": "^1.170.42",
+    "chart.js": "^4.5.1",
     "primeflex": "^4.0.0",
     "primeicons": "^8.0.2",
     "primereact": "10.9.9",
