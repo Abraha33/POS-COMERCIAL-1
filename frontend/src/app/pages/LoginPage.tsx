@@ -160,7 +160,6 @@ export const LoginPage = () => {
               <Button type="submit" label="Ingresar" icon="pi pi-sign-in" loading={busy} className="w-full mt-3" />
             </>
           )}
-          <button type="submit" className="sr-only" tabIndex={-1}>Ingresar</button>
         </form>
 
         <div aria-live="assertive">
