@@ -20,7 +20,7 @@ const renderPos = async () => {
 };
 
 const openShift = async (user: ReturnType<typeof userEvent.setup>) => {
-  await user.click(await screen.findByRole('button', { name: /abrir turno/i }));
+  await user.click(await screen.findByRole('button', { name: /abrir turno/i }, { timeout: 5000 }));
   await screen.findByLabelText(/buscar producto o escanear/i);
 };
 

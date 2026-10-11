@@ -55,3 +55,6 @@
   .pos__payment { grid-template-columns: minmax(0, 1fr); }
   .pos__lines-wrap { overflow-x: auto; }
 }
+
+.pos__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; justify-content: flex-end; }
+@media (max-width: 900px) { .pos__actions { justify-content: flex-start; } }

@@ -11,7 +11,10 @@ import { ScreenTemplate } from '@/shared/ui';
 import { formatMoney } from '@/shared/utils/format';
 import { computeTotals } from '@/shared/utils/pricing';
 import { useNotify } from '@/app/providers/ToastProvider';
+import { CashDialog } from './CashDialog';
+import { HeldSalesDialog } from './HeldSalesDialog';
 import { SupervisorPinDialog } from './SupervisorPinDialog';
+import { useHeldSales, type HeldSale } from './useHeldSales';
 import './pos.css';
 
 type CartLine = { productId: string; quantity: number; discount: number };
@@ -56,6 +59,9 @@ export const QuickSale = ({ shift }: { shift: Shift }) => {
   const [approvalToken, setApprovalToken] = useState<string | undefined>();
   const [pinRequest, setPinRequest] = useState<PinRequest | null>(null);
   const [receipt, setReceipt] = useState<SaleReceipt | null>(null);
+  const [heldOpen, setHeldOpen] = useState(false);
+  const [cashOpen, setCashOpen] = useState(false);
+  const heldSales = useHeldSales(shift.registerId);
   const searchRef = useRef<HTMLInputElement>(null);
 
   const catalog = useMemo(() => (products.data ?? []).filter((p) => p.active), [products.data]);
@@ -156,7 +162,25 @@ export const QuickSale = ({ shift }: { shift: Shift }) => {
     );
   };
 
+  const holdCurrent = () => {
+    if (lines.length === 0) return;
+    heldSales.hold(lines, customerId);
+    notify({ severity: 'info', summary: 'Venta suspendida', detail: 'Puedes reanudarla desde "Suspendidas".' });
+    reset();
+  };
+  const resume = (sale: HeldSale) => {
+    setLines(sale.lines);
+    setCustomerId(sale.customerId);
+    setPayments(null);
+    heldSales.remove(sale.id);
+    setHeldOpen(false);
+    searchRef.current?.focus();
+  };
+
   useHotkey('F2', () => searchRef.current?.focus());
+  useHotkey('F4', holdCurrent, lines.length > 0);
+  useHotkey('F6', () => setHeldOpen(true));
+  useHotkey('F10', () => setCashOpen(true));
   useHotkey('F9', () => submit(), canConfirm);
 
   const updatePayment = (index: number, patch: Partial<Payment>) =>
@@ -172,9 +196,18 @@ export const QuickSale = ({ shift }: { shift: Shift }) => {
       title="Punto de venta"
       subtitle="Venta rápida"
       actions={
-        <span className="pos__shift">
-          <span>Turno {shift.id}</span>
-          <span>Caja esperada {formatMoney(shift.expectedCash)}</span>
+        <span className="pos__actions">
+          <span className="pos__shift">
+            <span>Turno {shift.id}</span>
+            <span>Esperado {formatMoney(shift.expectedCash)}</span>
+          </span>
+          <Button type="button" label="Suspender (F4)" icon="pi pi-pause" outlined disabled={lines.length === 0} onClick={holdCurrent} />
+          <Button
+            type="button" icon="pi pi-clock" outlined
+            label={`Suspendidas (${heldSales.held.length})`} aria-label={`Suspendidas, ${heldSales.held.length} (F6)`}
+            onClick={() => setHeldOpen(true)}
+          />
+          <Button type="button" label="Caja (F10)" icon="pi pi-wallet" outlined onClick={() => setCashOpen(true)} />
         </span>
       }
     >
@@ -346,6 +379,17 @@ export const QuickSale = ({ shift }: { shift: Shift }) => {
           </section>
         </div>
       </div>
+
+      <HeldSalesDialog
+        visible={heldOpen}
+        held={heldSales.held}
+        products={byId}
+        canResume={lines.length === 0}
+        onResume={resume}
+        onDiscard={(sale) => heldSales.remove(sale.id)}
+        onHide={() => setHeldOpen(false)}
+      />
+      <CashDialog shift={shift} heldCount={heldSales.held.length} visible={cashOpen} onHide={() => setCashOpen(false)} />
 
       <SupervisorPinDialog
         action={pinRequest?.action ?? null}
