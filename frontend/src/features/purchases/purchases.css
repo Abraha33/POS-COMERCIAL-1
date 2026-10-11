@@ -40,7 +40,26 @@
   .purch__form-line > :first-child { grid-column: 1 / -1; }
 }
 
-/* El título de pestaña activa del tema (azul #3b82f6) no llega a AA sobre blanco: usa el primario del producto. */
-.purch-tabs .p-tabview-nav li.p-highlight .p-tabview-nav-link,
-.purch-tabs .p-tabview-nav li .p-tabview-nav-link:hover { color: var(--primary-color); }
-.purch-tabs .p-tabview-nav li .p-tabview-nav-link { color: var(--text-color-secondary); }
+.purch__kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--app-gap); }
+.purch__bar { margin-bottom: 0; align-items: center; }
+.purch__search { min-width: min(18rem, 100%); flex: 1 1 14rem; max-width: 24rem; }
+.purch__search .p-inputtext { width: 100%; }
+.purch__error { color: var(--app-danger-fg); }
+.purch__cards { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--app-gap); }
+.purch__card {
+  background: var(--app-surface); border: 1px solid var(--app-border); border-radius: var(--app-radius);
+  padding: var(--app-gap); display: grid; gap: 0.25rem; box-shadow: var(--app-shadow-card);
+}
+.purch__card-head { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; justify-content: space-between; }
+.purch__card-line { margin: 0; overflow-wrap: anywhere; }
+.purch__card-foot { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; justify-content: space-between; margin-top: 0.25rem; }
+
+@media (max-width: 640px) {
+  .purch__lines thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .purch__lines, .purch__lines tbody, .purch__lines tr, .purch__lines td { display: block; width: 100%; }
+  .purch__lines tr { border-top: 1px solid var(--app-border); padding: 0.5rem 0; }
+  .purch__lines td { border: 0; padding: 0.15rem 0; }
+  .purch__lines td[data-label] { display: flex; justify-content: space-between; gap: 0.5rem; }
+  .purch__lines td[data-label]::before { content: attr(data-label); color: var(--app-text-muted); }
+  .purch__lines td:first-child { font-weight: 600; }
+}

@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from 'primereact/button';
-import { Dialog } from 'primereact/dialog';
 import { InputNumber } from 'primereact/inputnumber';
 import { useCreatePurchaseOrder } from '@/shared/api/ledger';
-import { formatMoney } from '@/shared/utils/format';
+import { FormDialog, MoneyInput, MoneyText } from '@/shared/ui';
 import { useNotify } from '@/app/providers/ToastProvider';
 import { explainError } from './labels';
 import { useLookups } from './useLookups';
@@ -87,8 +86,18 @@ export const OrderFormDialog = ({ visible, onHide, onCreated }: Props) => {
   };
 
   return (
-    <Dialog header="Nueva orden de compra" visible={visible} onHide={onHide} style={{ width: 'min(52rem, 95vw)' }} modal>
-      <form noValidate onSubmit={(e) => { e.preventDefault(); submit(); }}>
+    <FormDialog
+      visible={visible}
+      title="Nueva orden de compra"
+      onHide={onHide}
+      onSubmit={submit}
+      submitLabel="Crear orden"
+      submitIcon="pi pi-check"
+      loading={create.isPending}
+      error={serverError}
+      width="min(52rem, 95vw)"
+    >
+      <div>
         <div className="purch__field">
           <label htmlFor="po-supplier">Proveedor</label>
           <select
@@ -134,15 +143,14 @@ export const OrderFormDialog = ({ visible, onHide, onCreated }: Props) => {
                     </div>
                     <div className="purch__field">
                       <label htmlFor={`po-cost-${line.key}`}>Costo unitario {n} (COP)</label>
-                      <InputNumber
-                        inputId={`po-cost-${line.key}`} value={line.unitCost} min={0} maxFractionDigits={0}
-                        onChange={(e) => e.originalEvent && patchLine(line.key, { unitCost: e.value })}
-                        inputStyle={{ width: '100%' }}
+                      <MoneyInput
+                        id={`po-cost-${line.key}`} value={line.unitCost}
+                        onChange={(value) => patchLine(line.key, { unitCost: value })}
                       />
                     </div>
                     <div className="purch__field">
                       <span className="purch__hint">Subtotal</span>
-                      <span className="purch__subtotal">{formatMoney(subtotal)}</span>
+                      <span className="purch__subtotal"><MoneyText value={subtotal} /></span>
                     </div>
                     <Button
                       type="button" icon="pi pi-trash" severity="danger" text
@@ -166,17 +174,12 @@ export const OrderFormDialog = ({ visible, onHide, onCreated }: Props) => {
 
         <div className="flex justify-content-between align-items-center mt-3 gap-3 flex-wrap">
           <span>Total de la orden</span>
-          <span className="purch__total" data-testid="po-total">{formatMoney(Math.round(total))}</span>
+          <span className="purch__total" data-testid="po-total"><MoneyText value={Math.round(total)} strong /></span>
         </div>
-        {serverError ? <p className="purch__error" role="alert">{serverError}</p> : null}
         <p className="purch__hint">
           La orden se guarda en borrador y no mueve inventario hasta recibirla. El total final lo confirma el servidor.
         </p>
-        <div className="purch__actions">
-          <Button type="button" label="Cancelar" severity="secondary" outlined onClick={onHide} />
-          <Button type="submit" label="Crear orden" icon="pi pi-check" loading={create.isPending} />
-        </div>
-      </form>
-    </Dialog>
+      </div>
+    </FormDialog>
   );
 };

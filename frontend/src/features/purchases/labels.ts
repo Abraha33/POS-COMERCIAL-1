@@ -1,5 +1,6 @@
 import type { PurchaseOrder } from '@/shared/contracts';
 import type { ApiError } from '@/shared/api/client';
+import type { StatusDef } from '@/shared/ui';
 
 export type OrderStatus = PurchaseOrder['status'];
 
@@ -10,11 +11,12 @@ export const STATUS_LABEL: Record<OrderStatus, string> = {
   cancelada: 'Cancelada',
 };
 
-export const STATUS_SEVERITY: Record<OrderStatus, 'warning' | 'info' | 'success' | 'danger'> = {
-  borrador: 'warning',
-  enviada: 'info',
-  recibida: 'success',
-  cancelada: 'danger',
+/** Mapa para `StatusTag`: texto + icono + tono (el color nunca es el único canal). */
+export const ORDER_STATUS_MAP: Record<OrderStatus, StatusDef> = {
+  borrador: { label: 'Borrador', tone: 'warning', icon: 'pi pi-pencil' },
+  enviada: { label: 'Enviada', tone: 'info', icon: 'pi pi-send' },
+  recibida: { label: 'Recibida', tone: 'success', icon: 'pi pi-check-circle' },
+  cancelada: { label: 'Cancelada', tone: 'danger', icon: 'pi pi-times-circle' },
 };
 
 export const STATUS_OPTIONS: OrderStatus[] = ['borrador', 'enviada', 'recibida', 'cancelada'];

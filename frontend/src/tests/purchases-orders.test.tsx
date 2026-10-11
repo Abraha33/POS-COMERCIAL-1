@@ -36,11 +36,11 @@ describe('Compras: órdenes', () => {
     expect(screen.getAllByText('Lácteos del Valle').length).toBeGreaterThan(0);
     expect(screen.queryByText('sup-002')).not.toBeInTheDocument();
 
-    await user.selectOptions(screen.getByLabelText('Estado'), 'recibida');
+    await user.click(screen.getByRole('button', { name: /^Recibida/ }));
     expect(screen.getByRole('button', { name: /ver orden PO-0001/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /ver orden PO-0002/i })).not.toBeInTheDocument();
 
-    await user.selectOptions(screen.getByLabelText('Estado'), 'cancelada');
+    await user.click(screen.getByRole('button', { name: /^Cancelada/ }));
     expect(await screen.findByTestId('orders-empty')).toBeInTheDocument();
   });
 
