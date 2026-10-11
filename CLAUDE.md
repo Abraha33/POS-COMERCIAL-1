@@ -35,3 +35,10 @@ Implementada en código real · ejecutada en el navegador · capturas a 3 anchos
 
 ## Honestidad en los informes
 Decir qué NO se verificó (backend real, DIAN, concurrencia, offline real, rendimiento con datos reales, hardware).
+
+## Referencias de diseño
+`docs/design/reference/ref-1..5.webp` son las maquetas objetivo (POS de escritorio, 16 pantallas del ERP, POS móvil de 16 pantallas).
+Patrones: barra superior azul marino con sucursal / caja / cajero / estado en línea; menú lateral; POS en dos columnas
+(búsqueda + líneas | cliente + resumen + cobrar verde); chips de categoría; barra de atajos F2/F3/F4/F8/F9; acceso por PIN;
+apertura de caja con resumen; arqueo por denominación; sincronización offline. Lo que no esté en `docs/business-rules/`
+se etiqueta PROPUESTA. Las maquetas guían la forma, no sustituyen las reglas aprobadas ni los tokens AA.
