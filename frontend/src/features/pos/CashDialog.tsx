@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
-import { InputNumber } from 'primereact/inputnumber';
-import { InputText } from 'primereact/inputtext';
 import type { Shift, ShiftMovement } from '@/shared/contracts';
 import { useAddShiftMovement, useCloseShift } from '@/shared/api/pos';
-import { FormField } from '@/shared/ui';
+import { FormField, MoneyInput, MoneyText } from '@/shared/ui';
 import { formatMoney } from '@/shared/utils/format';
 import { useNotify } from '@/app/providers/ToastProvider';
 
@@ -25,9 +23,14 @@ const categories: Record<MovementType, { value: Category; label: string }[]> = {
   ],
 };
 
+/** Denominaciones COP para el conteo (PROPUESTA: ayuda local; el contrato solo recibe el total contado). */
+const denominations = [100000, 50000, 20000, 10000, 5000, 2000, 1000, 500, 200, 100, 50];
+
+const toCount = (text: string | undefined): number => Math.max(0, Math.floor(Number(text ?? 0)) || 0);
+
 type Props = { shift: Shift; heldCount: number; visible: boolean; onHide: () => void };
 
-/** Movimientos de caja (BR-CAJ-09) y cierre con cuadre (BR-CAJ-05..07). */
+/** Movimientos de caja (BR-CAJ-09) y cierre con cuadre y arqueo (BR-CAJ-05..07). */
 export const CashDialog = ({ shift, heldCount, visible, onHide }: Props) => {
   const notify = useNotify();
   const addMovement = useAddShiftMovement();
@@ -39,6 +42,7 @@ export const CashDialog = ({ shift, heldCount, visible, onHide }: Props) => {
   const [movementNote, setMovementNote] = useState('');
   const [counted, setCounted] = useState<number | null>(null);
   const [closeNote, setCloseNote] = useState('');
+  const [counts, setCounts] = useState<Record<number, string>>({});
 
   const difference = counted === null ? null : counted - shift.expectedCash;
   const noteRequired = difference !== null && difference !== 0;
@@ -47,6 +51,12 @@ export const CashDialog = ({ shift, heldCount, visible, onHide }: Props) => {
   const changeType = (next: MovementType) => {
     setType(next);
     setCategory(categories[next][0]?.value ?? 'otro');
+  };
+
+  const setDenomination = (value: number, text: string) => {
+    const nextCounts = { ...counts, [value]: text };
+    setCounts(nextCounts);
+    setCounted(denominations.reduce((acc, d) => acc + d * toCount(nextCounts[d]), 0));
   };
 
   const submitMovement = () =>
@@ -80,10 +90,13 @@ export const CashDialog = ({ shift, heldCount, visible, onHide }: Props) => {
   };
 
   return (
-    <Dialog header="Caja" visible={visible} onHide={onHide} className="pos-dialog" style={{ width: 'min(34rem, 95vw)' }} modal>
-      <div className="pos__totals">
-        <div><span>Base inicial</span><span>{formatMoney(shift.openingCash)}</span></div>
-        <div className="pos__total"><span>Efectivo esperado</span><span data-testid="expected-cash">{formatMoney(shift.expectedCash)}</span></div>
+    <Dialog header="Caja" visible={visible} onHide={onHide} className="pos-dialog" style={{ width: 'min(36rem, 95vw)' }} modal>
+      <div className="pos-cash__summary">
+        <div><span>Base inicial</span><MoneyText value={shift.openingCash} /></div>
+        <div className="pos-cash__expected">
+          <span>Efectivo esperado</span>
+          <strong data-testid="expected-cash">{formatMoney(shift.expectedCash)}</strong>
+        </div>
       </div>
 
       <section className="pos__panel" aria-label="Movimiento de caja">
@@ -103,18 +116,13 @@ export const CashDialog = ({ shift, heldCount, visible, onHide }: Props) => {
         </div>
         <div className="pos__field">
           <label htmlFor="mv-amount">Valor (COP)</label>
-          <InputNumber
-            inputId="mv-amount" value={amount} min={0}
-            onChange={(e) => e.originalEvent && setAmount(e.value ?? 0)}
-            mode="currency" currency="COP" locale="es-CO" minFractionDigits={0}
-            inputStyle={{ width: '100%' }}
-          />
+          <MoneyInput id="mv-amount" value={amount} onChange={(v) => setAmount(v ?? 0)} />
         </div>
         <div className="pos__field">
           <label htmlFor="mv-note">Nota (opcional)</label>
-          <InputText id="mv-note" value={movementNote} onChange={(e) => setMovementNote(e.target.value)} />
+          <input id="mv-note" className="p-inputtext" value={movementNote} onChange={(e) => setMovementNote(e.target.value)} />
         </div>
-        {addMovement.error ? <p className="pos__missing" role="alert">{addMovement.error.message}</p> : null}
+        {addMovement.error ? <p className="app-dialog__error" role="alert">{addMovement.error.message}</p> : null}
         <Button
           type="button" label="Registrar movimiento" icon="pi pi-plus"
           disabled={amount <= 0} loading={addMovement.isPending} onClick={submitMovement}
@@ -122,33 +130,73 @@ export const CashDialog = ({ shift, heldCount, visible, onHide }: Props) => {
       </section>
 
       <section className="pos__panel mt-3" aria-label="Cierre de turno">
-        <h2>Cerrar turno</h2>
+        <h2>Cerrar turno y arqueo</h2>
         {heldCount > 0 ? (
           <p className="pos__hint" role="status">
             Hay {heldCount} venta(s) suspendida(s) en esta caja; se conservan en el navegador pero no se cobrarán en este turno.
           </p>
         ) : null}
+
+        <details className="pos-cash__count">
+          <summary>Contar por denominación (PROPUESTA)</summary>
+          <p className="pos__hint">
+            Ayuda de conteo en pantalla: solo el total llena «Efectivo contado»; las cantidades por billete no se envían.
+          </p>
+          <div className="app-table-scroll">
+            <table className="pos-cash__table">
+              <caption className="sr-only">Conteo de efectivo por denominación</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Denominación</th>
+                  <th scope="col">Cantidad</th>
+                  <th scope="col" className="pos__num">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {denominations.map((d) => (
+                  <tr key={d}>
+                    <th scope="row">{formatMoney(d)}</th>
+                    <td>
+                      <input
+                        className="p-inputtext pos__qty-input"
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        step={1}
+                        aria-label={`Cantidad de ${formatMoney(d)}`}
+                        value={counts[d] ?? ''}
+                        placeholder="0"
+                        onChange={(e) => setDenomination(d, e.target.value)}
+                      />
+                    </td>
+                    <td className="pos__num">{formatMoney(d * toCount(counts[d]))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+
         <FormField id="counted-cash" label="Efectivo contado (COP)">
-          <InputNumber
-            inputId="counted-cash" value={counted} min={0}
-            onChange={(e) => e.originalEvent && setCounted(e.value ?? null)}
-            mode="currency" currency="COP" locale="es-CO" minFractionDigits={0}
-            inputStyle={{ width: '100%' }}
-          />
+          <MoneyInput id="counted-cash" value={counted} onChange={setCounted} />
         </FormField>
         {difference !== null ? (
-          <p className={difference === 0 ? 'pos__change' : 'pos__missing'} data-testid="cash-difference">
+          <p
+            className={`pos-cash__diff ${difference === 0 ? 'pos__change' : 'pos__missing'}`}
+            data-testid="cash-difference"
+          >
+            <i className={difference === 0 ? 'pi pi-check-circle' : 'pi pi-exclamation-triangle'} aria-hidden="true" />{' '}
             {difference === 0 ? 'La caja cuadra.' : `Diferencia: ${formatMoney(difference)} (${difference > 0 ? 'sobrante' : 'faltante'})`}
           </p>
         ) : null}
         {noteRequired ? (
           <FormField id="close-note" label="Nota de justificación (obligatoria)">
-            <InputText id="close-note" className="w-full" value={closeNote} onChange={(e) => setCloseNote(e.target.value)} />
+            <input id="close-note" className="p-inputtext w-full" value={closeNote} onChange={(e) => setCloseNote(e.target.value)} />
           </FormField>
         ) : null}
-        {closeShift.error ? <p className="pos__missing" role="alert">{closeShift.error.message}</p> : null}
+        {closeShift.error ? <p className="app-dialog__error" role="alert">{closeShift.error.message}</p> : null}
         <Button
-          type="button" label="Cerrar turno" icon="pi pi-lock" severity="danger" className="w-full"
+          type="button" label="Cerrar turno" icon="pi pi-lock" severity="danger" className="w-full pos__btn-solid-danger"
           disabled={!canClose} loading={closeShift.isPending} onClick={submitClose}
         />
       </section>

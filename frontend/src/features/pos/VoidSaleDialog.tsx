@@ -50,10 +50,13 @@ export const VoidSaleDialog = ({ sale, onVoided, onHide }: Props) => {
           submit();
         }}
       >
-        <p className="mt-0">
-          Vas a anular la venta <strong>{sale.number}</strong>. Se reingresa todo el stock y se revierte la cuenta por
-          cobrar. Esta acción no se puede deshacer.
-        </p>
+        <div className="pos-alert pos-alert--warning">
+          <i className="pi pi-exclamation-triangle" aria-hidden="true" />
+          <p>
+            Vas a anular la venta <strong>{sale.number}</strong>. Se reingresa todo el stock y se revierte la cuenta
+            por cobrar. Esta acción no se puede deshacer.
+          </p>
+        </div>
         <FormField
           id="void-reason"
           label="Motivo de la anulación"
@@ -70,12 +73,12 @@ export const VoidSaleDialog = ({ sale, onVoided, onHide }: Props) => {
           />
         </FormField>
         {voidSale.error ? (
-          <p className="p-error" role="alert" data-testid="void-error">
+          <p className="app-dialog__error" role="alert" data-testid="void-error">
             {describeSaleError(voidSale.error, 'void')}
           </p>
         ) : null}
-        <div className="flex justify-content-end gap-2">
-          <Button type="button" label="Cancelar" severity="secondary" outlined onClick={onHide} />
+        <div className="app-dialog__footer">
+          <Button type="button" label="Cancelar" outlined onClick={onHide} />
           <Button type="submit" label="Anular venta" icon="pi pi-ban" className="pos__danger" loading={voidSale.isPending} />
         </div>
       </form>

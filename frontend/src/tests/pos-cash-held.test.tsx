@@ -43,7 +43,7 @@ describe('POS: ventas suspendidas', { timeout: 20000 }, () => {
 
     await user.click(screen.getByRole('button', { name: /suspendidas, 1/i }));
     await user.click(await screen.findByRole('button', { name: /reanudar/i }));
-    expect(await screen.findByLabelText('Cantidad Arroz 500 g')).toHaveTextContent('2');
+    expect(await screen.findByLabelText('Cantidad Arroz 500 g')).toHaveValue(2);
     expect(screen.getByTestId('pos-total')).toHaveTextContent('5.600');
     expect(screen.getByRole('button', { name: /suspendidas, 0/i })).toBeInTheDocument();
   });

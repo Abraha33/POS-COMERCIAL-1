@@ -3,7 +3,7 @@ import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
 import type { Product, Sale, SaleReturn } from '@/shared/contracts';
 import { useReturnSale } from '@/shared/api/pos';
-import { FormField } from '@/shared/ui';
+import { FormField, MoneyText } from '@/shared/ui';
 import { formatMoney } from '@/shared/utils/format';
 import { useNotify } from '@/app/providers/ToastProvider';
 import { describeSaleError } from './saleText';
@@ -39,6 +39,13 @@ export const ReturnDialog = ({ sale, products, returnedInSession, onReturned, on
   const overMax = sale.lines.some(
     (line) => Number(quantities[line.productId] ?? 0) > maxFor(line.productId, line.quantity),
   );
+  // Estimación: precio unitario neto de descuento × cantidad. El valor real lo fija el servidor.
+  const estimated = Math.round(
+    sale.lines.reduce((sum, line) => {
+      const quantity = Number(quantities[line.productId] ?? 0);
+      return quantity > 0 ? sum + ((line.unitPrice * line.quantity - line.discount) / line.quantity) * quantity : sum;
+    }, 0),
+  );
 
   const submit = () => {
     setTouched(true);
@@ -61,11 +68,11 @@ export const ReturnDialog = ({ sale, products, returnedInSession, onReturned, on
 
   return (
     <Dialog
-      header={`Devolver · ${sale.number}`}
+      header={`Nueva devolución · ${sale.number}`}
       visible
       onHide={onHide}
       className="pos-dialog"
-      style={{ width: 'min(36rem, 95vw)' }}
+      style={{ width: 'min(38rem, 95vw)' }}
       modal
     >
       {result ? (
@@ -85,7 +92,7 @@ export const ReturnDialog = ({ sale, products, returnedInSession, onReturned, on
             El stock se reingresó a la sede de la venta (movimiento de entrada, referencia {result.number}). Si el
             turno sigue abierto, el efectivo devuelto sale de la caja esperada.
           </p>
-          <div className="flex justify-content-end">
+          <div className="app-dialog__footer">
             <Button type="button" label="Cerrar" autoFocus onClick={onHide} />
           </div>
         </div>
@@ -100,18 +107,18 @@ export const ReturnDialog = ({ sale, products, returnedInSession, onReturned, on
           <p className="mt-0 pos__hint">
             Indica cuántas unidades devuelve el cliente. Deja en 0 las que no se devuelven.
           </p>
-          <div className="pos__return-grid">
+          <ul className="pos__return-grid">
             {sale.lines.map((line) => {
               const max = maxFor(line.productId, line.quantity);
               const already = returnedInSession[line.productId] ?? 0;
               const inputId = `return-qty-${line.productId}`;
               return (
-                <div key={line.productId} className="pos__return-row">
+                <li key={line.productId} className="pos__return-row">
                   <label htmlFor={inputId}>
                     <strong>{nameOf(line.productId)}</strong>
                     <span className="pos__hint">
                       {' '}· vendido {line.quantity}
-                      {already > 0 ? ` · devuelto ${already}` : ''} · máx. {max}
+                      {already > 0 ? ` · devuelto ${already}` : ''} · disponible {max}
                     </span>
                   </label>
                   <input
@@ -126,9 +133,13 @@ export const ReturnDialog = ({ sale, products, returnedInSession, onReturned, on
                     placeholder="0"
                     onChange={(e) => setQuantities((current) => ({ ...current, [line.productId]: e.target.value }))}
                   />
-                </div>
+                </li>
               );
             })}
+          </ul>
+          <div className="pos__totalbox pos__totalbox--compact">
+            <span>Total a devolver (estimado)</span>
+            <strong><MoneyText value={estimated} /></strong>
           </div>
           {touched && requested.length === 0 ? (
             <small className="p-error block mb-2" role="alert">Indica al menos una cantidad a devolver.</small>
@@ -151,12 +162,12 @@ export const ReturnDialog = ({ sale, products, returnedInSession, onReturned, on
             />
           </FormField>
           {returnSale.error ? (
-            <p className="p-error" role="alert" data-testid="return-error">
+            <p className="app-dialog__error" role="alert" data-testid="return-error">
               {describeSaleError(returnSale.error, 'return', nameOf)}
             </p>
           ) : null}
-          <div className="flex justify-content-end gap-2">
-            <Button type="button" label="Cancelar" severity="secondary" outlined onClick={onHide} />
+          <div className="app-dialog__footer">
+            <Button type="button" label="Cancelar" outlined onClick={onHide} />
             <Button type="submit" label="Registrar devolución" icon="pi pi-replay" loading={returnSale.isPending} />
           </div>
         </form>

@@ -92,7 +92,7 @@ describe('POS: devolución parcial', { timeout: 20000 }, () => {
     // Lo disponible baja de 2 a 1.
     await user.click(within(screen.getByTestId('return-result')).getByRole('button', { name: 'Cerrar' }));
     await user.click(await screen.findByRole('button', { name: 'Devolver' }));
-    expect(await screen.findByText(/devuelto 1 · máx\. 1/)).toBeInTheDocument();
+    expect(await screen.findByText(/devuelto 1 · disponible 1/)).toBeInTheDocument();
   });
 
   it('devolver más de lo vendido muestra RETURN_EXCEEDS_SOLD con lo que queda', async () => {
@@ -159,6 +159,7 @@ describe('POS: anulación', { timeout: 20000 }, () => {
     await user.click(await screen.findByRole('button', { name: /abrir turno/i }, { timeout: 5000 }));
     await user.type(await screen.findByLabelText(/buscar producto o escanear/i), '7701234567890{Enter}');
     await user.click(await screen.findByRole('button', { name: /cobrar/i }));
+    await user.click(await screen.findByRole('button', { name: /confirmar pago/i }));
     expect(await screen.findByTestId('receipt-number')).toHaveTextContent('POS-0004');
     await user.click(screen.getByRole('button', { name: /nueva venta/i }));
 
@@ -181,6 +182,7 @@ describe('POS: anulación', { timeout: 20000 }, () => {
     await user.click(await screen.findByRole('button', { name: /abrir turno/i }, { timeout: 5000 }));
     await user.type(await screen.findByLabelText(/buscar producto o escanear/i), '7701234567890{Enter}');
     await user.click(await screen.findByRole('button', { name: /cobrar/i }));
+    await user.click(await screen.findByRole('button', { name: /confirmar pago/i }));
     await screen.findByTestId('receipt-number');
     await user.click(screen.getByRole('button', { name: /nueva venta/i }));
 
