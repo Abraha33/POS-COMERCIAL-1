@@ -1,0 +1,37 @@
+.ledger { display: grid; gap: var(--app-gap); min-width: 0; }
+.ledger__summary {
+  display: grid;
+  gap: var(--app-gap);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+.ledger__stat {
+  background: var(--surface-card);
+  border: 1px solid var(--surface-border);
+  border-radius: var(--app-radius);
+  padding: 0.75rem var(--app-gap);
+}
+.ledger__stat-label { color: var(--text-color-secondary); font-size: 0.85rem; }
+.ledger__stat-value { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ledger__stat--alert { border-color: var(--app-danger); }
+.ledger__filters { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; }
+.ledger__filters label { display: block; margin-bottom: 0.25rem; font-weight: 500; }
+.ledger__filters select, .ledger__filters input { min-height: 44px; }
+.ledger__table { overflow-x: auto; max-width: 100%; }
+.ledger__num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ledger__btn.p-button { min-height: 44px; min-width: 44px; }
+.ledger__note { color: var(--text-color-secondary); font-size: 0.85rem; margin: 0; }
+.ledger__group { background: var(--surface-card); border: 1px solid var(--surface-border); border-radius: var(--app-radius); padding: var(--app-gap); }
+.ledger__group h2 { margin: 0 0 0.5rem; font-size: 1.05rem; }
+.ledger__group--soon { border-color: var(--app-warning); }
+.ledger__fields { display: grid; gap: 0 var(--app-gap); grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.ledger__fields input, .ledger__fields select { min-height: 44px; }
+@media (max-width: 480px) {
+  .ledger__filters > * { flex: 1 1 100%; }
+}
+.ledger__tag { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; border: 1px solid currentColor; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
+.ledger__tag--vigente { color: var(--app-info); }
+.ledger__tag--en-gracia { color: var(--app-warning); }
+.ledger__tag--vencida { color: var(--app-danger); }
+.ledger__tag--pagada { color: var(--app-success); }
+.ledger__tag--inactivo { color: var(--text-color-secondary); }
+.ledger__link.p-link { min-height: 44px; text-align: left; }
