@@ -9,7 +9,9 @@ import type {
   Receivable, Sale, SaleCreate, SaleReceipt, SaleVoid, Session, Shift, ShiftClose, ShiftOpen,
   StockLevel, StockMovement, Supplier, ShiftMovement, ApprovalRequest, Approval, TransferCreate, Transfer,
   InventoryAlert, Payment, CustomerInput, SupplierInput, EmployeeInput, Branch, PurchaseOrderCreate, LedgerPayment,
-  SaleReturnCreate, SaleReturn,
+  SaleReturnCreate, SaleReturn, ReceivablePayment, CustomerPaymentResult, PurchaseOrderReceipt, StockAdjustmentCreate,
+  StockAdjustmentResult, InventoryCountCreate, InventoryCount, SalesSummary, AgingReport, InventoryValuation, BranchInput,
+  Company, CompanyInput, TaxResponsibility, LedgerStatus,
 } from '@/shared/contracts';
 
 type Schemas = components['schemas'];
@@ -61,4 +63,20 @@ export type ContractTypeChecks = [
   Assert<Same<LedgerPayment, Schemas['LedgerPayment']>>,
   Assert<Same<SaleReturnCreate, Schemas['SaleReturnCreate']>>,
   Assert<Same<SaleReturn, Schemas['SaleReturn']>>,
+  // v0.5.0
+  Assert<Same<ReceivablePayment, Schemas['ReceivablePayment']>>,
+  Assert<Same<CustomerPaymentResult, Schemas['CustomerPaymentResult']>>,
+  Assert<Same<PurchaseOrderReceipt, Schemas['PurchaseOrderReceipt']>>,
+  Assert<Same<StockAdjustmentCreate, Schemas['StockAdjustmentCreate']>>,
+  Assert<Same<StockAdjustmentResult, Schemas['StockAdjustmentResult']>>,
+  Assert<Same<InventoryCountCreate, Schemas['InventoryCountCreate']>>,
+  Assert<Same<InventoryCount, Schemas['InventoryCount']>>,
+  Assert<Same<SalesSummary, Schemas['SalesSummary']>>,
+  Assert<Same<AgingReport, Schemas['AgingReport']>>,
+  Assert<Same<InventoryValuation, Schemas['InventoryValuation']>>,
+  Assert<Same<BranchInput, Schemas['BranchInput']>>,
+  Assert<Same<Company, Schemas['Company']>>,
+  Assert<Same<CompanyInput, Schemas['CompanyInput']>>,
+  Assert<Same<TaxResponsibility, Schemas['TaxResponsibility']>>,
+  Assert<Same<LedgerStatus, Schemas['LedgerStatus']>>,
 ];

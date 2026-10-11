@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { contracts } from '@/shared/contracts/registry';
 import { createSeed } from '@/mocks/seed';
+import { toCustomer, toPayable, toReceivable } from '@/mocks/derive';
+import { setClock } from '@/shared/utils/clock';
+import { mockNow } from '@/mocks/db';
 
 describe('integridad del seed de mocks', () => {
   const s = createSeed();
@@ -11,14 +14,16 @@ describe('integridad del seed de mocks', () => {
 
   it('cada registro cumple su contrato', () => {
     s.products.forEach((r) => contracts.product.schema.parse(r));
-    s.customers.forEach((r) => contracts.customer.schema.parse(r));
+    // El seed guarda los registros; la API les añade los derivados (saldo, estado, mora).
+    setClock(mockNow);
+    s.customers.forEach((r) => contracts.customer.schema.parse(toCustomer(r)));
     s.suppliers.forEach((r) => contracts.supplier.schema.parse(r));
     s.employees.forEach((r) => contracts.employee.schema.parse(r));
     s.sales.forEach((r) => contracts.sale.schema.parse(r));
     s.stockMovements.forEach((r) => contracts.stockMovement.schema.parse(r));
     s.purchaseOrders.forEach((r) => contracts.purchaseOrder.schema.parse(r));
-    s.receivables.forEach((r) => contracts.receivable.schema.parse(r));
-    s.payables.forEach((r) => contracts.payable.schema.parse(r));
+    s.receivables.forEach((r) => contracts.receivable.schema.parse(toReceivable(r)));
+    s.payables.forEach((r) => contracts.payable.schema.parse(toPayable(r)));
   });
 
   it('las ventas apuntan a productos y clientes existentes', () => {

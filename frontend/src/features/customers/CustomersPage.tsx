@@ -50,8 +50,7 @@ export const CustomersPage = () => {
   }, [customers.data, receivables.data, filter]);
 
   const detailCustomer = customers.data?.find((c) => c.id === detailId) ?? null;
-  // PROPUESTA: no existe `customers.edit`; editar sigue a los roles de cartera (el servidor es la autoridad).
-  const canEdit = can('receivables.view');
+  const canEdit = can('customers.edit');
 
   const openNew = () => { setEditing(null); setFormOpen(true); };
   const openEdit = (customer: Customer) => { setEditing(customer); setFormOpen(true); };

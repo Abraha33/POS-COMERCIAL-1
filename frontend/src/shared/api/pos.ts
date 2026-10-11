@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { z } from 'zod';
 import {
   approvalSchema, saleReceiptSchema, saleReturnSchema, saleSchema, shiftSchema,
   type Approval, type ApprovalRequest, type Sale, type SaleCreate, type SaleReceipt, type SaleReturn,
@@ -30,8 +31,37 @@ export const useCurrentShift = () =>
 
 const useInvalidateShift = () => {
   const queryClient = useQueryClient();
-  return () => queryClient.invalidateQueries({ queryKey: currentShiftKey });
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: ['shifts'] });
+    return queryClient.invalidateQueries({ queryKey: currentShiftKey });
+  };
 };
+
+export type ShiftFilters = { from?: string; to?: string; branchId?: string };
+
+const queryString = (params: Record<string, string | undefined>): string => {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value) search.set(key, value);
+  }
+  const text = search.toString();
+  return text ? `?${text}` : '';
+};
+
+/** Historial de turnos con cuadre y diferencia (PROPUESTA v0.5.0). `reports.view` ve todos; el cajero, los suyos. */
+export const useShifts = (filters: ShiftFilters = {}) =>
+  useQuery<Shift[], ApiError>({
+    queryKey: ['shifts', filters],
+    queryFn: () => api.get(`/pos/shifts${queryString(filters)}`, z.array(shiftSchema)),
+  });
+
+/** Devoluciones ya registradas de una venta (BR-DEV-01). Con `saleId` nulo no consulta. */
+export const useSaleReturns = (saleId: string | null) =>
+  useQuery<SaleReturn[], ApiError>({
+    queryKey: ['sale-returns', saleId],
+    enabled: saleId !== null,
+    queryFn: () => api.get(`/pos/sales/${saleId}/returns`, z.array(saleReturnSchema)),
+  });
 
 export const useOpenShift = () => {
   const invalidate = useInvalidateShift();
@@ -97,7 +127,7 @@ export const useReturnSale = () => {
   return useMutation<SaleReturn, ApiError, { saleId: string; input: SaleReturnCreate }>({
     mutationFn: ({ saleId, input }) => api.post(`/pos/sales/${saleId}/returns`, input, saleReturnSchema),
     onSuccess: () => {
-      for (const key of ['sales', 'stock-levels', 'stock-movements']) {
+      for (const key of ['sales', 'sale-returns', 'stock-levels', 'stock-movements']) {
         void queryClient.invalidateQueries({ queryKey: [key] });
       }
       void queryClient.invalidateQueries({ queryKey: currentShiftKey });

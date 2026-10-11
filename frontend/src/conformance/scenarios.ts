@@ -13,6 +13,9 @@ import { describe, expect, it } from 'vitest';
 import {
   approvalSchema, apiErrorSchema, authSessionSchema, inventoryAlertSchema, receivableSchema, saleReceiptSchema,
   payableSchema, purchaseOrderSchema, saleReturnSchema, saleSchema, shiftSchema, stockLevelSchema, transferSchema, z,
+  agingReportSchema, companySchema, customerPaymentResultSchema, customerSchema, inventoryCountSchema,
+  inventoryValuationSchema, purchaseOrderReceiptSchema, receivablePaymentSchema, salesSummarySchema,
+  stockAdjustmentResultSchema, stockMovementSchema,
   type SaleCreate, type Shift,
 } from './contracts-bridge';
 import { createSchemaValidator } from './spec';
@@ -27,7 +30,7 @@ export const registerConformance = (target: string | (() => string)) => {
   const validateSchema = createSchemaValidator();
 
   const call = async (
-    method: 'GET' | 'POST', path: string,
+    method: 'GET' | 'POST' | 'PUT', path: string,
     options: { token?: string; body?: unknown; headers?: Record<string, string> } = {},
   ): Promise<Result> => {
     const response = await fetch(`${baseUrl()}${path}`, {
@@ -481,6 +484,402 @@ export const registerConformance = (target: string | (() => string)) => {
       const first = await call('POST', '/customers', { token: admin, body: customer });
       expect(first.status, JSON.stringify(first.body)).toBe(201);
       expectError(await call('POST', '/customers', { token: admin, body: customer }), 409, 'CUSTOMER_DUPLICATED');
+    });
+  });
+
+  describe('conformance: v0.5.0 (PROPUESTA): ajustes, conteos, cartera, reportes y permisos', () => {
+    const uniqueProduct = (suffix: string) => ({
+      sku: `T-${randomUUID().slice(0, 8)}${suffix}`, name: 'Producto de prueba', category: 'Varios', unit: 'und',
+      price: 1000, cost: 500, taxCategory: 'gravado', taxRate: 0.19, active: true,
+    });
+
+    it('SKU y código de barras duplicados -> SKU_DUPLICATED / BARCODE_DUPLICATED (formato Error)', async () => {
+      const admin = await login('maria.perez');
+      const skuClash = await call('POST', '/products', { token: admin, body: { ...uniqueProduct('a'), sku: 'SKU-001' } });
+      expectError(skuClash, 409, 'SKU_DUPLICATED');
+      const barcodeClash = await call('POST', '/products', {
+        token: admin, body: { ...uniqueProduct('b'), barcode: '7701234567890' },
+      });
+      expectError(barcodeClash, 409, 'BARCODE_DUPLICATED');
+
+      const created = await call('POST', '/products', { token: admin, body: uniqueProduct('c') });
+      expect(created.status, JSON.stringify(created.body)).toBe(201);
+      expectSchema('Product', created.body);
+      const productId = (created.body as { id: string }).id;
+      const editClash = await call('PUT', `/products/${productId}`, { token: admin, body: { ...uniqueProduct('d'), sku: 'SKU-002' } });
+      expectError(editClash, 409, 'SKU_DUPLICATED');
+    });
+
+    it('ajuste de inventario: genera movimiento `ajuste` y resuelve la alerta STOCK_NEGATIVE', async () => {
+      const cashier = await login('laura.gomez');
+      const keeper = await login('andres.rojas'); // bodeguero sede br-001
+      const shift = await ensureOpenShift(cashier);
+
+      // Deja prd-005 en negativo con venta aprobada por supervisor (BR-VEN-05).
+      const approval = approvalSchema.parse((await call('POST', '/auth/supervisor-approvals', {
+        token: cashier, body: { action: 'negative_stock', pin: PINS.admin },
+      })).body);
+      const negative = await sell(cashier, sellRequest(shift.id, {
+        lines: [{ productId: 'prd-005', quantity: 100000, discount: 0 }],
+        payments: [{ method: 'efectivo', amount: 980000000 }],
+        approvalToken: approval.approvalToken,
+      }));
+      expect(negative.status, JSON.stringify(negative.body)).toBe(201);
+      const level = await stockOf(keeper, 'prd-005', 'br-001');
+      expect(level?.onHand).toBeLessThan(0);
+      const onHand = level?.onHand ?? 0;
+
+      // Sin permiso, sin sede propia, cantidad 0 o que deja negativo: rechazados.
+      const body = { productId: 'prd-005', branchId: 'br-001', quantity: 10 - onHand, reason: 'Conteo físico' };
+      expectError(await call('POST', '/inventory/adjustments', { token: cashier, body }), 403, 'FORBIDDEN');
+      expectError(await call('POST', '/inventory/adjustments', {
+        token: keeper, body: { ...body, branchId: 'br-002' },
+      }), 403, 'FORBIDDEN');
+      expectError(await call('POST', '/inventory/adjustments', {
+        token: keeper, body: { ...body, quantity: 0 },
+      }), 422, 'VALIDATION_ERROR');
+      expectError(await call('POST', '/inventory/adjustments', {
+        token: keeper, body: { ...body, quantity: -1000000000 },
+      }), 409, 'STOCK_INSUFFICIENT');
+
+      const adjusted = await call('POST', '/inventory/adjustments', { token: keeper, body });
+      expect(adjusted.status, JSON.stringify(adjusted.body)).toBe(201);
+      expectSchema('StockAdjustmentResult', adjusted.body);
+      const result = stockAdjustmentResultSchema.parse(adjusted.body);
+      expect(result.movement.type).toBe('ajuste');
+      expect(result.movement.quantity).toBe(10 - onHand);
+      expect(result.level.onHand).toBe(10);
+      expect(result.resolvedAlertIds.length).toBeGreaterThan(0);
+
+      const alerts = z.array(inventoryAlertSchema).parse((await call('GET', '/inventory/alerts', { token: keeper })).body);
+      expect(alerts.some((a) => a.productId === 'prd-005' && a.branchId === 'br-001' && !a.resolved)).toBe(false);
+      const movements = z.array(stockMovementSchema).parse((await call('GET', '/stock/movements', { token: keeper })).body);
+      expect(movements.some((m) => m.id === result.movement.id && m.type === 'ajuste')).toBe(true);
+    });
+
+    it('conteo físico: devuelve diferencias y genera un ajuste por línea con diferencia', async () => {
+      const keeper = await login('andres.rojas');
+      const cashier = await login('laura.gomez');
+      const a = await stockOf(keeper, 'prd-001', 'br-001');
+      const b = await stockOf(keeper, 'prd-002', 'br-001');
+      const countedA = Math.max(0, (a?.onHand ?? 0) - 2);
+      const body = {
+        branchId: 'br-001',
+        lines: [{ productId: 'prd-001', counted: countedA }, { productId: 'prd-002', counted: b?.onHand ?? 0 }],
+      };
+
+      expectError(await call('POST', '/inventory/counts', { token: cashier, body }), 403, 'FORBIDDEN');
+      expectError(await call('POST', '/inventory/counts', { token: keeper, body: { ...body, branchId: 'br-002' } }), 403, 'FORBIDDEN');
+      expectError(await call('POST', '/inventory/counts', { token: keeper, body: { branchId: 'br-001', lines: [] } }), 422, 'VALIDATION_ERROR');
+
+      const counted = await call('POST', '/inventory/counts', { token: keeper, body });
+      expect(counted.status, JSON.stringify(counted.body)).toBe(201);
+      expectSchema('InventoryCount', counted.body);
+      const count = inventoryCountSchema.parse(counted.body);
+      const lineA = count.lines.find((l) => l.productId === 'prd-001');
+      const lineB = count.lines.find((l) => l.productId === 'prd-002');
+      expect(lineA?.systemQuantity).toBe(a?.onHand);
+      expect(lineA?.difference).toBe(countedA - (a?.onHand ?? 0));
+      expect(lineA?.movementId).not.toBeNull();
+      expect(lineB?.difference).toBe(0);
+      expect(lineB?.movementId).toBeNull();
+      expect((await stockOf(keeper, 'prd-001', 'br-001'))?.onHand).toBe(countedA);
+    });
+
+    it('cancelar orden: borrador/enviada -> cancelada; recibida o ya cancelada -> INVALID_STATE; sin permiso -> 403', async () => {
+      const buyer = await login('pedro.compras');
+      const cashier = await login('laura.gomez');
+      const create = async () => purchaseOrderSchema.parse((await call('POST', '/purchase-orders', {
+        token: buyer, body: { supplierId: 'sup-001', lines: [{ productId: 'prd-001', quantity: 1, unitCost: 2100 }] },
+      })).body);
+
+      const draft = await create();
+      expectError(await call('POST', `/purchase-orders/${draft.id}/cancel`, { token: cashier, body: {} }), 403, 'FORBIDDEN');
+      const cancelled = await call('POST', `/purchase-orders/${draft.id}/cancel`, { token: buyer, body: {} });
+      expect(cancelled.status, JSON.stringify(cancelled.body)).toBe(200);
+      expectSchema('PurchaseOrder', cancelled.body);
+      expect(purchaseOrderSchema.parse(cancelled.body).status).toBe('cancelada');
+      expectError(await call('POST', `/purchase-orders/${draft.id}/cancel`, { token: buyer, body: {} }), 409, 'INVALID_STATE');
+
+      const sent = await create();
+      await call('POST', `/purchase-orders/${sent.id}/send`, { token: buyer, body: {} });
+      const cancelSent = await call('POST', `/purchase-orders/${sent.id}/cancel`, { token: buyer, body: {} });
+      expect(purchaseOrderSchema.parse(cancelSent.body).status).toBe('cancelada');
+
+      const received = await create();
+      await call('POST', `/purchase-orders/${received.id}/send`, { token: buyer, body: {} });
+      await call('POST', `/purchase-orders/${received.id}/receive`, { token: buyer, body: {} });
+      expectError(await call('POST', `/purchase-orders/${received.id}/cancel`, { token: buyer, body: {} }), 409, 'INVALID_STATE');
+    });
+
+    it('el bodeguero recibe (purchases.receive) y la respuesta trae el efecto; no crea ni envía', async () => {
+      const buyer = await login('pedro.compras');
+      const keeper = await login('andres.rojas');
+      const created = purchaseOrderSchema.parse((await call('POST', '/purchase-orders', {
+        token: buyer, body: { supplierId: 'sup-001', lines: [{ productId: 'prd-003', quantity: 10, unitCost: 3500 }] },
+      })).body);
+      expectError(await call('POST', '/purchase-orders', {
+        token: keeper, body: { supplierId: 'sup-001', lines: [{ productId: 'prd-003', quantity: 1, unitCost: 1 }] },
+      }), 403, 'FORBIDDEN');
+      expectError(await call('POST', `/purchase-orders/${created.id}/send`, { token: keeper, body: {} }), 403, 'FORBIDDEN');
+      await call('POST', `/purchase-orders/${created.id}/send`, { token: buyer, body: {} });
+
+      const before = await stockOf(keeper, 'prd-003', 'br-001');
+      const received = await call('POST', `/purchase-orders/${created.id}/receive`, { token: keeper, body: {} });
+      expect(received.status, JSON.stringify(received.body)).toBe(200);
+      expectSchema('PurchaseOrderReceipt', received.body);
+      const receipt = purchaseOrderReceiptSchema.parse(received.body);
+      expect(receipt.status).toBe('recibida');
+      const line = receipt.effect?.lines.find((l) => l.productId === 'prd-003');
+      expect(line?.stockBefore).toBe(before?.onHand);
+      expect(line?.stockAfter).toBe((before?.onHand ?? 0) + 10);
+      expect(line?.avgCostAfter).toBeGreaterThan(0);
+      const payables = z.array(payableSchema).parse((await call('GET', '/payables', { token: buyer })).body);
+      expect(payables.some((p) => p.id === receipt.effect?.payableId && p.purchaseOrderId === created.id)).toBe(true);
+    });
+
+    it('abono del cliente: imputa a las facturas más antiguas primero, deja historial y no supera el saldo', async () => {
+      const cashier = await login('laura.gomez');
+      const shift = await ensureOpenShift(cashier);
+      const clerk = await login('ana.cartera');
+      // Una factura nueva (más reciente que la del seed) para que haya al menos dos abiertas.
+      const sold = await sell(cashier, sellRequest(shift.id, {
+        customerId: 'cus-001', payments: [{ method: 'credito', amount: 5600 }],
+      }));
+      expect(sold.status, JSON.stringify(sold.body)).toBe(201);
+
+      const list = async () => z.array(receivableSchema).parse((await call('GET', '/receivables', { token: clerk })).body);
+      const mine = (await list())
+        .filter((r) => r.customerId === 'cus-001' && r.balance > 0)
+        .sort((x, y) => x.issued.localeCompare(y.issued) || x.due.localeCompare(y.due) || x.id.localeCompare(y.id));
+      expect(mine.length).toBeGreaterThanOrEqual(2);
+      const [oldest, second] = mine;
+      if (!oldest || !second) return;
+      const totalBefore = mine.reduce((sum, r) => sum + r.balance, 0);
+      const amount = oldest.balance + 100;
+
+      expectError(await call('POST', '/customers/cus-001/payments', {
+        token: cashier, body: { amount: 100, method: 'efectivo' },
+      }), 403, 'FORBIDDEN');
+      expectError(await call('POST', '/customers/cus-001/payments', {
+        token: clerk, body: { amount: totalBefore + 1, method: 'efectivo' },
+      }), 409, 'PAYMENT_EXCEEDS_BALANCE');
+
+      const paid = await call('POST', '/customers/cus-001/payments', {
+        token: clerk, body: { amount, method: 'transferencia', note: 'Abono general' },
+      });
+      expect(paid.status, JSON.stringify(paid.body)).toBe(200);
+      expectSchema('CustomerPaymentResult', paid.body);
+      const result = customerPaymentResultSchema.parse(paid.body);
+      expect(result.payments.map((p) => p.receivableId)).toEqual([oldest.id, second.id]);
+      expect(result.payments.map((p) => p.amount)).toEqual([oldest.balance, 100]);
+      expect(result.balanceAfter).toBe(totalBefore - amount);
+
+      const after = await list();
+      expect(after.find((r) => r.id === oldest.id)).toMatchObject({ balance: 0, status: 'pagada', daysOverdue: 0 });
+      expect(after.find((r) => r.id === second.id)?.balance).toBe(second.balance - 100);
+
+      const history = await call('GET', `/receivables/${oldest.id}/payments`, { token: clerk });
+      expect(history.status).toBe(200);
+      const payments = z.array(receivablePaymentSchema).parse(history.body);
+      expect(payments.some((p) => p.amount === oldest.balance && p.method === 'transferencia')).toBe(true);
+      expectError(await call('GET', '/receivables/rec-no-existe/payments', { token: clerk }), 404, 'NOT_FOUND');
+    });
+
+    it('derivados del servidor: saldo, estado y mora de cuentas; saldos del cliente', async () => {
+      const clerk = await login('ana.cartera');
+      const receivables = z.array(receivableSchema).parse((await call('GET', '/receivables', { token: clerk })).body);
+      expect(receivables.length).toBeGreaterThan(0);
+      for (const r of receivables) {
+        expect(r.balance).toBe(r.amount - r.paid);
+        expect(r.status === 'pagada').toBe(r.balance === 0);
+        if (r.status === 'vigente' || r.status === 'pagada') expect(r.daysOverdue).toBeGreaterThanOrEqual(0);
+        if (r.status === 'vencida') expect(r.daysOverdue).toBeGreaterThan(3);
+      }
+      const payables = z.array(payableSchema).parse((await call('GET', '/payables', { token: clerk })).body);
+      expect(payables.every((p) => p.status !== 'en_gracia' && p.balance === p.amount - p.paid)).toBe(true);
+
+      const customers = z.array(customerSchema).parse((await call('GET', '/customers', { token: clerk })).body);
+      for (const c of customers) {
+        const own = receivables.filter((r) => r.customerId === c.id);
+        expect(c.outstandingBalance).toBe(own.reduce((sum, r) => sum + r.balance, 0));
+        expect(c.overdueBalance).toBe(own.filter((r) => r.status === 'vencida').reduce((sum, r) => sum + r.balance, 0));
+      }
+    });
+
+    it('venta con turno y devoluciones listadas: shiftId y returnedQuantity por línea', async () => {
+      const token = await login('laura.gomez');
+      const shift = await ensureOpenShift(token);
+      const sold = saleReceiptSchema.parse((await sell(token, sellRequest(shift.id, {
+        lines: [{ productId: 'prd-004', quantity: 3, discount: 0 }],
+        payments: [{ method: 'efectivo', amount: 14000 }],
+      }))).body);
+      expect(sold.shiftId).toBe(shift.id);
+      expect(sold.lines[0]?.returnedQuantity).toBe(0);
+
+      expect(z.array(saleReturnSchema).parse((await call('GET', `/pos/sales/${sold.id}/returns`, { token })).body)).toEqual([]);
+
+      const returned = await call('POST', `/pos/sales/${sold.id}/returns`, {
+        token, body: { lines: [{ productId: 'prd-004', quantity: 2 }], reason: 'Cambio de opinión' },
+      });
+      expect(returned.status, JSON.stringify(returned.body)).toBe(201);
+
+      const listed = await call('GET', `/pos/sales/${sold.id}/returns`, { token });
+      expect(listed.status).toBe(200);
+      const returns = z.array(saleReturnSchema).parse(listed.body);
+      expect(returns.length).toBe(1);
+      expect(returns[0]?.lines[0]?.quantity).toBe(2);
+
+      const sales = z.array(saleSchema).parse((await call('GET', '/sales', { token })).body);
+      const found = sales.find((s) => s.id === sold.id);
+      expect(found?.lines[0]?.returnedQuantity).toBe(2);
+      expect(found?.shiftId).toBe(shift.id);
+      expectError(await call('GET', '/pos/sales/sal-no-existe/returns', { token }), 404, 'NOT_FOUND');
+    });
+
+    it('reportes agregados: KPIs consistentes con las listas; exigen reports.view', async () => {
+      const clerk = await login('ana.cartera'); // reports.view
+      const cashier = await login('laura.gomez');
+      const shift = await ensureOpenShift(cashier);
+
+      const before = salesSummarySchema.parse((await call('GET', '/reports/sales-summary', { token: clerk })).body);
+      const sold = saleReceiptSchema.parse((await sell(cashier, sellRequest(shift.id, {
+        lines: [{ productId: 'prd-002', quantity: 2, discount: 0 }],
+        payments: [{ method: 'nequi', amount: 25000 }],
+      }))).body);
+
+      const afterResult = await call('GET', '/reports/sales-summary', { token: clerk });
+      expect(afterResult.status, JSON.stringify(afterResult.body)).toBe(200);
+      expectSchema('SalesSummary', afterResult.body);
+      const after = salesSummarySchema.parse(afterResult.body);
+      expect(after.salesCount).toBe(before.salesCount + 1);
+      expect(after.grossTotal).toBe(before.grossTotal + sold.total);
+      expect(after.netTotal).toBe(after.grossTotal - after.returnsTotal);
+      expect(after.byDay.reduce((sum, d) => sum + d.count, 0)).toBe(after.salesCount);
+      expect(after.byDay.reduce((sum, d) => sum + d.total, 0)).toBe(after.grossTotal);
+      const nequiBefore = before.byPaymentMethod.find((m) => m.method === 'nequi')?.amount ?? 0;
+      expect(after.byPaymentMethod.find((m) => m.method === 'nequi')?.amount).toBe(nequiBefore + 25000);
+
+      const scoped = salesSummarySchema.parse((await call('GET', '/reports/sales-summary?branchId=br-002', { token: clerk })).body);
+      expect(scoped.branchId).toBe('br-002');
+      expect(scoped.salesCount).toBe(0);
+
+      const aging = await call('GET', '/reports/aging', { token: clerk });
+      expect(aging.status, JSON.stringify(aging.body)).toBe(200);
+      expectSchema('AgingReport', aging.body);
+      const agingReport = agingReportSchema.parse(aging.body);
+      const receivables = z.array(receivableSchema).parse((await call('GET', '/receivables', { token: clerk })).body);
+      expect(agingReport.receivables.total).toBe(receivables.reduce((sum, r) => sum + r.balance, 0));
+      expect(agingReport.receivables.buckets.reduce((sum, b) => sum + b.amount, 0)).toBe(agingReport.receivables.total);
+      expect(agingReport.receivables.overdueTotal).toBe(
+        receivables.filter((r) => r.daysOverdue > 0).reduce((sum, r) => sum + r.balance, 0),
+      );
+
+      const valuation = await call('GET', '/reports/inventory-valuation', { token: clerk });
+      expect(valuation.status, JSON.stringify(valuation.body)).toBe(200);
+      expectSchema('InventoryValuation', valuation.body);
+      const inventory = inventoryValuationSchema.parse(valuation.body);
+      expect(inventory.totalValue).toBe(inventory.items.reduce((sum, i) => sum + i.value, 0));
+      expect(inventory.items.every((i) => i.value === Math.round(Math.max(0, i.onHand) * i.unitCost))).toBe(true);
+
+      for (const path of ['/reports/sales-summary', '/reports/aging', '/reports/inventory-valuation']) {
+        expectError(await call('GET', path, { token: cashier }), 403, 'FORBIDDEN');
+      }
+    });
+
+    it('historial de turnos: reports.view ve todos, el cajero los suyos, otros roles -> FORBIDDEN', async () => {
+      const cashier = await login('laura.gomez');
+      const clerk = await login('ana.cartera');
+      const keeper = await login('andres.rojas');
+      const shift = await ensureOpenShift(cashier);
+
+      const own = await call('GET', '/pos/shifts', { token: cashier });
+      expect(own.status, JSON.stringify(own.body)).toBe(200);
+      const ownShifts = z.array(shiftSchema).parse(own.body);
+      expect(ownShifts.some((s) => s.id === shift.id)).toBe(true);
+      expect(ownShifts.every((s) => s.cashierId === shift.cashierId)).toBe(true);
+
+      const all = z.array(shiftSchema).parse((await call('GET', `/pos/shifts?branchId=${shift.branchId}`, { token: clerk })).body);
+      expect(all.some((s) => s.id === shift.id)).toBe(true);
+      const none = z.array(shiftSchema).parse((await call('GET', '/pos/shifts?branchId=br-002', { token: clerk })).body);
+      expect(none.some((s) => s.id === shift.id)).toBe(false);
+      expectError(await call('GET', '/pos/shifts', { token: keeper }), 403, 'FORBIDDEN');
+    });
+
+    it('permisos nuevos: customers.edit, receivables.pay, payables.pay, purchases.receive -> FORBIDDEN', async () => {
+      const cashier = await login('laura.gomez');
+      const keeper = await login('andres.rojas');
+      const buyer = await login('pedro.compras');
+      const clerk = await login('ana.cartera');
+      const customer = {
+        name: 'Tienda La Esquina', documentType: 'NIT', taxId: '900123456-1', taxResponsibility: 'R-99-PN',
+        active: true, creditLimit: 1500000,
+      };
+
+      expectError(await call('PUT', '/customers/cus-001', { token: cashier, body: customer }), 403, 'FORBIDDEN');
+      expectError(await call('PUT', '/customers/cus-001', { token: buyer, body: customer }), 403, 'FORBIDDEN');
+      expect((await call('PUT', '/customers/cus-001', { token: clerk, body: customer })).status).toBe(200);
+
+      expectError(await call('POST', '/receivables/rec-001/payments', {
+        token: buyer, body: { amount: 1, method: 'efectivo' },
+      }), 403, 'FORBIDDEN');
+      expectError(await call('POST', '/payables/pay-001/payments', {
+        token: keeper, body: { amount: 1, method: 'efectivo' },
+      }), 403, 'FORBIDDEN');
+      expectError(await call('POST', '/payables/pay-001/payments', {
+        token: cashier, body: { amount: 1, method: 'efectivo' },
+      }), 403, 'FORBIDDEN');
+      const payable = await call('POST', '/payables/pay-001/payments', {
+        token: buyer, body: { amount: 1, method: 'efectivo' },
+      });
+      expect(payable.status, JSON.stringify(payable.body)).toBe(200);
+      expectSchema('Payable', payable.body);
+
+      const order = purchaseOrderSchema.parse((await call('POST', '/purchase-orders', {
+        token: buyer, body: { supplierId: 'sup-001', lines: [{ productId: 'prd-001', quantity: 1, unitCost: 2100 }] },
+      })).body);
+      await call('POST', `/purchase-orders/${order.id}/send`, { token: buyer, body: {} });
+      expectError(await call('POST', `/purchase-orders/${order.id}/receive`, { token: clerk, body: {} }), 403, 'FORBIDDEN');
+      expectError(await call('POST', `/purchase-orders/${order.id}/receive`, { token: cashier, body: {} }), 403, 'FORBIDDEN');
+    });
+
+    it('administración: sedes y empresa solo admin/propietario; catálogo cerrado de taxResponsibility', async () => {
+      const admin = await login('maria.perez');
+      const cashier = await login('laura.gomez');
+      const clerk = await login('ana.cartera');
+
+      expectError(await call('PUT', '/branches/br-002', { token: cashier, body: { name: 'Otra', active: true } }), 403, 'FORBIDDEN');
+      expectError(await call('PUT', '/branches/br-999', { token: admin, body: { name: 'Otra', active: true } }), 404, 'NOT_FOUND');
+      expectError(await call('PUT', '/branches/br-002', { token: admin, body: { name: '', active: true } }), 422, 'VALIDATION_ERROR');
+      const branch = await call('PUT', '/branches/br-002', { token: admin, body: { name: 'Sede Norte', active: true } });
+      expect(branch.status, JSON.stringify(branch.body)).toBe(200);
+      expectSchema('Branch', branch.body);
+
+      expectError(await call('GET', '/company', { token: clerk }), 403, 'FORBIDDEN');
+      const company = await call('GET', '/company', { token: admin });
+      expect(company.status, JSON.stringify(company.body)).toBe(200);
+      expectSchema('Company', company.body);
+      const current = companySchema.parse(company.body);
+      const { id: _id, ...input } = current;
+      void _id;
+      expectError(await call('PUT', '/company', { token: clerk, body: input }), 403, 'FORBIDDEN');
+      expectError(await call('PUT', '/company', { token: admin, body: { ...input, taxResponsibility: 'X-00' } }), 422, 'VALIDATION_ERROR');
+      const updated = await call('PUT', '/company', { token: admin, body: input });
+      expect(updated.status, JSON.stringify(updated.body)).toBe(200);
+      expectSchema('Company', updated.body);
+
+      const bad = {
+        name: 'Cliente Catálogo', documentType: 'CC', taxId: '2020202020', taxResponsibility: 'texto-libre',
+        active: true, creditLimit: 0,
+      };
+      expectError(await call('POST', '/customers', { token: admin, body: bad }), 422, 'VALIDATION_ERROR');
+    });
+
+    it('la sesión trae la sede real del empleado (Session.branch)', async () => {
+      const token = await login('sofia.ruiz'); // bodeguera de br-002
+      const session = await call('GET', '/auth/session', { token });
+      expectSchema('Session', session.body);
+      expect((session.body as { branch: { id: string } }).branch.id).toBe('br-002');
     });
   });
 };

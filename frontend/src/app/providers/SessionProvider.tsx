@@ -33,9 +33,14 @@ type SessionProviderProps = {
   initialRole?: Role;
   /** Se invoca al montar y en cada cambio de rol simulado (p. ej. para fijar el token de los mocks). */
   onRoleChange?: (role: Role) => void;
+  /**
+   * Sesión real del usuario simulado para ese rol (sede, caja, id de empleado), p. ej. la que devuelve
+   * `GET /auth/session`. Sin ella se usa una sesión sintética con la sede principal.
+   */
+  sessionFor?: (role: Role) => Session | null;
 };
 
-export const SessionProvider = ({ children, initialRole, onRoleChange }: SessionProviderProps) => {
+export const SessionProvider = ({ children, initialRole, onRoleChange, sessionFor }: SessionProviderProps) => {
   const [role, setRole] = useState<Role>(() => initialRole ?? storedRole() ?? 'propietario');
   const switchRole = useCallback((next: Role) => {
     setRole(next);
@@ -52,8 +57,8 @@ export const SessionProvider = ({ children, initialRole, onRoleChange }: Session
 
   const value = useMemo<SessionContextValue>(() => {
     const granted = new Set<Permission>(rolePermissions[role]);
-    return { session: buildSession(role), can: (p) => granted.has(p), switchRole };
-  }, [role, switchRole]);
+    return { session: sessionFor?.(role) ?? buildSession(role), can: (p) => granted.has(p), switchRole };
+  }, [role, switchRole, sessionFor]);
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 };

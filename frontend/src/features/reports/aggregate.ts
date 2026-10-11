@@ -1,7 +1,5 @@
+import { today } from '@/shared/utils/clock';
 import type { Payable, PaymentMethod, Product, Receivable, Sale, StockLevel } from '@/shared/contracts';
-
-/** Fecha de "hoy" que usa el mock (indicación del carril). El servidor real fijaría la suya. */
-export const REFERENCE_DATE = '2026-10-11';
 
 export const BRANCH_ALL = 'all';
 
@@ -115,7 +113,9 @@ export const inventoryReport = (levels: StockLevel[], products: Map<string, Prod
   return { negative, belowMinimum, value, units };
 };
 
-export type LedgerEntry = Receivable | Payable;
+/** Cuenta por cobrar o por pagar; el reporte solo usa sus campos persistidos. */
+export type LedgerEntry = Omit<Receivable, 'branchId' | 'balance' | 'status' | 'daysOverdue'>
+  | Omit<Payable, 'branchId' | 'balance' | 'status' | 'daysOverdue'>;
 
 export type LedgerReport = {
   balance: number;
@@ -130,7 +130,7 @@ export const ledgerReport = (
   entries: LedgerEntry[],
   partyOf: (entry: LedgerEntry) => string,
   names: Map<string, string>,
-  referenceDate: string = REFERENCE_DATE,
+  referenceDate: string = today(),
 ): LedgerReport => {
   let balance = 0;
   let overdue = 0;

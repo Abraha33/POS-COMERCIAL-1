@@ -1,0 +1,23 @@
+{
+  "id": "cnt-001",
+  "number": "CNT-0001",
+  "branchId": "br-001",
+  "date": "2026-10-11",
+  "lines": [
+    {
+      "productId": "prd-001",
+      "systemQuantity": 40,
+      "counted": 38,
+      "difference": -2,
+      "movementId": "stk-004"
+    },
+    {
+      "productId": "prd-002",
+      "systemQuantity": 55,
+      "counted": 55,
+      "difference": 0,
+      "movementId": null
+    }
+  ],
+  "resolvedAlertIds": []
+}

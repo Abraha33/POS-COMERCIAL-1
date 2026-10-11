@@ -1,0 +1,13 @@
+{
+  "branchId": "br-001",
+  "lines": [
+    {
+      "productId": "prd-001",
+      "counted": 38
+    },
+    {
+      "productId": "prd-002",
+      "counted": 55
+    }
+  ]
+}

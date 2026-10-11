@@ -13,6 +13,8 @@ export const saleLineSchema = z.object({
   quantity: z.number().positive(),
   unitPrice: money,
   discount: money,
+  /** Cantidad ya devuelta de la línea (BR-DEV-01); la deriva el servidor de las devoluciones. */
+  returnedQuantity: z.number().nonnegative(),
 });
 
 export const saleSchema = z.object({
@@ -22,6 +24,8 @@ export const saleSchema = z.object({
   customerId: z.string().nullable(),
   cashierId: z.string(),
   branchId: z.string(),
+  /** Turno de la venta (v0.5.0); `null` en datos previos. Permite anticipar el FORBIDDEN de anulación. */
+  shiftId: z.string().nullable(),
   lines: z.array(saleLineSchema).min(1),
   payments: z.array(paymentSchema).min(1),
   /** "Ajuste al peso" (BR-GEN-05): positivo o negativo; total = Σ líneas + ajuste. */
@@ -36,7 +40,8 @@ export const saleContract: Contract<typeof saleSchema> = {
   schema: saleSchema,
   example: {
     id: 'sal-001', number: 'POS-0001', date: '2026-10-01', customerId: 'cus-001', cashierId: 'emp-001',
-    branchId: 'br-001', lines: [{ productId: 'prd-001', quantity: 2, unitPrice: 2800, discount: 0 }],
+    branchId: 'br-001', shiftId: 'sh-001',
+    lines: [{ productId: 'prd-001', quantity: 2, unitPrice: 2800, discount: 0, returnedQuantity: 0 }],
     payments: [{ method: 'efectivo', amount: 5600 }], roundingAdjustment: 0, total: 5600, status: 'pagada',
   },
 };

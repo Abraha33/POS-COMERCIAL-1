@@ -7,5 +7,7 @@
   "phone": "3001112233",
   "email": "compras@laesquina.example",
   "active": true,
-  "creditLimit": 1500000
+  "creditLimit": 1500000,
+  "outstandingBalance": 300000,
+  "overdueBalance": 0
 }

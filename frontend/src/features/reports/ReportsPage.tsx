@@ -8,8 +8,9 @@ import {
 } from '@/shared/api/queries';
 import { EmptyState, ErrorState, LoadingState, ScreenTemplate } from '@/shared/ui';
 import { formatMoney } from '@/shared/utils/format';
+import { useToday } from '@/shared/utils/clock';
 import {
-  BRANCH_ALL, REFERENCE_DATE, filterSales, inventoryReport, ledgerReport, salesByCashier, salesByDay,
+  BRANCH_ALL, filterSales, inventoryReport, ledgerReport, salesByCashier, salesByDay,
   salesByPayment, summarizeSales, type Bucket, type LedgerReport, type StockRow,
 } from './aggregate';
 import { BarChart } from './BarChart';
@@ -123,6 +124,7 @@ const LedgerBlock = ({ title, partyHeader, report, idPrefix }: LedgerProps) => (
 
 /** Panel del propietario: todo se calcula en el navegador sobre las listas completas (no hay endpoints de reporte). */
 export const ReportsPage = () => {
+  const referenceDate = useToday();
   const sales = useSales();
   const stock = useStockLevels();
   const products = useProducts();
@@ -278,7 +280,7 @@ export const ReportsPage = () => {
         </div>
         <p className="reports__note">
           Calculado en el navegador sobre las listas completas (no hay endpoints de reporte). Fecha de referencia para
-          cartera: {REFERENCE_DATE}. Cuentas por cobrar y por pagar no tienen sede y ignoran ese filtro; inventario ignora
+          cartera: {referenceDate}. Cuentas por cobrar y por pagar no tienen sede y ignoran ese filtro; inventario ignora
           las fechas. El valor del inventario usa el costo del producto.
         </p>
         {body}

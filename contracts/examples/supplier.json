@@ -3,5 +3,6 @@
   "name": "Distribuidora Andina",
   "taxId": "800765432-9",
   "active": true,
-  "paymentTermsDays": 30
+  "paymentTermsDays": 30,
+  "taxResponsibility": "O-13"
 }
