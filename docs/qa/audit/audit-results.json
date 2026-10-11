@@ -7,10 +7,8 @@
     "navHeight": 744,
     "mainRowCount": 3,
     "smallTargets": 0,
-    "buttons": 5,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 6,
+    "axe": []
   },
   {
     "route": "products",
@@ -20,10 +18,8 @@
     "navHeight": 744,
     "mainRowCount": 6,
     "smallTargets": 0,
-    "buttons": 12,
-    "axe": [
-      "color-contrast(serious,8)"
-    ]
+    "buttons": 13,
+    "axe": []
   },
   {
     "route": "inventory",
@@ -33,10 +29,8 @@
     "navHeight": 744,
     "mainRowCount": 8,
     "smallTargets": 0,
-    "buttons": 5,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 6,
+    "axe": []
   },
   {
     "route": "purchases",
@@ -46,10 +40,8 @@
     "navHeight": 744,
     "mainRowCount": 2,
     "smallTargets": 0,
-    "buttons": 5,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 6,
+    "axe": []
   },
   {
     "route": "customers",
@@ -59,10 +51,8 @@
     "navHeight": 744,
     "mainRowCount": 3,
     "smallTargets": 0,
-    "buttons": 5,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 6,
+    "axe": []
   },
   {
     "route": "receivables",
@@ -72,10 +62,8 @@
     "navHeight": 744,
     "mainRowCount": 1,
     "smallTargets": 0,
-    "buttons": 5,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 6,
+    "axe": []
   },
   {
     "route": "payables",
@@ -85,10 +73,8 @@
     "navHeight": 744,
     "mainRowCount": 1,
     "smallTargets": 0,
-    "buttons": 5,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 6,
+    "axe": []
   },
   {
     "route": "reports",
@@ -98,10 +84,8 @@
     "navHeight": 744,
     "mainRowCount": 0,
     "smallTargets": 0,
-    "buttons": 0,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 1,
+    "axe": []
   },
   {
     "route": "administration",
@@ -111,243 +95,205 @@
     "navHeight": 744,
     "mainRowCount": 7,
     "smallTargets": 0,
-    "buttons": 5,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 6,
+    "axe": []
   },
   {
     "route": "pos",
     "viewport": "tablet",
     "h1": "Punto de venta",
-    "hOverflow": true,
-    "navHeight": 97,
+    "hOverflow": false,
+    "navHeight": 968,
     "mainRowCount": 3,
     "smallTargets": 0,
-    "buttons": 5,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 6,
+    "axe": []
   },
   {
     "route": "products",
     "viewport": "tablet",
     "h1": "Productos",
-    "hOverflow": true,
-    "navHeight": 97,
+    "hOverflow": false,
+    "navHeight": 968,
     "mainRowCount": 6,
     "smallTargets": 0,
-    "buttons": 12,
-    "axe": [
-      "color-contrast(serious,8)"
-    ]
+    "buttons": 13,
+    "axe": []
   },
   {
     "route": "inventory",
     "viewport": "tablet",
     "h1": "Inventarios",
-    "hOverflow": true,
-    "navHeight": 97,
+    "hOverflow": false,
+    "navHeight": 968,
     "mainRowCount": 8,
     "smallTargets": 0,
-    "buttons": 5,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 6,
+    "axe": []
   },
   {
     "route": "purchases",
     "viewport": "tablet",
     "h1": "Compras",
-    "hOverflow": true,
-    "navHeight": 97,
+    "hOverflow": false,
+    "navHeight": 968,
     "mainRowCount": 2,
     "smallTargets": 0,
-    "buttons": 5,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 6,
+    "axe": []
   },
   {
     "route": "customers",
     "viewport": "tablet",
     "h1": "Clientes",
-    "hOverflow": true,
-    "navHeight": 97,
+    "hOverflow": false,
+    "navHeight": 968,
     "mainRowCount": 3,
     "smallTargets": 0,
-    "buttons": 5,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 6,
+    "axe": []
   },
   {
     "route": "receivables",
     "viewport": "tablet",
     "h1": "Cuentas por cobrar",
-    "hOverflow": true,
-    "navHeight": 97,
+    "hOverflow": false,
+    "navHeight": 968,
     "mainRowCount": 1,
     "smallTargets": 0,
-    "buttons": 5,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 6,
+    "axe": []
   },
   {
     "route": "payables",
     "viewport": "tablet",
     "h1": "Cuentas por pagar",
-    "hOverflow": true,
-    "navHeight": 97,
+    "hOverflow": false,
+    "navHeight": 968,
     "mainRowCount": 1,
     "smallTargets": 0,
-    "buttons": 5,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 6,
+    "axe": []
   },
   {
     "route": "reports",
     "viewport": "tablet",
     "h1": "Reportes",
-    "hOverflow": true,
-    "navHeight": 97,
+    "hOverflow": false,
+    "navHeight": 968,
     "mainRowCount": 0,
     "smallTargets": 0,
-    "buttons": 0,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 1,
+    "axe": []
   },
   {
     "route": "administration",
     "viewport": "tablet",
     "h1": "Administración",
-    "hOverflow": true,
-    "navHeight": 97,
+    "hOverflow": false,
+    "navHeight": 968,
     "mainRowCount": 7,
     "smallTargets": 0,
-    "buttons": 5,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 6,
+    "axe": []
   },
   {
     "route": "pos",
     "viewport": "phone",
     "h1": "Punto de venta",
-    "hOverflow": true,
-    "navHeight": 97,
+    "hOverflow": false,
+    "navHeight": 756,
     "mainRowCount": 3,
     "smallTargets": 0,
-    "buttons": 5,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 6,
+    "axe": []
   },
   {
     "route": "products",
     "viewport": "phone",
     "h1": "Productos",
-    "hOverflow": true,
-    "navHeight": 97,
+    "hOverflow": false,
+    "navHeight": 756,
     "mainRowCount": 6,
     "smallTargets": 0,
-    "buttons": 12,
-    "axe": [
-      "color-contrast(serious,8)"
-    ]
+    "buttons": 13,
+    "axe": []
   },
   {
     "route": "inventory",
     "viewport": "phone",
     "h1": "Inventarios",
-    "hOverflow": true,
-    "navHeight": 97,
+    "hOverflow": false,
+    "navHeight": 756,
     "mainRowCount": 8,
     "smallTargets": 0,
-    "buttons": 5,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 6,
+    "axe": []
   },
   {
     "route": "purchases",
     "viewport": "phone",
     "h1": "Compras",
-    "hOverflow": true,
-    "navHeight": 97,
+    "hOverflow": false,
+    "navHeight": 756,
     "mainRowCount": 2,
     "smallTargets": 0,
-    "buttons": 5,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 6,
+    "axe": []
   },
   {
     "route": "customers",
     "viewport": "phone",
     "h1": "Clientes",
-    "hOverflow": true,
-    "navHeight": 97,
+    "hOverflow": false,
+    "navHeight": 756,
     "mainRowCount": 3,
     "smallTargets": 0,
-    "buttons": 5,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 6,
+    "axe": []
   },
   {
     "route": "receivables",
     "viewport": "phone",
     "h1": "Cuentas por cobrar",
-    "hOverflow": true,
-    "navHeight": 97,
+    "hOverflow": false,
+    "navHeight": 756,
     "mainRowCount": 1,
     "smallTargets": 0,
-    "buttons": 5,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 6,
+    "axe": []
   },
   {
     "route": "payables",
     "viewport": "phone",
     "h1": "Cuentas por pagar",
-    "hOverflow": true,
-    "navHeight": 97,
+    "hOverflow": false,
+    "navHeight": 756,
     "mainRowCount": 1,
     "smallTargets": 0,
-    "buttons": 5,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 6,
+    "axe": []
   },
   {
     "route": "reports",
     "viewport": "phone",
     "h1": "Reportes",
-    "hOverflow": true,
-    "navHeight": 97,
+    "hOverflow": false,
+    "navHeight": 756,
     "mainRowCount": 0,
     "smallTargets": 0,
-    "buttons": 0,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 1,
+    "axe": []
   },
   {
     "route": "administration",
     "viewport": "phone",
     "h1": "Administración",
-    "hOverflow": true,
-    "navHeight": 97,
+    "hOverflow": false,
+    "navHeight": 756,
     "mainRowCount": 7,
     "smallTargets": 0,
-    "buttons": 5,
-    "axe": [
-      "color-contrast(serious,1)"
-    ]
+    "buttons": 6,
+    "axe": []
   }
 ]

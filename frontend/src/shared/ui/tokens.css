@@ -1,0 +1,76 @@
+/*
+ * Tokens del producto sobre el tema PrimeReact `lara-light-blue` (decisión: docs/architecture/UI_STACK.md).
+ * Único archivo donde se permiten colores hex. Ajustes mínimos para cumplir contraste AA (4,5:1):
+ * el primario del tema (#3b82f6) con texto blanco da 3,67:1.
+ */
+:root {
+  /* Color: tonos del mismo matiz del tema, más oscuros para texto blanco encima. */
+  --primary-color: #2563eb;
+  --primary-color-text: #ffffff;
+  --app-primary-hover: #1d4ed8;
+  --app-success: #15803d;
+  --app-warning: #b45309;
+  --app-danger: #b91c1c;
+  --app-info: #0369a1;
+
+  /* Espaciado y objetivos táctiles. */
+  --app-touch-min: 44px;
+  --app-gap: 0.75rem;
+  --app-page-padding: 1rem;
+  --app-radius: 6px;
+
+  /* Densidad: la caja necesita filas altas y tipografía legible a distancia. */
+  --app-pos-row-height: 48px;
+  --app-pos-font-size: 1.125rem;
+}
+
+/* Botones primarios del tema (colores fijos en el CSS del tema, no variables). */
+.p-button:not(.p-button-outlined):not(.p-button-text):not(.p-button-link):not(.p-button-secondary):not(.p-button-success):not(.p-button-warning):not(.p-button-danger):not(.p-button-info):not(.p-button-help) {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+}
+.p-button:not(.p-button-outlined):not(.p-button-text):not(.p-button-link):not(.p-button-secondary):not(.p-button-success):not(.p-button-warning):not(.p-button-danger):not(.p-button-info):not(.p-button-help):not(:disabled):hover {
+  background: var(--app-primary-hover);
+  border-color: var(--app-primary-hover);
+}
+.p-button.p-button-outlined,
+.p-button.p-button-text,
+.p-button.p-button-link {
+  color: var(--primary-color);
+}
+
+/* Etiquetas de estado con contraste suficiente. */
+.p-tag.p-tag-success { background: var(--app-success); }
+.p-tag.p-tag-warning { background: var(--app-warning); }
+.p-tag.p-tag-danger { background: var(--app-danger); }
+.p-tag.p-tag-info { background: var(--app-info); }
+
+/* Objetivo táctil mínimo en controles interactivos de formulario y acciones. */
+.p-button,
+.p-inputtext,
+.p-dropdown {
+  min-height: var(--app-touch-min);
+}
+.p-button.p-button-icon-only {
+  min-width: var(--app-touch-min);
+}
+.p-button.p-button-sm {
+  min-height: 36px;
+}
+
+/* Enfoque visible consistente para teclado. */
+:focus-visible {
+  outline: 3px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Utilidades de layout responsivo propias (PrimeFlex no cubre estas). */
+.app-stack { display: grid; gap: var(--app-gap); }
+.app-row { display: flex; flex-wrap: wrap; gap: var(--app-gap); align-items: center; }
+.app-table-scroll { overflow-x: auto; max-width: 100%; }
+.app-only-desktop { display: initial; }
+.app-only-mobile { display: none; }
+@media (max-width: 900px) {
+  .app-only-desktop { display: none; }
+  .app-only-mobile { display: initial; }
+}

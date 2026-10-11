@@ -5,6 +5,7 @@ import 'primereact/resources/themes/lara-light-blue/theme.css';
 import 'primereact/resources/primereact.min.css';
 import 'primeicons/primeicons.css';
 import 'primeflex/primeflex.css';
+import '@/shared/ui/tokens.css';
 import { AppProviders } from '@/app/providers/AppProviders';
 import { setAccessToken } from '@/shared/api/client';
 import type { Role } from '@/shared/contracts';
