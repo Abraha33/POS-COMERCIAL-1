@@ -7,13 +7,15 @@ import { InputText } from 'primereact/inputtext';
 import type { LedgerPayment, Payable } from '@/shared/contracts';
 import { usePayables, useSuppliers } from '@/shared/api/queries';
 import { usePayPayable } from '@/shared/api/ledger';
-import { ScreenTemplate, EmptyState, ErrorState, LoadingState } from '@/shared/ui';
+import { EmptyState, ErrorState, KpiCard, LoadingState, ScreenTemplate, SegmentedTabs } from '@/shared/ui';
 import { formatMoney } from '@/shared/utils/format';
 import { useSession } from '@/app/providers/SessionProvider';
 import { useNotify } from '@/app/providers/ToastProvider';
 import { PaymentDialog } from './PaymentDialog';
+import { PayableStatusTag } from './PayableStatusTag';
+import { useCompact } from './useCompact';
 import {
-  balanceOf, daysUntilDue, payableStatus, shortDate, statusLabels, totalsOf, weekEnd, weekStart,
+  balanceOf, daysUntilDue, payableStatus, shortDate, totalsOf, weekEnd, weekStart,
   type PayableStatus,
 } from './ledger';
 import './ledger.css';
@@ -67,6 +69,7 @@ export const PayablesPage = () => {
   const pay = usePayPayable();
   const notify = useNotify();
   const { can } = useSession();
+  const compact = useCompact();
   const [view, setView] = useState<ViewFilter>('abiertas');
   const [search, setSearch] = useState('');
   const [targetId, setTargetId] = useState<string | null>(null);
@@ -125,8 +128,16 @@ export const PayablesPage = () => {
     );
   };
 
+  const payButton = (r: Row) => (r.balance > 0 && canPay ? (
+    <Button
+      label="Pagar" icon="pi pi-dollar" className="ledger__btn"
+      aria-label={`Pagar a ${r.supplierName}, saldo ${formatMoney(r.balance)}`}
+      onClick={() => openPay(r)}
+    />
+  ) : null);
+
   const tableFor = (list: Row[]) => (
-    <div className="ledger__table">
+    <div className="app-table-scroll">
       <DataTable value={list} stripedRows size="small" dataKey="id" aria-label="Cuentas por pagar">
         <Column field="supplierName" header="Proveedor" sortable />
         <Column field="issued" header="Emisión" sortable />
@@ -134,28 +145,34 @@ export const PayablesPage = () => {
         <Column field="amount" header="Valor" sortable body={(r: Row) => <span className="ledger__num">{formatMoney(r.amount)}</span>} />
         <Column field="paid" header="Pagado" sortable body={(r: Row) => <span className="ledger__num">{formatMoney(r.paid)}</span>} />
         <Column field="balance" header="Saldo" sortable body={(r: Row) => <span className="ledger__num">{formatMoney(r.balance)}</span>} />
-        <Column
-          field="status" header="Estado" sortable
-          body={(r: Row) => (
-            <span className={`ledger__tag ledger__tag--${r.status}`}>
-              {statusLabels[r.status]}
-              {r.status === 'proxima' ? ` · ${r.daysLeft} d` : r.status === 'vencida' ? ` · ${-r.daysLeft} d` : ''}
-            </span>
-          )}
-        />
-        <Column
-          header="Acción"
-          body={(r: Row) => (r.balance > 0 && canPay ? (
-            <Button
-              label="Pagar" icon="pi pi-dollar" size="small" className="ledger__btn"
-              aria-label={`Pagar a ${r.supplierName}, saldo ${formatMoney(r.balance)}`}
-              onClick={() => openPay(r)}
-            />
-          ) : null)}
-        />
+        <Column field="status" header="Estado" sortable body={(r: Row) => <PayableStatusTag status={r.status} daysLeft={r.daysLeft} />} />
+        <Column header="Acción" body={payButton} />
       </DataTable>
     </div>
   );
+
+  const cardsFor = (list: Row[]) => (
+    <ul className="ledger__cards" aria-label="Cuentas por pagar">
+      {list.map((r) => (
+        <li key={r.id} className="ledger__card">
+          <div className="ledger__card-head">
+            <p className="ledger__card-title">{r.supplierName}</p>
+            <PayableStatusTag status={r.status} daysLeft={r.daysLeft} />
+          </div>
+          <dl className="ledger__card-meta">
+            <div><dt>Emisión</dt><dd>{r.issued}</dd></div>
+            <div><dt>Vence</dt><dd>{r.due}</dd></div>
+            <div><dt>Valor</dt><dd>{formatMoney(r.amount)}</dd></div>
+            <div><dt>Pagado</dt><dd>{formatMoney(r.paid)}</dd></div>
+            <div><dt>Saldo</dt><dd><strong>{formatMoney(r.balance)}</strong></dd></div>
+          </dl>
+          <div className="ledger__card-actions">{payButton(r)}</div>
+        </li>
+      ))}
+    </ul>
+  );
+
+  const listFor = (list: Row[]) => (compact ? cardsFor(list) : tableFor(list));
 
   const loadError = payables.error ?? suppliers.error;
   let content;
@@ -166,23 +183,28 @@ export const PayablesPage = () => {
   else {
     content = (
       <>
-        <div className="ledger__filters">
-          <div>
-            <label htmlFor="pay-search">Buscar proveedor</label>
-            <InputText id="pay-search" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Nombre del proveedor…" />
-          </div>
-          <div>
-            <label htmlFor="pay-view">Mostrar</label>
-            <select id="pay-view" className="p-inputtext" value={view} onChange={(e) => setView(e.target.value as ViewFilter)}>
-              <option value="abiertas">Abiertas (con saldo)</option>
-              <option value="pagadas">Pagadas</option>
-            </select>
-          </div>
+        <div className="ledger__toolbar">
+          <span className="p-input-icon-left ledger__search">
+            <i className="pi pi-search" aria-hidden="true" />
+            <InputText
+              id="pay-search" aria-label="Buscar proveedor" value={search}
+              onChange={(e) => setSearch(e.target.value)} placeholder="Buscar proveedor…"
+            />
+          </span>
+          <SegmentedTabs
+            ariaLabel="Mostrar cuentas"
+            value={view}
+            onChange={setView}
+            options={[
+              { value: 'abiertas', label: 'Abiertas', count: allRows.filter((r) => r.status !== 'pagada').length },
+              { value: 'pagadas', label: 'Pagadas', count: allRows.filter((r) => r.status === 'pagada').length },
+            ]}
+          />
         </div>
         {rows.length === 0 ? (
           <EmptyState message="Ninguna cuenta coincide con el filtro." />
         ) : view === 'pagadas' ? (
-          tableFor(rows)
+          listFor(rows)
         ) : (
           groups.map((g) => (
             <section key={g.key} className={`ledger__group${g.urgent ? ' ledger__group--soon' : ''}`} aria-label={g.title}>
@@ -190,7 +212,7 @@ export const PayablesPage = () => {
                 <h2>{g.title}</h2>
                 <span className="ledger__note">{g.subtitle} · {g.rows.length} factura(s) · <strong>{formatMoney(g.total)}</strong></span>
               </div>
-              {tableFor(g.rows)}
+              {listFor(g.rows)}
             </section>
           ))
         )}
@@ -204,23 +226,20 @@ export const PayablesPage = () => {
       subtitle="Programación por semana de vencimiento. Los pagos se aplican a la factura indicada (BR-CAR-01)."
     >
       <div className="ledger">
-        <div className="ledger__summary">
-          <div className="ledger__stat">
-            <div className="ledger__stat-label">Total por pagar</div>
-            <div className="ledger__stat-value" data-testid="payables-total">{formatMoney(totals.balance)}</div>
-          </div>
-          <div className={`ledger__stat${totals.overdue > 0 ? ' ledger__stat--alert' : ''}`}>
-            <div className="ledger__stat-label">Vencido</div>
-            <div className="ledger__stat-value" data-testid="payables-overdue">{formatMoney(totals.overdue)}</div>
-          </div>
-          <div className="ledger__stat">
-            <div className="ledger__stat-label">Vence en 7 días</div>
-            <div className="ledger__stat-value" data-testid="payables-soon">{formatMoney(totals.dueSoon)}</div>
-          </div>
-          <div className="ledger__stat">
-            <div className="ledger__stat-label">Facturas abiertas</div>
-            <div className="ledger__stat-value">{totals.openCount}</div>
-          </div>
+        <div className="ledger__kpis">
+          <KpiCard
+            label="Total por pagar" icon="pi pi-wallet"
+            value={<span className="app-money" data-testid="payables-total">{formatMoney(totals.balance)}</span>}
+          />
+          <KpiCard
+            label="Vencido" icon="pi pi-exclamation-triangle"
+            value={<span className="app-money" data-testid="payables-overdue">{formatMoney(totals.overdue)}</span>}
+          />
+          <KpiCard
+            label="Vence en 7 días" icon="pi pi-calendar" proposal
+            value={<span className="app-money" data-testid="payables-soon">{formatMoney(totals.dueSoon)}</span>}
+          />
+          <KpiCard label="Facturas abiertas" icon="pi pi-file" value={<span className="app-money">{totals.openCount}</span>} />
         </div>
         {content}
       </div>

@@ -56,7 +56,7 @@ describe('Clientes: pantalla', () => {
     expect(row).not.toBeNull();
     // 300.000 de rec-001 + 50.000 vencida = 350.000; mora 50.000.
     expect(within(row as HTMLElement).getAllByText(/350\.000/).length).toBeGreaterThan(0);
-    expect(within(row as HTMLElement).getByText(/50\.000/, { selector: '.ledger__tag' })).toBeInTheDocument();
+    expect(within(row as HTMLElement).getByText(/50\.000/, { selector: '.app-status' })).toBeInTheDocument();
   });
 
   it('da de alta un cliente con correo y rechaza el documento duplicado', async () => {
