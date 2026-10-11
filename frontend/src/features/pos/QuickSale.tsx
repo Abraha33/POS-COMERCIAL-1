@@ -1,36 +1,31 @@
 import { useMemo, useRef, useState } from 'react';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
-import { InputNumber } from 'primereact/inputnumber';
-import { InputText } from 'primereact/inputtext';
 import type { ApprovalRequest, Payment, PaymentMethod, Product, SaleReceipt, Shift } from '@/shared/contracts';
 import { useCreateSale } from '@/shared/api/pos';
 import { useCustomers, useProducts } from '@/shared/api/queries';
 import { useHotkey } from '@/shared/keyboard/useHotkey';
-import { ScreenTemplate } from '@/shared/ui';
+import { ConfirmAction, FormDialog, MoneyText, ScreenTemplate, ShortcutBar } from '@/shared/ui';
 import { formatMoney } from '@/shared/utils/format';
 import { computeTotals } from '@/shared/utils/pricing';
-import { useNotify } from '@/app/providers/ToastProvider';
+import { CartLines, type PricedLine } from './CartLines';
+import { ALL_CATEGORIES, CatalogPanel } from './CatalogPanel';
 import { CashDialog } from './CashDialog';
+import { DiscountDialog } from './DiscountDialog';
 import { HeldSalesDialog } from './HeldSalesDialog';
+import { PaymentDialog } from './PaymentDialog';
+import { SalePanel } from './SalePanel';
 import { SupervisorPinDialog } from './SupervisorPinDialog';
+import { estimateIncludedVat, paymentsTotal, type CartLine, type DigitalChannel, type PayMode } from './cart';
+import { describeCheckoutError, type CheckoutMessage } from './saleText';
 import { useHeldSales, type HeldSale } from './useHeldSales';
 import './pos.css';
 
-type CartLine = { productId: string; quantity: number; discount: number };
 type PinRequest = { action: ApprovalRequest['action']; reason: string };
-
-const methods: { value: PaymentMethod; label: string }[] = [
-  { value: 'efectivo', label: 'Efectivo' },
-  { value: 'tarjeta', label: 'Tarjeta' },
-  { value: 'nequi', label: 'Nequi' },
-  { value: 'daviplata', label: 'Daviplata' },
-  { value: 'transferencia', label: 'Transferencia' },
-  { value: 'credito', label: 'Crédito' },
-];
+type Confirm = 'clear' | 'cancel' | null;
+type Pane = 'catalog' | 'cart';
 
 const approvalActions: ApprovalRequest['action'][] = ['discount', 'negative_stock', 'below_cost'];
-
 const asApprovalAction = (value: unknown): ApprovalRequest['action'] | null =>
   approvalActions.find((a) => a === value) ?? null;
 
@@ -41,46 +36,92 @@ const matches = (product: Product, query: string): boolean => {
 };
 
 /**
- * Nota PrimeReact: `InputNumber` dispara `onChange` con `originalEvent: null` cuando cambia el `value` por código;
- * por eso solo se atienden los cambios con `originalEvent` (acción del usuario).
- *
- * Venta rápida: teclado y lector primero; táctil en tableta. Reglas: BR-VEN-01..14. */
+ * Venta rápida (maquetas ref-1/ref-2/ref-5): izquierda búsqueda + líneas, derecha cliente, resumen y cobro.
+ * Teclado y lector primero; en móvil dos paneles (catálogo / carrito) con barra "Ver carrito". Reglas BR-VEN-01..14.
+ * Los cambios de cantidad son relativos (seguros ante clics rápidos); cantidad ≤ 0 quita la línea.
+ */
 export const QuickSale = ({ shift, active = true }: { shift: Shift; active?: boolean }) => {
   const products = useProducts();
   const customers = useCustomers();
   const createSale = useCreateSale();
-  const notify = useNotify();
 
   const [query, setQuery] = useState('');
+  const [category, setCategory] = useState(ALL_CATEGORIES);
+  const [searchMessage, setSearchMessage] = useState<string | null>(null);
   const [lines, setLines] = useState<CartLine[]>([]);
   const [customerId, setCustomerId] = useState<string | null>(null);
-  const [payments, setPayments] = useState<Payment[] | null>(null); // null = pago por defecto (efectivo exacto)
+  const [mode, setMode] = useState<PayMode>('efectivo');
+  const [receivedState, setReceivedState] = useState<{ total: number; amount: number } | null>(null);
+  const [channel, setChannel] = useState<DigitalChannel>('transferencia');
+  const [mixedRows, setMixedRows] = useState<Payment[]>([]);
+  const [note, setNote] = useState('');
   const [operationId, setOperationId] = useState(() => crypto.randomUUID());
   const [approvalToken, setApprovalToken] = useState<string | undefined>();
   const [pinRequest, setPinRequest] = useState<PinRequest | null>(null);
   const [receipt, setReceipt] = useState<SaleReceipt | null>(null);
+  const [checkoutError, setCheckoutError] = useState<CheckoutMessage | null>(null);
+  const [payOpen, setPayOpen] = useState(false);
   const [heldOpen, setHeldOpen] = useState(false);
   const [cashOpen, setCashOpen] = useState(false);
+  const [discountOpen, setDiscountOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [noteDraft, setNoteDraft] = useState('');
+  const [confirm, setConfirm] = useState<Confirm>(null);
+  const [pane, setPane] = useState<Pane>('catalog');
   const heldSales = useHeldSales(shift.registerId);
   const searchRef = useRef<HTMLInputElement>(null);
+  const customerRef = useRef<HTMLSelectElement>(null);
 
   const catalog = useMemo(() => (products.data ?? []).filter((p) => p.active), [products.data]);
   const byId = useMemo(() => new Map((products.data ?? []).map((p) => [p.id, p])), [products.data]);
-  const results = useMemo(() => catalog.filter((p) => matches(p, query)).slice(0, 12), [catalog, query]);
+  const categories = useMemo(() => [...new Set(catalog.map((p) => p.category))].sort(), [catalog]);
+  const filtered = useMemo(
+    () => catalog.filter((p) => (category === ALL_CATEGORIES || p.category === category) && matches(p, query)),
+    [catalog, category, query],
+  );
+  const results = filtered.slice(0, 24);
+  const customerList = useMemo(() => (customers.data ?? []).filter((c) => c.active), [customers.data]);
+  const customer = customerList.find((c) => c.id === customerId) ?? null;
 
-  const priced = lines.flatMap((line) => {
+  const priced: PricedLine[] = lines.flatMap((line) => {
     const product = byId.get(line.productId);
-    return product ? [{ line, product, unitPrice: product.price, quantity: line.quantity, discount: line.discount }] : [];
+    return product ? [{ line, product }] : [];
   });
-  const hasCashInPayment = (payments ?? [{ method: 'efectivo' as const, amount: 0 }]).some((p) => p.method === 'efectivo');
-  const totals = computeTotals(priced, hasCashInPayment);
+  const pricedForTotals = priced.map(({ line, product }) => ({
+    unitPrice: product.price, quantity: line.quantity, discount: line.discount,
+  }));
+  const gross = pricedForTotals.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
+  const discountTotal = lines.reduce((sum, l) => sum + l.discount, 0);
+  const units = lines.reduce((sum, l) => sum + l.quantity, 0);
+  const vat = estimateIncludedVat(priced.map(({ line, product }) => ({ product, quantity: line.quantity, discount: line.discount })));
 
-  const effectivePayments: Payment[] = payments ?? [{ method: 'efectivo', amount: totals.total }];
-  const paid = effectivePayments.reduce((sum, p) => sum + p.amount, 0);
-  const cashPaid = effectivePayments.filter((p) => p.method === 'efectivo').reduce((sum, p) => sum + p.amount, 0);
+  const mixedHasCash = mixedRows.some((p) => p.method === 'efectivo');
+  const hasCash = mode === 'mixto' ? mixedHasCash : mode === 'efectivo';
+  const totals = computeTotals(pricedForTotals, hasCash);
+
+  const received = receivedState && receivedState.total === totals.total ? receivedState.amount : null;
+  const payments: Payment[] = (() => {
+    const amount = totals.total;
+    const single = (method: PaymentMethod): Payment[] => [{ method, amount }];
+    switch (mode) {
+      case 'efectivo': return [{ method: 'efectivo', amount: received ?? amount }];
+      case 'tarjeta': return single('tarjeta');
+      case 'transferencia': return single(channel);
+      case 'credito': return single('credito');
+      case 'mixto': return mixedRows.length > 0 ? mixedRows : single('efectivo');
+    }
+  })();
+  const paid = paymentsTotal(payments);
+  const cashPaid = payments.filter((p) => p.method === 'efectivo').reduce((sum, p) => sum + p.amount, 0);
   const missing = Math.max(0, totals.total - paid);
   const change = Math.max(0, paid - totals.total);
-  const canConfirm = lines.length > 0 && missing === 0 && change <= cashPaid && !createSale.isPending;
+  const creditBlocked = mode === 'credito' && customerId === null;
+  const canConfirm = lines.length > 0 && missing === 0 && change <= cashPaid && !creditBlocked && !createSale.isPending;
+
+  const anyOverlay =
+    payOpen || heldOpen || cashOpen || discountOpen || notesOpen || confirm !== null || pinRequest !== null || receipt !== null;
+
+  const focusSearch = () => searchRef.current?.focus();
 
   const addProduct = (product: Product) => {
     setLines((current) => {
@@ -91,10 +132,10 @@ export const QuickSale = ({ shift, active = true }: { shift: Shift; active?: boo
       return [...current, { productId: product.id, quantity: 1, discount: 0 }];
     });
     setQuery('');
-    searchRef.current?.focus();
+    setSearchMessage(null);
+    focusSearch();
   };
 
-  /** Cambio relativo: seguro ante clics rápidos (no depende del render anterior). Cantidad <= 0 quita la línea. */
   const changeQuantity = (productId: string, delta: number) =>
     setLines((current) =>
       current.flatMap((l) => {
@@ -103,59 +144,87 @@ export const QuickSale = ({ shift, active = true }: { shift: Shift; active?: boo
         return quantity <= 0 ? [] : [{ ...l, quantity }];
       }),
     );
-  const setDiscount = (productId: string, discount: number) =>
-    setLines((current) => current.map((l) => (l.productId === productId ? { ...l, discount } : l)));
+  const setQuantity = (productId: string, quantity: number) =>
+    setLines((current) => current.map((l) => (l.productId === productId ? { ...l, quantity } : l)));
+  const removeLine = (productId: string) => setLines((current) => current.filter((l) => l.productId !== productId));
 
   // El lector escribe el código y envía Enter: coincidencia exacta o único resultado agrega la línea.
-  const onSearchKey = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key !== 'Enter') return;
-    event.preventDefault();
+  const runSearch = () => {
     const q = query.trim().toLowerCase();
     if (!q) return;
     const exact = catalog.find((p) => p.barcode?.toLowerCase() === q || p.sku.toLowerCase() === q);
-    const target = exact ?? (results.length === 1 ? results[0] : undefined);
+    const target = exact ?? (filtered.length === 1 ? filtered[0] : undefined);
     if (target) addProduct(target);
-    else notify({ severity: 'warn', summary: 'Sin coincidencia única', detail: 'Elige un producto de la lista.' });
+    else {
+      setSearchMessage(
+        filtered.length === 0
+          ? `No hay productos con «${query.trim()}». Revisa el código o busca por nombre.`
+          : 'Hay varias coincidencias: elige un producto de la lista.',
+      );
+    }
   };
 
   const reset = () => {
     setLines([]);
-    setPayments(null);
+    setReceivedState(null);
+    setMixedRows([]);
+    setMode('efectivo');
     setCustomerId(null);
     setApprovalToken(undefined);
+    setCheckoutError(null);
+    setNote('');
     setOperationId(crypto.randomUUID());
     setQuery('');
-    searchRef.current?.focus();
+    setSearchMessage(null);
+    setPane('catalog');
+    focusSearch();
+  };
+
+  const chooseMode = (next: PayMode) => {
+    setMode(next);
+    setCheckoutError(null);
+    if (next === 'mixto' && mixedRows.length === 0) setMixedRows([{ method: 'efectivo', amount: totals.total }]);
+  };
+
+  const chooseCustomer = (id: string | null) => {
+    setCustomerId(id);
+    if (id === null && mode === 'credito') setMode('efectivo');
   };
 
   const submit = (token?: string) => {
     if (!canConfirm) return;
+    setCheckoutError(null);
     createSale.mutate(
       {
         clientOperationId: operationId,
         shiftId: shift.id,
         customerId,
         lines,
-        payments: effectivePayments,
+        payments,
         ...((token ?? approvalToken) ? { approvalToken: token ?? approvalToken } : {}),
       },
       {
-        onSuccess: (result) => setReceipt(result),
+        onSuccess: (result) => {
+          setPayOpen(false);
+          setReceipt(result);
+        },
         onError: (error) => {
           const detailAction = asApprovalAction(error.details?.action);
+          const askPin = (request: PinRequest) => {
+            setPayOpen(false);
+            setPinRequest(request);
+          };
           switch (error.code) {
             case 'STOCK_INSUFFICIENT':
-              return setPinRequest({ action: 'negative_stock', reason: 'No hay existencias suficientes. Un supervisor puede autorizar la venta.' });
+              return askPin({ action: 'negative_stock', reason: 'No hay existencias suficientes. Un supervisor puede autorizar la venta.' });
             case 'APPROVAL_REQUIRED':
             case 'APPROVAL_INVALID':
               setApprovalToken(undefined);
-              return setPinRequest({ action: detailAction ?? 'discount', reason: error.message });
+              return askPin({ action: detailAction ?? 'discount', reason: error.message });
             case 'PRICE_BELOW_COST':
-              return setPinRequest({ action: 'below_cost', reason: 'El precio queda bajo el costo: solo el propietario puede autorizarlo.' });
-            case 'SHIFT_NOT_OPEN':
-              return notify({ severity: 'error', summary: 'Turno cerrado', detail: 'Abre el turno para vender.' });
+              return askPin({ action: 'below_cost', reason: 'El precio queda bajo el costo: solo el propietario puede autorizarlo.' });
             default:
-              return notify({ severity: 'error', summary: error.code, detail: error.message });
+              return setCheckoutError(describeCheckoutError(error));
           }
         },
       },
@@ -165,44 +234,51 @@ export const QuickSale = ({ shift, active = true }: { shift: Shift; active?: boo
   const holdCurrent = () => {
     if (lines.length === 0) return;
     heldSales.hold(lines, customerId);
-    notify({ severity: 'info', summary: 'Venta suspendida', detail: 'Puedes reanudarla desde "Suspendidas".' });
     reset();
   };
   const resume = (sale: HeldSale) => {
     setLines(sale.lines);
     setCustomerId(sale.customerId);
-    setPayments(null);
+    setReceivedState(null);
     heldSales.remove(sale.id);
     setHeldOpen(false);
-    searchRef.current?.focus();
+    focusSearch();
+  };
+
+  const openPay = () => {
+    if (lines.length === 0 || creditBlocked) return;
+    setCheckoutError(null);
+    setPayOpen(true);
+  };
+
+  const applyDiscounts = (discounts: Record<string, number>) => {
+    setLines((current) => current.map((l) => ({ ...l, discount: discounts[l.productId] ?? l.discount })));
+    setApprovalToken(undefined);
+    setDiscountOpen(false);
   };
 
   // Con la vista "Historial" activa la venta sigue montada pero sin atajos (evita cobrar un carrito oculto).
-  useHotkey('F2', () => searchRef.current?.focus(), active);
-  useHotkey('F4', holdCurrent, active && lines.length > 0);
-  useHotkey('F6', () => setHeldOpen(true), active);
-  useHotkey('F10', () => setCashOpen(true), active);
-  useHotkey('F9', () => submit(), active && canConfirm);
+  const idle = active && !anyOverlay;
+  useHotkey('F2', focusSearch, idle);
+  useHotkey('F3', () => customerRef.current?.focus(), idle);
+  useHotkey('F4', () => setDiscountOpen(true), idle && lines.length > 0);
+  useHotkey('F6', () => setHeldOpen(true), idle);
+  useHotkey('F8', () => (payOpen ? submit() : openPay()), active && lines.length > 0 && (payOpen || !anyOverlay));
+  useHotkey('F9', holdCurrent, idle && lines.length > 0);
+  useHotkey('F10', () => setCashOpen(true), idle);
+  useHotkey('Escape', () => setConfirm('cancel'), idle && lines.length > 0);
 
-  const updatePayment = (index: number, patch: Partial<Payment>) =>
-    setPayments(effectivePayments.map((p, i) => (i === index ? { ...p, ...patch } : p)));
-  const addPayment = () => setPayments([...effectivePayments, { method: 'tarjeta', amount: missing }]);
-  const removePayment = (index: number) => {
-    const next = effectivePayments.filter((_, i) => i !== index);
-    setPayments(next.length > 0 ? next : null);
+  const closeReceipt = () => {
+    setReceipt(null);
+    reset();
   };
 
   return (
     <ScreenTemplate
       title="Punto de venta"
-      subtitle="Venta rápida"
+      subtitle={`Venta rápida · Turno ${shift.id} · Efectivo esperado ${formatMoney(shift.expectedCash)}`}
       actions={
         <span className="pos__actions">
-          <span className="pos__shift">
-            <span>Turno {shift.id}</span>
-            <span>Esperado {formatMoney(shift.expectedCash)}</span>
-          </span>
-          <Button type="button" label="Suspender (F4)" icon="pi pi-pause" outlined disabled={lines.length === 0} onClick={holdCurrent} />
           <Button
             type="button" icon="pi pi-clock" outlined
             label={`Suspendidas (${heldSales.held.length})`} aria-label={`Suspendidas, ${heldSales.held.length} (F6)`}
@@ -212,175 +288,140 @@ export const QuickSale = ({ shift, active = true }: { shift: Shift; active?: boo
         </span>
       }
     >
-      <div className="pos">
+      <div className="pos" data-pane={pane}>
         <div className="pos__layout">
-          <section className="pos__panel" aria-label="Productos y líneas">
-            <label htmlFor="pos-search" className="pos__hint">Buscar producto o escanear código (F2)</label>
-            <InputText
-              id="pos-search"
-              ref={searchRef}
-              className="pos__search"
-              placeholder="Nombre, SKU o código de barras"
-              autoFocus
-              autoComplete="off"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={onSearchKey}
+          <div className="pos__main">
+            <CatalogPanel
+              query={query}
+              onQuery={(v) => {
+                setQuery(v);
+                setSearchMessage(null);
+              }}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter') return;
+                event.preventDefault();
+                runSearch();
+              }}
+              onSearch={runSearch}
+              inputRef={searchRef}
+              message={searchMessage}
+              categories={categories}
+              category={category}
+              onCategory={setCategory}
+              results={results}
+              filtering={query.trim() !== '' || category !== ALL_CATEGORIES}
+              onAdd={addProduct}
             />
-            <div className="pos__products" role="list" aria-label="Resultados">
-              {results.map((product) => (
-                <button
-                  key={product.id}
-                  type="button"
-                  role="listitem"
-                  className="pos__product"
-                  onClick={() => addProduct(product)}
-                >
-                  <strong>{product.name}</strong>
-                  <span className="pos__product-price">{formatMoney(product.price)}</span>
-                </button>
-              ))}
-              {results.length === 0 ? <p className="pos__hint">Sin resultados para “{query}”.</p> : null}
-            </div>
 
-            <h2 className="mt-4">Venta actual</h2>
-            {priced.length === 0 ? (
-              <p className="pos__hint" data-testid="cart-empty">Escanea o elige un producto para empezar.</p>
-            ) : (
-              <div className="pos__lines-wrap">
-                <table className="pos__lines">
-                  <caption className="sr-only">Líneas de la venta actual</caption>
-                  <thead>
-                    <tr>
-                      <th>Producto</th>
-                      <th>Cant.</th>
-                      <th className="pos__num">Desc.</th>
-                      <th className="pos__num">Total</th>
-                      <th><span className="sr-only">Quitar</span></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {priced.map(({ line, product, unitPrice }) => (
-                      <tr key={line.productId}>
-                        <td className="pos__c-name">
-                          {product.name}
-                          <div className="pos__hint">{formatMoney(unitPrice)} c/u</div>
-                        </td>
-                        <td className="pos__c-qty">
-                          <span className="pos__qty">
-                            <Button
-                              type="button" icon="pi pi-minus" rounded text severity="secondary"
-                              aria-label={`Menos ${product.name}`}
-                              onClick={() => changeQuantity(line.productId, -1)}
-                            />
-                            <span aria-label={`Cantidad ${product.name}`}>{line.quantity}</span>
-                            <Button
-                              type="button" icon="pi pi-plus" rounded text severity="secondary"
-                              aria-label={`Más ${product.name}`}
-                              onClick={() => changeQuantity(line.productId, 1)}
-                            />
-                          </span>
-                        </td>
-                        <td className="pos__num pos__c-disc" data-label="Descuento">
-                          <InputNumber
-                            inputId={`discount-${line.productId}`}
-                            aria-label={`Descuento ${product.name}`}
-                            value={line.discount}
-                            onChange={(e) => e.originalEvent && setDiscount(line.productId, e.value ?? 0)}
-                            min={0}
-                            mode="currency" currency="COP" locale="es-CO" minFractionDigits={0}
-                            inputStyle={{ width: '7rem' }}
-                          />
-                        </td>
-                        <td className="pos__num pos__c-total" data-label="Total">{formatMoney(unitPrice * line.quantity - line.discount)}</td>
-                        <td className="pos__c-remove">
-                          <Button
-                            type="button" icon="pi pi-trash" rounded text severity="danger"
-                            aria-label={`Quitar ${product.name}`}
-                            onClick={() => changeQuantity(line.productId, -line.quantity)}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-
-          <section className="pos__panel" aria-label="Cobro">
-            <h2>Cobro</h2>
-            <div className="pos__field">
-              <label htmlFor="pos-customer">Cliente</label>
-              <select
-                id="pos-customer"
-                className="p-inputtext"
-                value={customerId ?? ''}
-                onChange={(e) => setCustomerId(e.target.value || null)}
-              >
-                <option value="">Consumidor final</option>
-                {(customers.data ?? []).filter((c) => c.active).map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="pos__totals">
-              <div><span>Subtotal</span><span>{formatMoney(totals.subtotal)}</span></div>
-              {totals.roundingAdjustment !== 0 ? (
-                <div><span>Ajuste al peso</span><span>{formatMoney(totals.roundingAdjustment)}</span></div>
-              ) : null}
-              <div className="pos__total"><span>Total</span><span data-testid="pos-total">{formatMoney(totals.total)}</span></div>
-            </div>
-
-            {effectivePayments.map((payment, index) => (
-              <div className="pos__payment" key={`${payment.method}-${index}`}>
-                <select
-                  className="p-inputtext"
-                  aria-label={`Medio de pago ${index + 1}`}
-                  value={payment.method}
-                  onChange={(e) => updatePayment(index, { method: e.target.value as PaymentMethod })}
-                >
-                  {methods.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-                </select>
-                <InputNumber
-                  aria-label={`Monto ${index + 1}`}
-                  value={payment.amount}
-                  onChange={(e) => e.originalEvent && updatePayment(index, { amount: e.value ?? 0 })}
-                  min={0}
-                  mode="currency" currency="COP" locale="es-CO" minFractionDigits={0}
-                  inputStyle={{ width: '100%' }}
+            <section className="pos__cart-area" aria-label="Líneas de la venta">
+              <div className="pos__cart-head">
+                <Button
+                  type="button" icon="pi pi-arrow-left" text label="Seguir agregando"
+                  className="pos__back" onClick={() => setPane('catalog')}
                 />
-                {effectivePayments.length > 1 ? (
-                  <Button
-                    type="button" icon="pi pi-times" rounded text severity="secondary"
-                    aria-label={`Quitar pago ${index + 1}`} onClick={() => removePayment(index)}
-                  />
-                ) : <span />}
+                <h2>Venta actual</h2>
               </div>
-            ))}
-            <Button type="button" label="Agregar medio de pago" icon="pi pi-plus" text onClick={addPayment} />
-
-            <div className="pos__totals" aria-live="polite">
-              {missing > 0 ? (
-                <div className="pos__missing"><span>Falta</span><span data-testid="pos-missing">{formatMoney(missing)}</span></div>
+              {priced.length === 0 ? (
+                <p className="pos__empty" data-testid="cart-empty">
+                  <i className="pi pi-shopping-cart" aria-hidden="true" />
+                  Escanea o elige un producto para empezar.
+                </p>
               ) : (
-                <div className="pos__change"><span>Cambio</span><span data-testid="pos-change">{formatMoney(change)}</span></div>
+                <>
+                  <CartLines lines={priced} onDelta={changeQuantity} onSetQuantity={setQuantity} onRemove={removeLine} />
+                  <div className="pos__line-actions">
+                    <Button
+                      type="button" label="Vaciar" icon="pi pi-trash" outlined severity="danger" className="pos__btn-danger"
+                      onClick={() => setConfirm('clear')}
+                    />
+                    <Button type="button" label="Aplicar descuento (F4)" icon="pi pi-percentage" outlined onClick={() => setDiscountOpen(true)} />
+                    <Button
+                      type="button" label="Notas" icon="pi pi-file-edit" outlined
+                      onClick={() => {
+                        setNoteDraft(note);
+                        setNotesOpen(true);
+                      }}
+                    />
+                    <Button type="button" label="Guardar como pendiente" icon="pi pi-save" outlined onClick={holdCurrent} />
+                  </div>
+                  {note ? <p className="pos__hint">Nota: {note}</p> : null}
+                </>
               )}
-            </div>
+            </section>
+          </div>
 
+          <SalePanel
+            customers={customerList}
+            customer={customer}
+            customerId={customerId}
+            onCustomer={chooseCustomer}
+            customerRef={customerRef}
+            itemCount={lines.length}
+            gross={gross}
+            discount={discountTotal}
+            vat={vat}
+            roundingAdjustment={totals.roundingAdjustment}
+            total={totals.total}
+            mode={mode}
+            onMode={chooseMode}
+            hasLines={lines.length > 0}
+            pending={createSale.isPending}
+            onCharge={openPay}
+            onHold={holdCurrent}
+            onCancel={() => setConfirm('cancel')}
+          />
+        </div>
+
+        {lines.length > 0 ? (
+          <div className="pos__mobilebar">
             <Button
               type="button"
-              className="pos__confirm"
-              label="Cobrar (F9)"
-              icon="pi pi-check"
-              loading={createSale.isPending}
-              disabled={!canConfirm}
-              onClick={() => submit()}
-            />
-          </section>
-        </div>
+              className="pos__mobilebar-btn"
+              onClick={() => setPane('cart')}
+              aria-label={`Ver carrito, ${units} unidades, ${formatMoney(totals.total)}`}
+            >
+              <span className="pos__mobilebar-count">{units}</span>
+              <span>Ver carrito</span>
+              <MoneyText value={totals.total} strong />
+            </Button>
+          </div>
+        ) : null}
+
+        <ShortcutBar
+          summary={`${lines.length} ${lines.length === 1 ? 'producto' : 'productos'} · ${units} ${units === 1 ? 'unidad' : 'unidades'}`}
+          shortcuts={[
+            { keys: 'F2', label: 'Buscar' },
+            { keys: 'F3', label: 'Cliente' },
+            { keys: 'F4', label: 'Descuento' },
+            { keys: 'F8', label: 'Cobrar' },
+            { keys: 'F9', label: 'Suspender' },
+            { keys: 'Esc', label: 'Cancelar' },
+          ]}
+        />
       </div>
+
+      <PaymentDialog
+        visible={payOpen}
+        mode={mode}
+        total={totals.total}
+        roundingAdjustment={totals.roundingAdjustment}
+        customer={customer}
+        received={received}
+        onReceived={(value) => setReceivedState(value === null ? null : { total: totals.total, amount: value })}
+        channel={channel}
+        onChannel={setChannel}
+        rows={mixedRows}
+        onRows={setMixedRows}
+        paid={paid}
+        missing={missing}
+        change={change}
+        canConfirm={canConfirm}
+        pending={createSale.isPending}
+        error={checkoutError}
+        onDismissError={() => setCheckoutError(null)}
+        onConfirm={() => submit()}
+        onHide={() => setPayOpen(false)}
+      />
 
       <HeldSalesDialog
         visible={heldOpen}
@@ -393,10 +434,61 @@ export const QuickSale = ({ shift, active = true }: { shift: Shift; active?: boo
       />
       <CashDialog shift={shift} heldCount={heldSales.held.length} visible={cashOpen} onHide={() => setCashOpen(false)} />
 
+      {discountOpen ? (
+        <DiscountDialog lines={priced} onApply={applyDiscounts} onHide={() => setDiscountOpen(false)} />
+      ) : null}
+
+      <FormDialog
+        visible={notesOpen}
+        title="Notas de la venta"
+        onHide={() => setNotesOpen(false)}
+        onSubmit={() => {
+          setNote(noteDraft.trim());
+          setNotesOpen(false);
+        }}
+        submitLabel="Guardar nota"
+      >
+        <label htmlFor="sale-note" className="block mb-1 font-medium">Nota</label>
+        <textarea
+          id="sale-note"
+          className="p-inputtext w-full"
+          rows={3}
+          value={noteDraft}
+          onChange={(e) => setNoteDraft(e.target.value)}
+        />
+        <p className="pos__hint">
+          PROPUESTA: la nota solo se ve en esta pantalla; el contrato de venta aún no tiene un campo de notas y no se envía al servidor.
+        </p>
+      </FormDialog>
+
+      <ConfirmAction
+        visible={confirm !== null}
+        tone="danger"
+        title={confirm === 'clear' ? 'Vaciar la venta' : 'Cancelar la venta'}
+        message={
+          confirm === 'clear'
+            ? 'Se quitarán todos los productos de la venta actual.'
+            : 'Se descarta la venta actual (productos, cliente y descuentos). Para conservarla, usa Suspender.'
+        }
+        confirmLabel={confirm === 'clear' ? 'Vaciar' : 'Cancelar venta'}
+        cancelLabel="Volver"
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => {
+          if (confirm === 'clear') {
+            setLines([]);
+            focusSearch();
+          } else reset();
+          setConfirm(null);
+        }}
+      />
+
       <SupervisorPinDialog
         action={pinRequest?.action ?? null}
         reason={pinRequest?.reason}
-        onCancel={() => setPinRequest(null)}
+        onCancel={() => {
+          setPinRequest(null);
+          setPayOpen(true);
+        }}
         onApproved={(token) => {
           setApprovalToken(token);
           setPinRequest(null);
@@ -405,23 +497,25 @@ export const QuickSale = ({ shift, active = true }: { shift: Shift; active?: boo
       />
 
       <Dialog
-        header="Venta registrada"
+        header="Venta completada"
         visible={receipt !== null}
-        onHide={() => { setReceipt(null); reset(); }}
+        onHide={closeReceipt}
         className="pos-dialog"
-        style={{ width: 'min(24rem, 95vw)' }}
+        style={{ width: 'min(26rem, 95vw)' }}
         modal
       >
         {receipt ? (
-          <div className="pos__totals pos__receipt">
-            <div><span>Número</span><strong data-testid="receipt-number">{receipt.number}</strong></div>
-            <div><span>Total</span><span>{formatMoney(receipt.total)}</span></div>
-            <div><span>Cambio</span><span className="pos__change">{formatMoney(receipt.change)}</span></div>
-            <div className="pos__print-hide flex flex-wrap gap-2 mt-3">
-              <Button
-                type="button" label="Nueva venta" icon="pi pi-plus" autoFocus
-                onClick={() => { setReceipt(null); reset(); }}
-              />
+          <div className="pos__receipt pos-done">
+            <span className="pos-done__icon" aria-hidden="true"><i className="pi pi-check" /></span>
+            <p className="pos-done__title">¡Venta completada!</p>
+            <p className="pos__hint">Número <strong data-testid="receipt-number">{receipt.number}</strong></p>
+            <dl className="pos-done__facts">
+              <div><dt>Total</dt><dd><MoneyText value={receipt.total} strong /></dd></div>
+              <div><dt>Cambio</dt><dd className="pos__change"><MoneyText value={receipt.change} /></dd></div>
+            </dl>
+            {note ? <p className="pos__hint">Nota: {note}</p> : null}
+            <div className="pos__print-hide pos-done__actions">
+              <Button type="button" label="Nueva venta" icon="pi pi-plus" autoFocus onClick={closeReceipt} />
               <Button type="button" label="Imprimir" icon="pi pi-print" outlined onClick={() => window.print()} />
             </div>
           </div>

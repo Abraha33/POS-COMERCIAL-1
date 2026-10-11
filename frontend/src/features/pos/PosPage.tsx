@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useCurrentShift } from '@/shared/api/pos';
-import { ErrorState, LoadingState, ScreenTemplate } from '@/shared/ui';
+import { ErrorState, LoadingState, ScreenTemplate, SegmentedTabs } from '@/shared/ui';
 import { OpenShiftCard } from './OpenShiftCard';
 import { QuickSale } from './QuickSale';
 import { SalesHistory } from './SalesHistory';
@@ -8,9 +8,9 @@ import './pos.css';
 
 type View = 'sell' | 'history';
 
-const views: { value: View; label: string; icon: string }[] = [
-  { value: 'sell', label: 'Vender', icon: 'pi pi-shopping-cart' },
-  { value: 'history', label: 'Historial', icon: 'pi pi-list' },
+const views: { value: View; label: string }[] = [
+  { value: 'sell', label: 'Vender' },
+  { value: 'history', label: 'Historial' },
 ];
 
 /**
@@ -38,21 +38,11 @@ export const PosPage = () => {
 
   return (
     <div>
-      <nav className="pos__views" aria-label="Vistas del punto de venta">
-        {views.map((v) => (
-          <button
-            key={v.value}
-            type="button"
-            className="pos__view"
-            aria-pressed={view === v.value}
-            onClick={() => setView(v.value)}
-          >
-            <i className={v.icon} aria-hidden="true" /> {v.label}
-          </button>
-        ))}
-      </nav>
+      <div className="pos__views">
+        <SegmentedTabs ariaLabel="Vistas del punto de venta" variant="chips" options={views} value={view} onChange={setView} />
+      </div>
       <div hidden={view !== 'sell'}>{sellContent}</div>
-      {view === 'history' ? <SalesHistory /> : null}
+      {view === 'history' ? <SalesHistory onNewSale={() => setView('sell')} /> : null}
     </div>
   );
 };
