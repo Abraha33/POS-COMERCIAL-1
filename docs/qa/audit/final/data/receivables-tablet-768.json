@@ -1,0 +1,17 @@
+{
+  "route": "/receivables",
+  "viewport": "tablet-768",
+  "overflow": false,
+  "scrollWidth": 768,
+  "innerWidth": 768,
+  "widest": [
+    "table.p-datatable-table right=824",
+    "thead.p-datatable-thead right=824",
+    "tr. right=824",
+    "th. right=824",
+    "div.p-column-header-content right=816"
+  ],
+  "smallTargets": 0,
+  "violations": [],
+  "consoleErrors": []
+}

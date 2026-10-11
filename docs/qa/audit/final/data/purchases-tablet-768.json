@@ -1,0 +1,11 @@
+{
+  "route": "/purchases",
+  "viewport": "tablet-768",
+  "overflow": false,
+  "scrollWidth": 768,
+  "innerWidth": 768,
+  "widest": [],
+  "smallTargets": 2,
+  "violations": [],
+  "consoleErrors": []
+}

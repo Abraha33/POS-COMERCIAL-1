@@ -1,0 +1,11 @@
+{
+  "route": "/purchases",
+  "viewport": "desktop-1280",
+  "overflow": false,
+  "scrollWidth": 1280,
+  "innerWidth": 1280,
+  "widest": [],
+  "smallTargets": 2,
+  "violations": [],
+  "consoleErrors": []
+}

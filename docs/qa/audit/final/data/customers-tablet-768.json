@@ -1,0 +1,17 @@
+{
+  "route": "/customers",
+  "viewport": "tablet-768",
+  "overflow": false,
+  "scrollWidth": 768,
+  "innerWidth": 768,
+  "widest": [
+    "table.p-datatable-table right=897",
+    "thead.p-datatable-thead right=897",
+    "tr. right=897",
+    "th.p-sortable-column right=781",
+    "div.p-column-header-content right=773"
+  ],
+  "smallTargets": 0,
+  "violations": [],
+  "consoleErrors": []
+}

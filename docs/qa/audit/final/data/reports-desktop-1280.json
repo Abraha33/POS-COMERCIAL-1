@@ -1,0 +1,13 @@
+{
+  "route": "/reports",
+  "viewport": "desktop-1280",
+  "overflow": false,
+  "scrollWidth": 1280,
+  "innerWidth": 1280,
+  "widest": [],
+  "smallTargets": 0,
+  "violations": [],
+  "consoleErrors": [
+    "Invalid ARIA attribute `%s`. Did you mean `%s`? ariaLabel aria-label"
+  ]
+}

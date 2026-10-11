@@ -1,0 +1,13 @@
+{
+  "route": "/pos",
+  "viewport": "tablet-768",
+  "overflow": false,
+  "scrollWidth": 768,
+  "innerWidth": 768,
+  "widest": [],
+  "smallTargets": 0,
+  "violations": [],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
+}
