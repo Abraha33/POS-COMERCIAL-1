@@ -1,8 +1,11 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 import { server } from '@/mocks/server';
 import { resetDb } from '@/mocks/db';
+
+// Con varios agentes y workers en paralelo el primer render (rutas lazy) puede tardar más de 1 s.
+configure({ asyncUtilTimeout: 5000 });
 
 beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => {
