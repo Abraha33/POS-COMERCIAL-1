@@ -147,8 +147,8 @@
   .app-bottombar a.is-active { color: var(--primary-color); font-weight: 700; }
 }
 @media (max-width: 600px) {
-  .app-topbar__module, .app-topbar__online-text { display: none; }
-  .app-topbar__role { max-width: 5.5rem; }
+  .app-topbar__module, .app-topbar__online-text, .app-topbar__brand-name { display: none; }
+  .app-topbar__role { max-width: 7rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   .app-sidenav { transition: none; }

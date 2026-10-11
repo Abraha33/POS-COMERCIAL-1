@@ -81,7 +81,7 @@ export const HomePage = () => {
               <EmptyState message="Sin ventas en el periodo." />
             ) : (
               <div className="app-table-scroll">
-                <DataTable value={dashboard.topProducts} size="small" dataKey="productId" aria-label="Productos más vendidos">
+                <DataTable value={dashboard.topProducts} size="small" dataKey="productId">
                   <Column field="name" header="Producto" />
                   <Column field="quantity" header="Cantidad" />
                   <Column header="Total" body={(row: { total: number }) => formatMoney(row.total)} />
