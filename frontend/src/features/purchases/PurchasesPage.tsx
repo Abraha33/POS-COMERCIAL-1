@@ -1,28 +1,19 @@
-import type { PurchaseOrder } from '@/shared/contracts';
-import { usePurchaseOrders } from '@/shared/api/queries';
-import { DataTablePage, type ColumnDef } from '@/shared/ui';
-import { formatMoney } from '@/shared/utils/format';
+import { TabPanel, TabView } from 'primereact/tabview';
+import { ScreenTemplate } from '@/shared/ui';
+import { OrdersTab } from './OrdersTab';
+import { SuppliersTab } from './SuppliersTab';
+import './purchases.css';
 
-const columns: ColumnDef<PurchaseOrder>[] = [
-  { field: 'number', header: 'Número' },
-  { field: 'date', header: 'Fecha' },
-  { field: 'supplierId', header: 'Proveedor' },
-  { field: 'total', header: 'Total', body: (o) => formatMoney(o.total) },
-  { field: 'status', header: 'Estado' },
-];
-
-/** Pantalla ancla de Compras (agente 3). */
-export const PurchasesPage = () => {
-  const { data, isLoading, error, refetch } = usePurchaseOrders();
-  return (
-    <DataTablePage
-      title="Compras"
-      subtitle="Órdenes de compra"
-      rows={data}
-      isLoading={isLoading}
-      error={error}
-      onRetry={() => void refetch()}
-      columns={columns}
-    />
-  );
-};
+/** Compras (carril C): órdenes de compra, ciclo enviar/recibir y proveedores. Reglas BR-COM-xx: PROPUESTA. */
+export const PurchasesPage = () => (
+  <ScreenTemplate title="Compras" subtitle="Órdenes de compra y proveedores">
+    <TabView className="purch-tabs">
+      <TabPanel header="Órdenes">
+        <OrdersTab />
+      </TabPanel>
+      <TabPanel header="Proveedores">
+        <SuppliersTab />
+      </TabPanel>
+    </TabView>
+  </ScreenTemplate>
+);
