@@ -1,6 +1,6 @@
 # CORE READY — READY FOR PARALLEL SCREEN CONSTRUCTION
 
-Verificado: 2026-10-11T14:23:16.804Z  ·  commit: sin commits
+Verificado: 2026-10-11T14:28:43.858Z  ·  commit: b4fe338
 
 | Gate | Resultado | Descripción |
 |------|-----------|-------------|
@@ -14,4 +14,4 @@ Verificado: 2026-10-11T14:23:16.804Z  ·  commit: sin commits
 | 8 | ✅ | Reglas de ramas e integración vigentes |
 
 Este archivo lo genera `pnpm core:check` y se borra si el chequeo vuelve a fallar.
-Reglas para los agentes: `docs/BRANCHING.md` y `docs/MODULE_OWNERSHIP.md`.
+Reglas para los agentes: `docs/architecture/BRANCHING.md` y `docs/architecture/MODULE_OWNERSHIP.md`.

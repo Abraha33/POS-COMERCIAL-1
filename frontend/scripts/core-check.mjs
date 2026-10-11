@@ -74,13 +74,13 @@ gate(1, 'La aplicación compila y navega',
 // ---- Gate 3
 {
   const problems = [];
-  const ownership = has('docs/MODULE_OWNERSHIP.md') ? read('docs/MODULE_OWNERSHIP.md') : '';
+  const ownership = has('../docs/architecture/MODULE_OWNERSHIP.md') ? read('../docs/architecture/MODULE_OWNERSHIP.md') : '';
   const routes = read('src/routes/index.tsx');
   if (moduleIds.length === 0) problems.push('no se pudo leer src/app/config/modules.ts');
   for (const id of moduleIds) {
     if (!has(`src/features/${id}/index.ts`)) problems.push(`${id}: falta src/features/${id}/index.ts`);
     if (!routes.includes(`@/features/${id}'`)) problems.push(`${id}: sin ruta ancla en src/routes`);
-    if (!ownership.includes(`\`${id}\``)) problems.push(`${id}: sin dueño en docs/MODULE_OWNERSHIP.md`);
+    if (!ownership.includes(`\`${id}\``)) problems.push(`${id}: sin dueño en docs/architecture/MODULE_OWNERSHIP.md`);
   }
   gate(3, 'Mapa de rutas y propiedad por módulo', problems.length === 0, problems.join('; '));
 }
@@ -116,7 +116,7 @@ gate(7, 'Storybook, Vitest y Playwright ejecutan en verde',
 // ---- Gate 8
 {
   const problems = [];
-  if (!has('docs/BRANCHING.md')) problems.push('falta docs/BRANCHING.md');
+  if (!has('../docs/architecture/BRANCHING.md')) problems.push('falta docs/architecture/BRANCHING.md');
   if (!lint.ok) problems.push(`eslint:\n${tail(lint.out)}`);
   gate(8, 'Reglas de ramas e integración vigentes', problems.length === 0, problems.join('; '));
 }
@@ -142,7 +142,7 @@ if (allOk) {
     ...gates.map((g) => `| ${g.id} | ✅ | ${g.name} |`),
     '',
     'Este archivo lo genera `pnpm core:check` y se borra si el chequeo vuelve a fallar.',
-    'Reglas para los agentes: `docs/BRANCHING.md` y `docs/MODULE_OWNERSHIP.md`.',
+    'Reglas para los agentes: `docs/architecture/BRANCHING.md` y `docs/architecture/MODULE_OWNERSHIP.md`.',
     '',
   ].join('\n');
   writeFileSync(readyFile, body);

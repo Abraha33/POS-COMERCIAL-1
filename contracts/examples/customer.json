@@ -1,0 +1,8 @@
+{
+  "id": "cus-001",
+  "name": "Tienda La Esquina",
+  "taxId": "900123456-1",
+  "phone": "3001112233",
+  "active": true,
+  "creditLimit": 1500000
+}

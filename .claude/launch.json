@@ -5,6 +5,8 @@
       "name": "dev",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": [
+        "--dir",
+        "frontend",
         "run",
         "dev"
       ],

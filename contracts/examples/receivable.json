@@ -1,0 +1,9 @@
+{
+  "id": "rec-001",
+  "customerId": "cus-001",
+  "saleId": "sal-002",
+  "issued": "2026-09-20",
+  "due": "2026-10-20",
+  "amount": 400000,
+  "paid": 100000
+}

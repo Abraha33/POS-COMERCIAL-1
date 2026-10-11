@@ -1,0 +1,11 @@
+{
+  "id": "po-001",
+  "number": "PO-0001",
+  "date": "2026-09-28",
+  "supplierId": "sup-001",
+  "lines": [
+    { "productId": "prd-001", "quantity": 100, "unitCost": 2100 }
+  ],
+  "total": 210000,
+  "status": "recibida"
+}

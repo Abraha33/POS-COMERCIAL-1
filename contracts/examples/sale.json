@@ -1,0 +1,14 @@
+{
+  "id": "sal-001",
+  "number": "POS-0001",
+  "date": "2026-10-01",
+  "customerId": "cus-001",
+  "cashierId": "emp-001",
+  "branchId": "br-001",
+  "lines": [
+    { "productId": "prd-001", "quantity": 2, "unitPrice": 2800, "discount": 0 }
+  ],
+  "paymentMethod": "efectivo",
+  "total": 5600,
+  "status": "pagada"
+}

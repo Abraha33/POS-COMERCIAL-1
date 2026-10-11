@@ -1,7 +1,8 @@
 # Contratos compartidos
 
-Fuente: `src/shared/contracts/*.ts` (Zod + tipos inferidos + `example`). Registro completo: `registry.ts`.
-Toda respuesta HTTP se valida contra su schema en `src/shared/api/client.ts`.
+Especificación compartida frontend/backend: `contracts/openapi.yaml` + `contracts/examples/*.json`.
+Implementación en el frontend: `frontend/src/shared/contracts/*.ts` (Zod + tipos inferidos + `example`). Registro completo: `registry.ts`.
+Toda respuesta HTTP se valida contra su schema en `frontend/src/shared/api/client.ts`.
 
 | Contrato | Archivo | DocType Frappe/ERPNext |
 |----------|---------|------------------------|

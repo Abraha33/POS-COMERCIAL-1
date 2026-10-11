@@ -1,0 +1,9 @@
+{
+  "id": "stk-001",
+  "date": "2026-10-01",
+  "productId": "prd-001",
+  "branchId": "br-001",
+  "type": "entrada",
+  "quantity": 100,
+  "reference": "PO-0001"
+}

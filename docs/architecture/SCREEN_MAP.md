@@ -14,4 +14,4 @@ Estado del núcleo: las pantallas ancla existen y muestran datos simulados. Las 
 | Reportes | `/reports` | `reports.view` | KPIs básicos | Ventas, inventario, cartera |
 | Administración | `/administration` | `admin.manage` | Empleados | Usuarios, empresas, sedes, config |
 
-Roles simulados: propietario, admin, cajero, bodeguero, comprador, cartera (`src/app/config/permissions.ts`).
+Roles simulados: propietario, admin, cajero, bodeguero, comprador, cartera (`frontend/src/app/config/permissions.ts`).

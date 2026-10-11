@@ -1,0 +1,210 @@
+openapi: 3.1.0
+info:
+  title: ERP/POS API
+  version: 0.1.0
+  description: |
+    Contrato compartido entre frontend (React) y backend (Frappe/ERPNext).
+    Cambios solo vía PR `contract:` revisado por el integrador; ver docs/architecture/BRANCHING.md.
+    Estado: borrador derivado de los mocks MSW. Los endpoints marcados `x-status: simulated`
+    existen solo como mock; el backend real debe implementarlos o proponer cambios aquí primero.
+servers:
+  - url: /api
+paths:
+  /products:
+    get:
+      operationId: listProducts
+      x-status: simulated
+      responses:
+        '200': { description: Lista de productos, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Product' } } } } }
+    post:
+      operationId: createProduct
+      x-status: simulated
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ProductInput' } } } }
+      responses:
+        '201': { description: Creado, content: { application/json: { schema: { $ref: '#/components/schemas/Product' } } } }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /products/{id}:
+    put:
+      operationId: updateProduct
+      x-status: simulated
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ProductInput' } } } }
+      responses:
+        '200': { description: Actualizado, content: { application/json: { schema: { $ref: '#/components/schemas/Product' } } } }
+        '404': { description: No encontrado }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /customers:
+    get: { operationId: listCustomers, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Customer' } } } } } } }
+  /suppliers:
+    get: { operationId: listSuppliers, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Supplier' } } } } } } }
+  /employees:
+    get: { operationId: listEmployees, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Employee' } } } } } } }
+  /sales:
+    get: { operationId: listSales, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Sale' } } } } } } }
+  /stock/levels:
+    get: { operationId: listStockLevels, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/StockLevel' } } } } } } }
+  /stock/movements:
+    get: { operationId: listStockMovements, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/StockMovement' } } } } } } }
+  /purchase-orders:
+    get: { operationId: listPurchaseOrders, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/PurchaseOrder' } } } } } } }
+  /receivables:
+    get: { operationId: listReceivables, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Receivable' } } } } } } }
+  /payables:
+    get: { operationId: listPayables, x-status: simulated, responses: { '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Payable' } } } } } } }
+
+components:
+  responses:
+    ValidationError:
+      description: Datos inválidos
+      content: { application/json: { schema: { type: object, required: [error], properties: { error: { type: string } } } } }
+  schemas:
+    Product:
+      x-frappe-doctype: Item
+      type: object
+      required: [id, sku, name, category, unit, price, cost, taxRate, active]
+      properties:
+        id: { type: string }
+        sku: { type: string, minLength: 1 }
+        barcode: { type: string }
+        name: { type: string, minLength: 1 }
+        category: { type: string }
+        unit: { type: string }
+        price: { type: number, minimum: 0 }
+        cost: { type: number, minimum: 0 }
+        taxRate: { type: number, minimum: 0, maximum: 1 }
+        active: { type: boolean }
+    ProductInput:
+      type: object
+      required: [sku, name, category, unit, price, cost, taxRate, active]
+      properties:
+        sku: { type: string, minLength: 1 }
+        barcode: { type: string }
+        name: { type: string, minLength: 1 }
+        category: { type: string }
+        unit: { type: string }
+        price: { type: number, minimum: 0 }
+        cost: { type: number, minimum: 0 }
+        taxRate: { type: number, minimum: 0, maximum: 1 }
+        active: { type: boolean }
+    Customer:
+      x-frappe-doctype: Customer
+      type: object
+      required: [id, name, taxId, active, creditLimit]
+      properties:
+        id: { type: string }
+        name: { type: string, minLength: 1 }
+        taxId: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        active: { type: boolean }
+        creditLimit: { type: number, minimum: 0 }
+    Supplier:
+      x-frappe-doctype: Supplier
+      type: object
+      required: [id, name, taxId, active, paymentTermsDays]
+      properties:
+        id: { type: string }
+        name: { type: string, minLength: 1 }
+        taxId: { type: string }
+        phone: { type: string }
+        email: { type: string }
+        active: { type: boolean }
+        paymentTermsDays: { type: integer, minimum: 0 }
+    Employee:
+      x-frappe-doctype: Employee
+      type: object
+      required: [id, name, role, branchId, active]
+      properties:
+        id: { type: string }
+        name: { type: string, minLength: 1 }
+        role: { type: string, enum: [cajero, bodeguero, comprador, cartera, admin, propietario] }
+        branchId: { type: string }
+        active: { type: boolean }
+    SaleLine:
+      type: object
+      required: [productId, quantity, unitPrice, discount]
+      properties:
+        productId: { type: string }
+        quantity: { type: number, exclusiveMinimum: 0 }
+        unitPrice: { type: number, minimum: 0 }
+        discount: { type: number, minimum: 0 }
+    Sale:
+      x-frappe-doctype: POS Invoice
+      type: object
+      required: [id, number, date, customerId, cashierId, branchId, lines, paymentMethod, total, status]
+      properties:
+        id: { type: string }
+        number: { type: string }
+        date: { type: string, format: date }
+        customerId: { type: [string, 'null'] }
+        cashierId: { type: string }
+        branchId: { type: string }
+        lines: { type: array, minItems: 1, items: { $ref: '#/components/schemas/SaleLine' } }
+        paymentMethod: { type: string, enum: [efectivo, tarjeta, transferencia, credito] }
+        total: { type: number, minimum: 0 }
+        status: { type: string, enum: [pagada, credito, anulada] }
+    StockMovement:
+      x-frappe-doctype: Stock Ledger Entry
+      type: object
+      required: [id, date, productId, branchId, type, quantity, reference]
+      properties:
+        id: { type: string }
+        date: { type: string, format: date }
+        productId: { type: string }
+        branchId: { type: string }
+        type: { type: string, enum: [entrada, salida, ajuste, traslado] }
+        quantity: { type: number }
+        reference: { type: string }
+    StockLevel:
+      type: object
+      required: [productId, branchId, onHand, minimum]
+      properties:
+        productId: { type: string }
+        branchId: { type: string }
+        onHand: { type: number }
+        minimum: { type: number, minimum: 0 }
+    PurchaseOrder:
+      x-frappe-doctype: Purchase Order
+      type: object
+      required: [id, number, date, supplierId, lines, total, status]
+      properties:
+        id: { type: string }
+        number: { type: string }
+        date: { type: string, format: date }
+        supplierId: { type: string }
+        lines:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [productId, quantity, unitCost]
+            properties:
+              productId: { type: string }
+              quantity: { type: number, exclusiveMinimum: 0 }
+              unitCost: { type: number, minimum: 0 }
+        total: { type: number, minimum: 0 }
+        status: { type: string, enum: [borrador, enviada, recibida, cancelada] }
+    Receivable:
+      x-frappe-doctype: Sales Invoice (outstanding)
+      type: object
+      required: [id, customerId, saleId, issued, due, amount, paid]
+      properties:
+        id: { type: string }
+        customerId: { type: string }
+        saleId: { type: [string, 'null'] }
+        issued: { type: string, format: date }
+        due: { type: string, format: date }
+        amount: { type: number, minimum: 0 }
+        paid: { type: number, minimum: 0 }
+    Payable:
+      x-frappe-doctype: Purchase Invoice (outstanding)
+      type: object
+      required: [id, supplierId, purchaseOrderId, issued, due, amount, paid]
+      properties:
+        id: { type: string }
+        supplierId: { type: string }
+        purchaseOrderId: { type: [string, 'null'] }
+        issued: { type: string, format: date }
+        due: { type: string, format: date }
+        amount: { type: number, minimum: 0 }
+        paid: { type: number, minimum: 0 }

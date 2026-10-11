@@ -1,0 +1,12 @@
+{
+  "id": "prd-001",
+  "sku": "SKU-001",
+  "barcode": "7701234567890",
+  "name": "Arroz 500 g",
+  "category": "Granos",
+  "unit": "und",
+  "price": 2800,
+  "cost": 2100,
+  "taxRate": 0,
+  "active": true
+}

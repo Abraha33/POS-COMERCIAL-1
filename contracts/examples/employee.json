@@ -1,0 +1,7 @@
+{
+  "id": "emp-001",
+  "name": "Laura Gómez",
+  "role": "cajero",
+  "branchId": "br-001",
+  "active": true
+}
