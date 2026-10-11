@@ -4,37 +4,36 @@ import { Column } from 'primereact/column';
 import { DataTable } from 'primereact/datatable';
 import type { Sale } from '@/shared/contracts';
 import {
-  useCustomers, useEmployees, usePayables, useProducts, useReceivables, useSales, useStockLevels, useSuppliers,
+  useBranches, useCustomers, useEmployees, usePayables, useProducts, useReceivables, useSales, useStockLevels,
+  useSuppliers,
 } from '@/shared/api/queries';
-import { EmptyState, ErrorState, LoadingState, ScreenTemplate } from '@/shared/ui';
+import {
+  EmptyState, ErrorState, KpiCard, LoadingState, MiniBars, MoneyText, ScreenTemplate, StatusTag,
+} from '@/shared/ui';
 import { formatMoney } from '@/shared/utils/format';
 import {
   BRANCH_ALL, REFERENCE_DATE, filterSales, inventoryReport, ledgerReport, salesByCashier, salesByDay,
   salesByPayment, summarizeSales, type Bucket, type LedgerReport, type StockRow,
 } from './aggregate';
-import { BarChart } from './BarChart';
 import './reports.css';
 
-const statusLabels: Record<Sale['status'], string> = { pagada: 'Pagada', credito: 'Crédito', anulada: 'Anulada' };
+const UNKNOWN_BRANCH = 'Sede desconocida';
 
-const Kpi = ({ label, value, warn = false }: { label: string; value: string; warn?: boolean }) => (
-  <div className={`reports__kpi${warn ? ' reports__kpi--warn' : ''}`}>
-    <dt>{label}</dt>
-    <dd>{value}</dd>
-  </div>
-);
+const Kpis = ({ children }: { children: ReactNode }) => <div className="reports__kpis">{children}</div>;
 
-const Kpis = ({ children }: { children: ReactNode }) => <dl className="reports__kpis">{children}</dl>;
+const warnIf = (condition: boolean, text: string) => (condition ? { text, tone: 'down' as const } : undefined);
 
 const Section = ({ id, title, children }: { id: string; title: string; children: ReactNode }) => (
-  <section className="reports__section" aria-labelledby={id}>
-    <h2 id={id}>{title}</h2>
+  <section className="reports__section" aria-labelledby={`${id}-h`} id={id}>
+    <h2 id={`${id}-h`}>{title}</h2>
     {children}
   </section>
 );
 
+const ScrollHint = () => <p className="reports__scrollhint">Desliza la tabla para ver todas las columnas.</p>;
+
 const BucketTable = ({ caption, head, buckets }: { caption: string; head: string; buckets: Bucket[] }) => (
-  <div className="reports__tablewrap">
+  <div className="app-table-scroll">
     <table className="reports__table">
       <caption>{caption}</caption>
       <thead>
@@ -57,11 +56,22 @@ const BucketTable = ({ caption, head, buckets }: { caption: string; head: string
   </div>
 );
 
-const describeBuckets = (buckets: Bucket[]): string =>
-  buckets.map((b) => `${b.label}: ${formatMoney(b.total)}`).join('; ');
+const ChartCard = ({ title, buckets }: { title: string; buckets: Bucket[] }) => (
+  <div className="reports__chart">
+    <h3>{title}</h3>
+    <MiniBars
+      data={buckets.map((b) => ({ label: b.label, value: b.total }))}
+      ariaLabel={`${title}. ${buckets.map((b) => `${b.label}: ${formatMoney(b.total)}`).join('; ')}`}
+      formatValue={formatMoney}
+      height={200}
+    />
+  </div>
+);
 
-const StockTable = ({ caption, rows }: { caption: string; rows: StockRow[] }) => (
-  <div className="reports__tablewrap">
+type StockTableProps = { caption: string; rows: StockRow[]; branchName: (id: string) => string };
+
+const StockTable = ({ caption, rows, branchName }: StockTableProps) => (
+  <div className="app-table-scroll">
     <table className="reports__table">
       <caption>{caption}</caption>
       <thead>
@@ -78,7 +88,7 @@ const StockTable = ({ caption, rows }: { caption: string; rows: StockRow[] }) =>
         ) : rows.map((r) => (
           <tr key={r.key}>
             <td>{r.name}</td>
-            <td>{r.branchId}</td>
+            <td>{branchName(r.branchId)}</td>
             <td className="reports__num">{r.onHand}</td>
             <td className="reports__num">{r.minimum}</td>
           </tr>
@@ -91,17 +101,21 @@ const StockTable = ({ caption, rows }: { caption: string; rows: StockRow[] }) =>
 type LedgerProps = { title: string; partyHeader: string; report: LedgerReport; idPrefix: string };
 
 const LedgerBlock = ({ title, partyHeader, report, idPrefix }: LedgerProps) => (
-  <Section id={`${idPrefix}-title`} title={title}>
+  <Section id={idPrefix} title={title}>
     <Kpis>
-      <Kpi label="Saldo total" value={formatMoney(report.balance)} />
-      <Kpi label="Vencido" value={formatMoney(report.overdue)} warn={report.overdue > 0} />
-      <Kpi label="Vigente" value={formatMoney(report.current)} />
-      <Kpi label="Documentos abiertos" value={String(report.openCount)} />
+      <KpiCard label="Saldo total" value={<MoneyText value={report.balance} />} />
+      <KpiCard
+        label="Vencido"
+        value={<MoneyText value={report.overdue} />}
+        delta={warnIf(report.overdue > 0, 'Requiere gestión')}
+      />
+      <KpiCard label="Vigente" value={<MoneyText value={report.current} />} />
+      <KpiCard label="Documentos abiertos" value={String(report.openCount)} />
     </Kpis>
     {report.top.length === 0 ? (
       <EmptyState message="No hay saldos pendientes." />
     ) : (
-      <div className="reports__tablewrap">
+      <div className="app-table-scroll">
         <table className="reports__table">
           <caption>Mayores saldos</caption>
           <thead>
@@ -131,24 +145,29 @@ export const ReportsPage = () => {
   const customers = useCustomers();
   const suppliers = useSuppliers();
   const employees = useEmployees();
-  const queries = [sales, stock, products, receivables, payables, customers, suppliers, employees];
+  const branchList = useBranches();
+  const queries = [sales, stock, products, receivables, payables, customers, suppliers, employees, branchList];
 
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [branchId, setBranchId] = useState(BRANCH_ALL);
 
+  const branchNames = useMemo(
+    () => new Map((branchList.data ?? []).map((b) => [b.id, b.name])),
+    [branchList.data],
+  );
+  const branchName = (id: string) => branchNames.get(id) ?? UNKNOWN_BRANCH;
+
   const report = useMemo(() => {
     if (!sales.data || !stock.data || !products.data || !receivables.data || !payables.data
-      || !customers.data || !suppliers.data || !employees.data) return null;
+      || !customers.data || !suppliers.data || !employees.data || !branchList.data) return null;
     const productMap = new Map(products.data.map((p) => [p.id, p]));
     const employeeNames = new Map(employees.data.map((e) => [e.id, e.name]));
     const customerNames = new Map(customers.data.map((c) => [c.id, c.name]));
     const supplierNames = new Map(suppliers.data.map((s) => [s.id, s.name]));
     const filtered = filterSales(sales.data, { from, to }, branchId);
-    const branches = [...new Set([...sales.data.map((s) => s.branchId), ...stock.data.map((l) => l.branchId)])].sort();
     return {
       filtered,
-      branches,
       employeeNames,
       summary: summarizeSales(filtered),
       byDay: salesByDay(filtered),
@@ -160,7 +179,7 @@ export const ReportsPage = () => {
     };
   }, [
     sales.data, stock.data, products.data, receivables.data, payables.data,
-    customers.data, suppliers.data, employees.data, from, to, branchId,
+    customers.data, suppliers.data, employees.data, branchList.data, from, to, branchId,
   ]);
 
   const failed = queries.find((q) => q.error);
@@ -175,18 +194,23 @@ export const ReportsPage = () => {
       <>
         <Section id="rep-sales" title="Ventas">
           <Kpis>
-            <Kpi label="Ventas" value={String(summary.count)} />
-            <Kpi label="Total vendido" value={formatMoney(summary.total)} />
-            <Kpi label="Ticket promedio" value={formatMoney(summary.average)} />
-            <Kpi label="Anuladas" value={String(summary.voided)} warn={summary.voided > 0} />
+            <KpiCard label="Ventas" value={String(summary.count)} icon="pi pi-shopping-cart" />
+            <KpiCard label="Total vendido" value={<MoneyText value={summary.total} />} icon="pi pi-dollar" />
+            <KpiCard label="Ticket promedio" value={<MoneyText value={summary.average} />} icon="pi pi-receipt" />
+            <KpiCard
+              label="Anuladas"
+              value={String(summary.voided)}
+              icon="pi pi-ban"
+              delta={warnIf(summary.voided > 0, 'Revisar anulaciones')}
+            />
           </Kpis>
           {report.filtered.length === 0 ? (
             <EmptyState message="No hay ventas para el rango y la sede elegidos. Amplía las fechas o cambia de sede." />
           ) : (
             <>
               <div className="reports__charts">
-                <BarChart title="Ventas por día (COP)" buckets={byDay} summary={describeBuckets(byDay)} />
-                <BarChart title="Ventas por medio de pago (COP)" buckets={byPayment} summary={describeBuckets(byPayment)} />
+                <ChartCard title="Ventas por día (COP)" buckets={byDay} />
+                <ChartCard title="Ventas por medio de pago (COP)" buckets={byPayment} />
               </div>
               <div className="reports__split">
                 <BucketTable caption="Ventas por día" head="Día" buckets={byDay} />
@@ -194,39 +218,53 @@ export const ReportsPage = () => {
                 <BucketTable caption="Ventas por cajero" head="Cajero" buckets={byCashier} />
               </div>
               <h3>Detalle de ventas</h3>
-              <DataTable
-                value={report.filtered}
-                dataKey="id"
-                size="small"
-                stripedRows
-                paginator
-                rows={10}
-                emptyMessage="Sin ventas."
-              >
-                <Column field="number" header="Número" sortable />
-                <Column field="date" header="Fecha" sortable body={(s: Sale) => s.date.slice(0, 10)} />
-                <Column header="Cajero" body={(s: Sale) => report.employeeNames.get(s.cashierId) ?? s.cashierId} />
-                <Column field="branchId" header="Sede" />
-                <Column header="Estado" body={(s: Sale) => statusLabels[s.status]} />
-                <Column field="total" header="Total" sortable body={(s: Sale) => formatMoney(s.total)} bodyClassName="reports__num" />
-              </DataTable>
+              <ScrollHint />
+              <div className="app-table-scroll">
+                <DataTable
+                  value={report.filtered}
+                  dataKey="id"
+                  size="small"
+                  stripedRows
+                  paginator
+                  rows={10}
+                  emptyMessage="Sin ventas."
+                >
+                  <Column field="number" header="Número" sortable />
+                  <Column field="date" header="Fecha" sortable body={(s: Sale) => s.date.slice(0, 10)} />
+                  <Column header="Cajero" body={(s: Sale) => report.employeeNames.get(s.cashierId) ?? s.cashierId} />
+                  <Column header="Sede" body={(s: Sale) => branchName(s.branchId)} />
+                  <Column header="Estado" body={(s: Sale) => <StatusTag status={s.status} />} />
+                  <Column
+                    field="total" header="Total" sortable bodyClassName="reports__num"
+                    body={(s: Sale) => <MoneyText value={s.total} />}
+                  />
+                </DataTable>
+              </div>
             </>
           )}
         </Section>
 
         <Section id="rep-inventory" title="Inventario">
           <Kpis>
-            <Kpi label="Valor a costo" value={formatMoney(inventory.value)} />
-            <Kpi label="Unidades en existencia" value={String(inventory.units)} />
-            <Kpi label="Bajo mínimo" value={String(inventory.belowMinimum.length)} warn={inventory.belowMinimum.length > 0} />
-            <Kpi label="Stock negativo" value={String(inventory.negative.length)} warn={inventory.negative.length > 0} />
+            <KpiCard label="Valor a costo" value={<MoneyText value={inventory.value} />} icon="pi pi-box" />
+            <KpiCard label="Unidades en existencia" value={String(inventory.units)} />
+            <KpiCard
+              label="Bajo mínimo"
+              value={String(inventory.belowMinimum.length)}
+              delta={warnIf(inventory.belowMinimum.length > 0, 'Reponer')}
+            />
+            <KpiCard
+              label="Stock negativo"
+              value={String(inventory.negative.length)}
+              delta={warnIf(inventory.negative.length > 0, 'Ajustar inventario')}
+            />
           </Kpis>
           {inventory.belowMinimum.length === 0 && inventory.negative.length === 0 ? (
             <EmptyState message="Sin productos bajo mínimo ni con stock negativo." />
           ) : (
             <div className="reports__split">
-              <StockTable caption="Stock negativo" rows={inventory.negative} />
-              <StockTable caption="Bajo el mínimo" rows={inventory.belowMinimum} />
+              <StockTable caption="Stock negativo" rows={inventory.negative} branchName={branchName} />
+              <StockTable caption="Bajo el mínimo" rows={inventory.belowMinimum} branchName={branchName} />
             </div>
           )}
         </Section>
@@ -266,7 +304,7 @@ export const ReportsPage = () => {
             <label htmlFor="rep-branch">Sede</label>
             <select id="rep-branch" className="p-inputtext" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
               <option value={BRANCH_ALL}>Todas las sedes</option>
-              {(report?.branches ?? []).map((b) => <option key={b} value={b}>{b}</option>)}
+              {(branchList.data ?? []).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           </div>
           <Button
@@ -276,6 +314,13 @@ export const ReportsPage = () => {
             onClick={() => { setFrom(''); setTo(''); setBranchId(BRANCH_ALL); }}
           />
         </div>
+        <nav className="reports__nav" aria-label="Secciones del reporte">
+          <a href="#rep-sales">Ventas</a>
+          <a href="#rep-inventory">Inventario</a>
+          <a href="#rep-rec">Cartera por cobrar</a>
+          <a href="#rep-pay">Cartera por pagar</a>
+          <a href="#rep-cash">Caja</a>
+        </nav>
         <p className="reports__note">
           Calculado en el navegador sobre las listas completas (no hay endpoints de reporte). Fecha de referencia para
           cartera: {REFERENCE_DATE}. Cuentas por cobrar y por pagar no tienen sede y ignoran ese filtro; inventario ignora
