@@ -12,6 +12,8 @@ import { roleSchema, type Role } from '@/shared/contracts';
 import { useHotkey } from '@/shared/keyboard/useHotkey';
 import { ErrorBoundary } from './ErrorBoundary';
 import { useOnlineStatus } from './useOnlineStatus';
+import { useI18n } from '@/app/i18n/I18nProvider';
+import { localeDefs, supportedLocales, type LocaleId } from '@/app/i18n/locales';
 import './app-shell.css';
 
 const roleOptions = roleSchema.options.map((value) => ({ value, label: roleLabels[value] }));
@@ -26,6 +28,7 @@ const currentModuleLabel = (pathname: string): string => {
 
 const TopBar = ({ onToggleNav, navOpen, moduleLabel }: { onToggleNav: () => void; navOpen: boolean; moduleLabel: string }) => {
   const { session, switchRole, signOut } = useSession();
+  const { t, locale, setLocale } = useI18n();
   const navigate = useNavigate();
   const online = useOnlineStatus();
   const shift = useCurrentShift();
@@ -127,6 +130,21 @@ const TopBar = ({ onToggleNav, navOpen, moduleLabel }: { onToggleNav: () => void
           ))}
         </select>
       ) : null}
+
+      <label className="app-topbar__role-label">
+        <span className="sr-only">{t('shell.language')}</span>
+        <select
+          className="app-topbar__role"
+          aria-label={t('shell.language')}
+          title={t('shell.language')}
+          value={locale}
+          onChange={(e) => setLocale(e.target.value as LocaleId)}
+        >
+          {supportedLocales.map((id) => (
+            <option key={id} value={id}>{localeDefs[id].label}</option>
+          ))}
+        </select>
+      </label>
 
       <Menu model={userMenuItems} popup ref={userMenu} id="user-menu" />
       <button

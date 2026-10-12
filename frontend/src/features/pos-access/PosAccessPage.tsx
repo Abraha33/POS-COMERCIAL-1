@@ -9,6 +9,7 @@ import { OpeningView } from './OpeningView';
 import { accessStatus, computeOpening, needsJustification, parseQuantity, simulatedShift, toShiftOpen } from './opening';
 import { defaultDenominations, scenarios } from './scenarios';
 import { ApiError } from '@/shared/api/client';
+import { useI18n } from '@/app/i18n/I18nProvider';
 import { useAccessData } from './useAccessData';
 import './pos-access.css';
 
@@ -32,6 +33,7 @@ const outcomeLabels: Record<Outcome, string> = {
  */
 export const PosAccessPage = () => {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const data = useAccessData();
   const { escenario } = useSearch({ from: '/pos/acceso' });
   const simulated = escenario !== undefined && scenarios.some((s) => s.id === escenario);
@@ -185,7 +187,7 @@ export const PosAccessPage = () => {
   })();
 
   return (
-    <ScreenTemplate title="Acceso al POS" subtitle={simulated ? 'Escenario de prueba: no es el servidor real' : `${data.session.branchName} · ${scenario.register?.name ?? 'sin caja'}`}>
+    <ScreenTemplate title={t('access.title')} subtitle={simulated ? t('access.subtitle.sandbox') : `${data.session.branchName} · ${scenario.register?.name ?? 'sin caja'}`}>
       {simulated ? (
       <div className="pa-sandbox" role="group" aria-label="Controles del escenario simulado">
         <div>

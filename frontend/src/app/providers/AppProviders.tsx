@@ -6,6 +6,7 @@ import type { Role, Session } from '@/shared/contracts';
 import { SessionProvider } from './SessionProvider';
 import { ToastProvider } from './ToastProvider';
 import { configurePrimeLocale } from '@/app/config/primeLocale';
+import { I18nProvider } from '@/app/i18n/I18nProvider';
 
 // Arranque: textos de PrimeReact en español (idempotente).
 configurePrimeLocale();
@@ -24,12 +25,14 @@ export const AppProviders = ({
   return (
     <PrimeReactProvider value={{ ripple: true }}>
       <QueryClientProvider client={client}>
-        <SessionProvider initialRole={initialRole} onRoleChange={onRoleChange} sessionFor={sessionFor}>
-          <ToastProvider>
-            <ConfirmDialog />
-            {children}
-          </ToastProvider>
-        </SessionProvider>
+        <I18nProvider>
+          <SessionProvider initialRole={initialRole} onRoleChange={onRoleChange} sessionFor={sessionFor}>
+            <ToastProvider>
+              <ConfirmDialog />
+              {children}
+            </ToastProvider>
+          </SessionProvider>
+        </I18nProvider>
       </QueryClientProvider>
     </PrimeReactProvider>
   );

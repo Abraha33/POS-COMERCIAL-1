@@ -59,6 +59,7 @@
 }
 .app-topbar__icon-button:hover, .app-topbar__user:hover { background: var(--app-navy-800); }
 .app-topbar__menu-button { display: none; }
+.app-topbar__role-label { display: inline-flex; min-width: 0; }
 .app-topbar__role {
   min-height: var(--app-touch-min); max-width: 9rem; border-radius: var(--app-radius);
   border: 1px dashed var(--app-on-navy-muted); background: var(--app-navy-800); color: var(--app-on-navy); font: inherit;
@@ -149,6 +150,8 @@
 @media (max-width: 600px) {
   .app-topbar__module, .app-topbar__online-text, .app-topbar__brand-name { display: none; }
   .app-topbar__role { max-width: 7rem; }
+  .app-topbar__role-label { max-width: 6.5rem; }
+  .app-topbar__role-label .app-topbar__role { max-width: 6.5rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   .app-sidenav { transition: none; }
