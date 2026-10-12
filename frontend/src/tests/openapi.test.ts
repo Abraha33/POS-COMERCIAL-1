@@ -10,7 +10,7 @@ import { handlers } from '@/mocks/handlers';
 const contractsDir = path.resolve(import.meta.dirname, '../../../contracts');
 const specPath = path.join(contractsDir, 'openapi.yaml');
 const spec = parse(readFileSync(specPath, 'utf8')) as {
-  paths: Record<string, Record<string, { 'x-status'?: string }>>;
+  paths: Record<string, Record<string, { 'x-status'?: string; 'x-approval'?: string }>>;
   components: { schemas: Record<string, unknown> };
 };
 
@@ -60,6 +60,26 @@ describe('contracts/openapi.yaml', () => {
         expect(validate?.(example), JSON.stringify(validate?.errors)).toBe(true);
       });
     }
+  });
+
+  describe('estado de las operaciones (docs/architecture/DECISIONES_CONTRATOS.md)', () => {
+    const ops = Object.entries(spec.paths).flatMap(([route, item]) =>
+      Object.entries(item)
+        .filter(([method]) => ['get', 'post', 'put', 'patch', 'delete'].includes(method))
+        .map(([method, op]) => ({ key: `${method} ${route}`, op })),
+    );
+
+    it('toda operación declara x-approval (approved | proposed)', () => {
+      expect(ops.filter(({ op }) => !['approved', 'proposed'].includes(String(op['x-approval']))).map((o) => o.key)).toEqual([]);
+    });
+
+    it('toda operación declara x-status (simulated | real)', () => {
+      expect(ops.filter(({ op }) => !['simulated', 'real'].includes(String(op['x-status']))).map((o) => o.key)).toEqual([]);
+    });
+
+    it('ninguna operación proposed puede declararse real', () => {
+      expect(ops.filter(({ op }) => op['x-approval'] === 'proposed' && op['x-status'] === 'real').map((o) => o.key)).toEqual([]);
+    });
   });
 
   describe('mocks MSW frente al contrato', () => {

@@ -40,6 +40,7 @@ paths:
         - auth
       operationId: login
       x-status: simulated
+      x-approval: approved
       security: []
       requestBody:
         required: true
@@ -62,6 +63,7 @@ paths:
         - auth
       operationId: getSession
       x-status: simulated
+      x-approval: approved
       responses:
         "200":
           description: Sesión vigente
@@ -77,6 +79,7 @@ paths:
         - catalog
       operationId: listProducts
       x-status: simulated
+      x-approval: approved
       responses:
         "200":
           description: Lista de productos
@@ -91,6 +94,7 @@ paths:
         - catalog
       operationId: createProduct
       x-status: simulated
+      x-approval: approved
       description: BR-PRO-01, BR-PRO-02, BR-PRO-07.
       requestBody:
         required: true
@@ -115,6 +119,7 @@ paths:
         - catalog
       operationId: updateProduct
       x-status: simulated
+      x-approval: approved
       parameters:
         - $ref: "#/components/parameters/Id"
       requestBody:
@@ -142,6 +147,7 @@ paths:
         - catalog
       operationId: listCustomers
       x-status: simulated
+      x-approval: approved
       responses:
         "200":
           description: OK
@@ -183,6 +189,7 @@ paths:
         - catalog
       operationId: listSuppliers
       x-status: simulated
+      x-approval: approved
       responses:
         "200":
           description: OK
@@ -224,6 +231,7 @@ paths:
         - catalog
       operationId: listEmployees
       x-status: simulated
+      x-approval: approved
       responses:
         "200":
           description: OK
@@ -263,6 +271,7 @@ paths:
         - inventory
       operationId: listStockLevels
       x-status: simulated
+      x-approval: approved
       responses:
         "200":
           description: OK
@@ -278,6 +287,7 @@ paths:
         - inventory
       operationId: listStockMovements
       x-status: simulated
+      x-approval: approved
       responses:
         "200":
           description: OK
@@ -293,6 +303,7 @@ paths:
         - purchases
       operationId: listPurchaseOrders
       x-status: simulated
+      x-approval: approved
       responses:
         "200":
           description: OK
@@ -332,6 +343,7 @@ paths:
         - ledger
       operationId: listReceivables
       x-status: simulated
+      x-approval: approved
       responses:
         "200":
           description: OK
@@ -347,6 +359,7 @@ paths:
         - ledger
       operationId: listPayables
       x-status: simulated
+      x-approval: approved
       responses:
         "200":
           description: OK
@@ -362,6 +375,7 @@ paths:
         - pos
       operationId: listSales
       x-status: simulated
+      x-approval: approved
       responses:
         "200":
           description: OK
@@ -377,6 +391,7 @@ paths:
         - pos
       operationId: createSale
       x-status: simulated
+      x-approval: approved
       summary: Confirma una venta (idempotente)
       description: |
         BR-VEN-01..14. El servidor fija precios, impuestos y totales (BR-GEN-06).
@@ -424,6 +439,7 @@ paths:
         - pos
       operationId: voidSale
       x-status: simulated
+      x-approval: approved
       description: BR-VEN-10. Requiere permiso `pos.refund` o turno abierto.
       parameters:
         - $ref: "#/components/parameters/Id"
@@ -452,6 +468,7 @@ paths:
         - pos
       operationId: getCurrentShift
       x-status: simulated
+      x-approval: approved
       description: Turno abierto del usuario en su caja, o 404 si no hay.
       responses:
         "200":
@@ -492,6 +509,7 @@ paths:
         - pos
       operationId: openShift
       x-status: simulated
+      x-approval: approved
       description: BR-CAJ-01, BR-CAJ-02. `SHIFT_ALREADY_OPEN` si la caja ya tiene turno abierto.
       requestBody:
         required: true
@@ -516,6 +534,7 @@ paths:
         - pos
       operationId: closeShift
       x-status: simulated
+      x-approval: approved
       description: BR-CAJ-05..08. Devuelve el turno con `difference` calculada.
       parameters:
         - $ref: "#/components/parameters/Id"
@@ -544,6 +563,7 @@ paths:
         - pos
       operationId: addShiftMovement
       x-status: simulated
+      x-approval: approved
       description: BR-CAJ-09. Ingresos (base/sencillo) y egresos tipificados; afectan `expectedCash`.
       parameters:
         - $ref: "#/components/parameters/Id"
@@ -572,6 +592,7 @@ paths:
         - auth
       operationId: requestApproval
       x-status: simulated
+      x-approval: approved
       description: |
         BR-VEN-04/05/14. Canjea el PIN de un supervisor por un token de un solo uso y corta vigencia, que luego
         se envía en `SaleCreate.approvalToken`. El PIN nunca viaja dentro de la venta. `below_cost` solo lo
@@ -597,6 +618,7 @@ paths:
         - inventory
       operationId: listTransfers
       x-status: simulated
+      x-approval: approved
       responses:
         "200":
           description: OK
@@ -611,6 +633,7 @@ paths:
         - inventory
       operationId: createTransfer
       x-status: simulated
+      x-approval: approved
       description: BR-INV-03 paso 1. Descuenta de la sede origen y deja las unidades en tránsito.
       requestBody:
         required: true
@@ -635,6 +658,7 @@ paths:
         - inventory
       operationId: receiveTransfer
       x-status: simulated
+      x-approval: approved
       description: BR-INV-03 paso 2. Solo el encargado de la sede destino; suma al inventario destino.
       parameters:
         - $ref: "#/components/parameters/Id"
@@ -657,6 +681,7 @@ paths:
         - inventory
       operationId: listInventoryAlerts
       x-status: simulated
+      x-approval: approved
       responses:
         "200":
           description: OK
