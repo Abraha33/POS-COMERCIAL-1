@@ -6,6 +6,7 @@ import { useAddShiftMovement, useCloseShift } from '@/shared/api/pos';
 import { FormField, MoneyInput, MoneyText } from '@/shared/ui';
 import { formatMoney } from '@/shared/utils/format';
 import { useNotify } from '@/app/providers/ToastProvider';
+import { ShiftIncome } from './ShiftIncome';
 
 type MovementType = ShiftMovement['type'];
 type Category = ShiftMovement['category'];
@@ -136,6 +137,8 @@ export const CashDialog = ({ shift, heldCount, visible, onHide }: Props) => {
             Hay {heldCount} venta(s) suspendida(s) en esta caja; se conservan en el navegador pero no se cobrarán en este turno.
           </p>
         ) : null}
+
+        <ShiftIncome shiftId={shift.id} />
 
         <details className="pos-cash__count">
           <summary>Contar por denominación (PROPUESTA)</summary>

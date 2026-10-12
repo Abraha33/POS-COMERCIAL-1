@@ -73,7 +73,7 @@ pasarela. Un banco nuevo es una fila de configuración, no un formulario. El cat
 | Confirmar venta bloqueado hasta verificar / excepción autorizada | ✔ | |
 | Persistir canal, referencia, cuenta y comprobante en la venta | ✔ (mocks) | `Payment` v0.6.0 PROPUESTA: `channel`, `reference`, `destination`, `proofId`; conformidad 37/37 |
 | Conciliar cuentas receptoras; "reportado vs recibido" | ◐ | vista "Conciliación de cobros" (Más): reportado por canal y cuenta, con/sin comprobante, "recibido" digitado desde el extracto; sin conexión bancaria (**B**) |
-| Ingreso en efectivo vs banco en el cierre de turno | ✔ (vista) | la conciliación separa efectivo, banco/billeteras y crédito; el cierre de turno (otro módulo) no lo consume aún |
+| Ingreso en efectivo vs banco en el cierre de turno | ✔ (vista) | el diálogo de caja (cierre de turno) muestra efectivo, banco/billeteras y crédito por canal y avisa de cobros digitales sin comprobante confirmado |
 | Cobros en el turno correcto | ✔ | la venta lleva `shiftId` |
 
 ## 09 Crédito y cartera
@@ -106,5 +106,4 @@ pasarela. Un banco nuevo es una fila de configuración, no un formulario. El cat
 Cerrado en esta rama: canales dinámicos, documento a emitir, comprobante móvil con verificación y excepción trazable,
 canal/referencia/cuenta/comprobante en la venta (contrato v0.6.0 PROPUESTA), plazo y abono inicial de crédito, y pagos
 mixtos como componentes independientes con reversa trazable.
-Sigue **sin** cerrar: conexión bancaria real para la conciliación, que el cierre de turno consuma el desglose por canal,
-que `pos-ops` y pedidos consuman los endpoints de capa 5 (hoy `localStorage`) y backend real. Todo lo ✔ corre sobre mocks.
+Sigue **sin** cerrar: conexión bancaria real para la conciliación, que `pos-ops` y pedidos consuman los endpoints de capa 5 (hoy `localStorage`) y backend real. Todo lo ✔ corre sobre mocks.

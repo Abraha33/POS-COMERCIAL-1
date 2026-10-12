@@ -216,7 +216,8 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
           ...(activeChannel ? { channel: activeChannel.id } : {}),
           ...(chan.values.reference ? { reference: chan.values.reference.trim() } : chan.values.authCode ? { reference: chan.values.authCode.trim() } : {}),
           ...(destination ? { destination: destination.label } : {}),
-          ...(proofMatches && proof ? { proofId: proof.id } : {}),
+          // proofId solo respalda un pago CONFIRMADO; una excepción autorizada no es verificación.
+          ...(proofMatches && proof?.status === 'confirmado' ? { proofId: proof.id } : {}),
         }];
       }
       case 'credito': {
@@ -236,7 +237,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
             ...(ch.kind === 'efectivo' || ch.kind === 'credito' ? {} : { channel: ch.id }),
             ...(ref ? { reference: ref.trim() } : {}),
             ...(dest ? { destination: dest.label } : {}),
-            ...(prf && canCloseSale(prf) ? { proofId: prf.id } : {}),
+            ...(prf?.status === 'confirmado' ? { proofId: prf.id } : {}),
           };
         });
     }

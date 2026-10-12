@@ -44,3 +44,27 @@ for (const vp of [
     await page.screenshot({ path: path.join(shots, `conciliacion-${vp.name}.png`), fullPage: true });
   });
 }
+
+test('cierre de turno: desglose por canal y aviso de cobro digital sin comprobante (excepción del propietario)', async ({ page }) => {
+  await startAs(page, 'propietario', '/pos');
+  await openShift(page, 100000);
+  await addToCart(page, 'Arroz 500 g');
+  await page.getByRole('button', { name: 'Transferencia' }).click();
+  await page.getByRole('button', { name: /Cobrar/ }).first().click();
+  const dialog = page.getByRole('dialog', { name: 'Cobrar venta' });
+  await dialog.getByLabel(/Número de referencia/).fill('CIERRE-1');
+  await dialog.getByRole('button', { name: /Solicitar comprobante/ }).click();
+  await dialog.getByText('Excepción autorizada').click();
+  await dialog.getByLabel('Motivo de la excepción').fill('Cliente pagó, banco en mantenimiento');
+  await dialog.getByRole('button', { name: 'Autorizar excepción' }).click();
+  const confirm = dialog.getByRole('button', { name: /Confirmar pago/ });
+  await expect(confirm).toBeEnabled();
+  await confirm.click();
+  await expect(page.getByTestId('receipt-number')).toBeVisible();
+  await page.getByRole('button', { name: 'Nueva venta' }).click();
+
+  await page.getByRole('button', { name: /Caja \(F10\)/ }).click();
+  await expect(page.getByTestId('close-bank')).toContainText('2.800');
+  await expect(page.getByTestId('close-cash')).toContainText('0');
+  await expect(page.getByTestId('close-unbacked')).toContainText('sin comprobante confirmado');
+});
