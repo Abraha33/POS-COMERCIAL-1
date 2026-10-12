@@ -42,10 +42,11 @@ imputación, cancelar orden, reportes agregados, `company`), arqueo por denomina
 | 3b | `vitest` con `--maxWorkers=4` | 21 archivos, 270/270 | 64 s |
 | 4 | `pnpm conformance` | 36/36 | 6,6 s |
 | 5 | `pnpm build` (tsc + vite) | correcto | 14,6 s |
-| 6 | Playwright completo, 1 worker | **84 pasan, 1 omitida, 0 fallan** | 3,6 min |
+| 6 | Playwright completo, 1 worker (`DEV_PORT=5231`) | **85 pasan, 0 omitidas, 0 fallan** | 3,9 min |
+| 7 | `pnpm core:check` (8 gates, incluye `storybook build`) | **CORE READY, 8/8** (con `DEV_PORT=5231`) | 4,4 min |
 
-Desglose de Playwright: smoke 3, recorridos 10, axe por ruta 30 (10 rutas × 3 anchos), estados 34 (1 omitida), errores 8.
-No se ejecutó `pnpm core:check` completo ni `storybook build` en esta sesión.
+Desglose de Playwright: smoke 3, recorridos 10, axe por ruta 30 (10 rutas × 3 anchos), estados 34, errores 8.
+`core:check` con el puerto por defecto (5188) falla en los gates 1 y 7 porque un proceso ajeno (pid 21572) lo ocupa; con `DEV_PORT=5231` pasa 8/8.
 
 ## 4. Inestabilidad: timeouts y puerto 5188
 
@@ -75,9 +76,8 @@ Además `vite.config.ts` **no** se modificó.
 
 | Gravedad | Pendiente |
 |---|---|
-| Media | **F-03 sin verificar**: la prueba "crédito a cliente sin cupo muestra mensaje accionable" estaba enmascarada por `test.fail` con selectores obsoletos; queda **omitida** (1 omitida) hasta reescribirla para el nuevo flujo |
+| — | **F-03 resuelto y verificado**: la prueba se reescribió al nuevo flujo y pasa (el error de cupo se explica en el diálogo, sin código técnico) |
 | Media | `main` no contiene nada de esto; depende de resolver los cambios ajenos |
-| Media | `core:check` completo y `storybook build` no ejecutados sobre el código rediseñado |
 | Baja | PIN de login: el contrato solo tiene usuario/contraseña; en mocks solo funciona esa pestaña |
 | Baja | hallazgos F-07 (sede por id en reportes), F-12 (404 de turno), F-13 (encabezado a 375), F-15 (`InputNumber` con dictado) no re-verificados |
 | Baja | PROPUESTAS sin aprobación del dueño (BR-DEV, BR-COM, BR-CAR, BR-ADM, ajustes, conteos, reportes) |
@@ -94,6 +94,5 @@ Además `vite.config.ts` **no** se modificó.
 
 El frontend **está listo para la fase 2 desde el punto de vista técnico**: compila, 270/270 unitarias, 36/36
 conformidad, 84/84 E2E ejecutadas y 0 violaciones axe serias en las 10 rutas × 3 anchos.
-Condiciones antes de arrancar: (a) decidir qué hacer con los cambios ajenos de `main` y hacer fast-forward de
-`integration`; (b) correr `core:check` una vez con el puerto libre; (c) reescribir la prueba omitida de F-03.
-No se declara estabilidad completa mientras (b) y (c) no se cumplan.
+Única condición abierta: decidir qué hacer con los cambios ajenos de `main` y hacer fast-forward de `integration`
+(esta fase tiene prohibido fusionar a `main`). `core:check` pasa 8/8 y F-03 está verificado.

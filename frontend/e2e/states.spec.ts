@@ -25,19 +25,21 @@ const axeBlocking = async (page: Page, label: string) => {
 const widths = [1280, 768, 375] as const;
 
 test.describe('Errores de negocio visibles para el usuario', () => {
-  // F-03 (error.code como título del aviso) NO verificado tras el rediseño: la prueba está omitida hasta reescribirla.
+  // F-03: el error de cupo se muestra dentro del diálogo de cobro, en lenguaje de usuario y sin códigos técnicos.
   test('crédito a un cliente sin cupo muestra un mensaje accionable', async ({ page }) => {
-    test.skip(true, 'PENDIENTE: reescribir para el nuevo flujo de cobro (diálogo Cobrar venta); F-03 sin verificar tras el rediseño');
     await startAs(page, 'cajero');
     await openShift(page);
     await addToCart(page, 'Aceite 1 L');
-    await page.getByLabel('Cliente').selectOption({ label: 'Cliente mostrador' }); // cupo 0
-    await page.getByLabel('Medio de pago 1').selectOption('credito');
+    await page.locator('#pos-customer').selectOption({ label: 'Cliente mostrador' }); // cupo 0
+    await page.getByRole('button', { name: 'Crédito' }).click();
     await page.getByRole('button', { name: /Cobrar/ }).click();
-    // Debe quedar claro POR QUÉ no se vendió y qué hacer, sin códigos técnicos como título.
-    await expect(page.locator('.p-toast').getByText(/supera el cupo/i)).toBeVisible();
-    const summary = await page.locator('.p-toast-summary').first().innerText();
-    expect(summary, 'el título del aviso no debe ser un código técnico').not.toMatch(/^[A-Z][A-Z_]{4,}$/);
+    await page.getByRole('dialog', { name: 'Cobrar venta' }).getByRole('button', { name: /Confirmar pago/ }).click();
+
+    const alert = page.getByTestId('checkout-error');
+    await expect(alert).toBeVisible();
+    await expect(alert).toContainText(/cupo/i);
+    const title = await alert.locator('strong').first().innerText();
+    expect(title, 'el título del aviso no debe ser un código técnico').not.toMatch(/^[A-Z][A-Z_]{4,}$/);
   });
 
   // F-04 resuelto en el rediseño: Crédito queda deshabilitado con una explicación hasta elegir cliente.
