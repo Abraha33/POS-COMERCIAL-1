@@ -24,7 +24,8 @@ import { createSchemaValidator } from './spec';
 type Result = { status: number; body: unknown };
 
 /** Contraseña de los usuarios de prueba; `CONFORMANCE_PASSWORD` permite apuntar la suite a otra instancia. */
-const PASSWORD = (typeof process !== 'undefined' ? process.env.CONFORMANCE_PASSWORD : undefined) ?? 'cambiar-en-desarrollo';
+/** Contraseña de los usuarios de prueba (solo desarrollo; mismo valor que `contracts/fixtures/users.json`). */
+const PASSWORD = '1234';
 const PINS = { admin: '1234', owner: '9999' } as const;
 
 export const registerConformance = (target: string | (() => string)) => {

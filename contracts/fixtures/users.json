@@ -1,6 +1,6 @@
 {
   "note": "Usuarios y PIN de PRUEBA para desarrollo y conformidad. Nunca usar en producción.",
-  "password": "cambiar-en-desarrollo",
+  "password": "1234",
   "users": [
     {
       "username": "laura.gomez",

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, useSearch } from '@tanstack/react-router';
 import type { Shift } from '@/shared/contracts';
 import { ErrorState, LoadingState, ScreenTemplate } from '@/shared/ui';
 import { AccessView } from './AccessView';
@@ -8,6 +8,8 @@ import type { AccessScenario } from './model';
 import { OpeningView } from './OpeningView';
 import { accessStatus, computeOpening, needsJustification, parseQuantity, simulatedShift, toShiftOpen } from './opening';
 import { defaultDenominations, scenarios } from './scenarios';
+import { ApiError } from '@/shared/api/client';
+import { useAccessData } from './useAccessData';
 import './pos-access.css';
 
 type View = 'access' | 'opening';
@@ -24,12 +26,16 @@ const outcomeLabels: Record<Outcome, string> = {
 };
 
 /**
- * POS-F01 (acceso) y POS-F02 (apertura) con escenarios SIMULADOS en estado local.
- * No llama a ningún servicio ni abre turnos reales: el resultado es un `Shift` simulado con la forma del contrato.
+ * POS-F01 (acceso) y POS-F02 (apertura). Fuente REAL (v0.7.0): caja y turno desde `GET /pos/registers` y
+ * `GET /pos/shifts/current`; la apertura llama a `POST /pos/shifts`. Los escenarios solo existen con `?escenario=<id>`
+ * para pruebas de la interfaz; no son la fuente de verdad.
  */
 export const PosAccessPage = () => {
   const navigate = useNavigate();
-  const [scenarioId, setScenarioId] = useState(scenarios[0]!.id);
+  const data = useAccessData();
+  const { escenario } = useSearch({ from: '/pos/acceso' });
+  const simulated = escenario !== undefined && scenarios.some((s) => s.id === escenario);
+  const [scenarioId, setScenarioId] = useState(simulated ? escenario! : scenarios[0]!.id);
   const [loading, setLoading] = useState(true);
   const [loadKey, setLoadKey] = useState(0);
   const [view, setView] = useState<View>('access');
@@ -46,11 +52,23 @@ export const PosAccessPage = () => {
   const [reliefDone, setReliefDone] = useState(false);
   const inFlight = useRef(false);
 
-  const base = scenarios.find((s) => s.id === scenarioId)!;
+  const base: AccessScenario = useMemo(() => {
+    if (simulated) return scenarios.find((s) => s.id === scenarioId)!;
+    return {
+      id: 'real',
+      label: 'Datos reales',
+      session: data.session,
+      terminal: data.terminal,
+      register: data.register,
+      activeShift: data.activeShift,
+      loadError: data.error !== null,
+    };
+  }, [simulated, scenarioId, data.session, data.terminal, data.register, data.activeShift, data.error]);
   const scenario: AccessScenario = useMemo(
     () => (reliefDone && base.register ? { ...base, register: { ...base.register, occupiedBy: null } } : base),
     [base, reliefDone],
   );
+  const denominations = simulated ? defaultDenominations : data.denominations;
 
   // Cambiar de escenario reinicia todo el flujo y simula una carga breve.
   useEffect(() => {
@@ -73,7 +91,7 @@ export const PosAccessPage = () => {
   const parsed = useMemo(() => {
     const quantities: Record<string, number> = {};
     const invalid: Record<string, boolean> = {};
-    for (const d of defaultDenominations) {
+    for (const d of denominations) {
       const value = parseQuantity(raw[d.id] ?? '');
       if (value === null) invalid[d.id] = true;
       else quantities[d.id] = value;
@@ -81,7 +99,7 @@ export const PosAccessPage = () => {
     return { quantities, invalid };
   }, [raw]);
 
-  const count = computeOpening(defaultDenominations, parsed.quantities, scenario.register?.expectedOpening ?? null, note);
+  const count = computeOpening(denominations, parsed.quantities, scenario.register?.expectedOpening ?? null, note);
   const hasInvalid = Object.keys(parsed.invalid).length > 0;
   const mustJustify = needsJustification(count);
   const status = accessStatus(scenario, openedShift);
@@ -90,7 +108,7 @@ export const PosAccessPage = () => {
   if (hasInvalid) disabledReason = 'Corrige las cantidades marcadas: deben ser enteros de 0 o más.';
   else if (mustJustify && note.trim() === '') disabledReason = 'Escribe el motivo para continuar: la base no coincide con la esperada.';
 
-  /** Envío simulado. El cerrojo `inFlight` impide dos confirmaciones aunque se pulse dos veces seguidas. */
+  /** Envío. Real: `POST /pos/shifts`. Escenario de prueba: respuesta guionada (outcome), sin servidor. */
   const submit = () => {
     if (inFlight.current || !scenario.register) return;
     const register = scenario.register;
@@ -98,21 +116,36 @@ export const PosAccessPage = () => {
     setSubmitting(true);
     setConfirmError(null);
     setSent((n) => n + 1);
-    window.setTimeout(() => {
+    const finish = (shift: Shift) => {
       inFlight.current = false;
       setSubmitting(false);
-      if (outcome === 'error') {
-        setConfirmError('No se pudo abrir la caja. Revisa el conteo y vuelve a intentarlo.');
-        return;
-      }
-      if (outcome === 'offline') {
-        setConfirmError('Sin conexión: no se pudo verificar la apertura. No se asumió abierta; reintenta al recuperar la conexión.');
-        return;
-      }
-      setOpenedShift(simulatedShift(toShiftOpen(count, register), scenario.session, register, new Date()));
+      setOpenedShift(shift);
       setReviewOpen(false);
       setView('access');
-    }, CONFIRM_MS);
+    };
+    const fail = (message: string) => {
+      inFlight.current = false;
+      setSubmitting(false);
+      setConfirmError(message);
+    };
+    if (simulated) {
+      window.setTimeout(() => {
+        if (outcome === 'error') return fail('No se pudo abrir la caja. Revisa el conteo y vuelve a intentarlo.');
+        if (outcome === 'offline') {
+          return fail('Sin conexión: no se pudo verificar la apertura. No se asumió abierta; reintenta al recuperar la conexión.');
+        }
+        finish(simulatedShift(toShiftOpen(count, register), scenario.session, register, new Date()));
+      }, CONFIRM_MS);
+      return;
+    }
+    data.openShift.mutate(toShiftOpen(count, register), {
+      onSuccess: (shift) => finish(shift),
+      onError: (error) => fail(
+        error instanceof ApiError && error.code === 'SHIFT_ALREADY_OPEN'
+          ? 'La caja ya tiene un turno abierto. Actualiza el acceso.'
+          : 'No se pudo abrir la caja. Revisa el conteo y vuelve a intentarlo.',
+      ),
+    });
   };
 
   const confirm = () => {
@@ -129,7 +162,7 @@ export const PosAccessPage = () => {
     if (view === 'opening' && scenario.register) {
       return (
         <OpeningView
-          scenario={scenario} denominations={defaultDenominations} raw={raw} count={count} invalid={parsed.invalid}
+          scenario={scenario} denominations={denominations} raw={raw} count={count} invalid={parsed.invalid}
           authorized={authorized} submitting={submitting}
           onQuantity={(id, value) => setRaw((r) => ({ ...r, [id]: value }))}
           onNote={setNote}
@@ -152,7 +185,8 @@ export const PosAccessPage = () => {
   })();
 
   return (
-    <ScreenTemplate title="Acceso al POS" subtitle="Escenario simulado: sin datos reales">
+    <ScreenTemplate title="Acceso al POS" subtitle={simulated ? 'Escenario de prueba: no es el servidor real' : `${data.session.branchName} · ${scenario.register?.name ?? 'sin caja'}`}>
+      {simulated ? (
       <div className="pa-sandbox" role="group" aria-label="Controles del escenario simulado">
         <div>
           <label htmlFor="pa-scenario" className="pa-label">Escenario</label>
@@ -168,11 +202,12 @@ export const PosAccessPage = () => {
         </div>
         <p className="pa-sandbox__note" data-testid="confirm-count">Confirmaciones enviadas: {sent}</p>
       </div>
+      ) : null}
 
       {openedShift ? (
         <p className="pa-hint" role="status" data-testid="opened-shift">
-          Apertura simulada: base {openedShift.openingCash.toLocaleString('es-CO')} COP en {scenario.register?.name}. Compatible con{' '}
-          <code>ShiftOpen</code>; no se guardó ningún dato.
+          Turno abierto en {scenario.register?.name}: base {openedShift.openingCash.toLocaleString('es-CO')} COP.
+          {simulated ? ' (escenario de prueba; no se guardó en el servidor).' : ''}
         </p>
       ) : null}
 

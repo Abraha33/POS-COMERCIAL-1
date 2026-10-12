@@ -98,7 +98,7 @@ describe('login', () => {
     await renderAt('/login');
     await user.click(await screen.findByRole('tab', { name: 'Usuario y contraseña' }));
     await user.type(screen.getByLabelText('Usuario'), 'laura.gomez');
-    await user.type(screen.getByLabelText('Contraseña'), 'cambiar-en-desarrollo');
+    await user.type(screen.getByLabelText('Contraseña'), '1234');
     await user.click(screen.getByRole('button', { name: 'Ingresar' }));
     expect(await screen.findByRole('heading', { name: /Hola, Laura/ })).toBeInTheDocument();
   });

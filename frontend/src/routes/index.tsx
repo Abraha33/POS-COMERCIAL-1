@@ -38,6 +38,9 @@ const PosAccessPage = lazy(() => import('@/features/pos-access').then((m) => ({ 
 const posAccessRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/pos/acceso',
+  // `escenario` solo fija un escenario de prueba de la interfaz; sin él, la pantalla usa datos reales.
+  validateSearch: (search: Record<string, unknown>): { escenario?: string } =>
+    typeof search.escenario === 'string' ? { escenario: search.escenario } : {},
   component: () => (
     <RouteGuard permission="pos.sell">
       <Suspense fallback={<LoadingState />}>

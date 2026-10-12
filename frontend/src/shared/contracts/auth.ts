@@ -7,7 +7,7 @@ export type Login = z.infer<typeof loginSchema>;
 export const loginContract: Contract<typeof loginSchema> = {
   doctype: 'User',
   schema: loginSchema,
-  example: { username: 'laura.gomez', password: 'cambiar-en-desarrollo' },
+  example: { username: 'laura.gomez', password: '1234' },
 };
 
 export const authSessionSchema = z.object({

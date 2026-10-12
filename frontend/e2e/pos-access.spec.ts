@@ -33,7 +33,8 @@ const check = async (page: Page, scope: string, screenshot: string) => {
 for (const vp of viewports) {
   test(`acceso, apertura y revisión a ${vp.width}px`, async ({ page }) => {
     await page.setViewportSize({ width: vp.width, height: vp.height });
-    await startAs(page, 'cajero', '/pos/acceso');
+    // Capturas y revisión con el escenario de caja cerrada (estados fijos para medir el diseño).
+    await startAs(page, 'cajero', '/pos/acceso?escenario=caja-cerrada');
 
     await expect(page.getByTestId('access-view')).toBeVisible();
     await check(page, 'acceso', `capa3-acceso-${vp.name}`);
@@ -51,14 +52,16 @@ for (const vp of viewports) {
   });
 }
 
-test('flujo completo en el navegador: base exacta, confirmación y continuar a /pos', async ({ page }) => {
+test('flujo completo con datos reales: base exacta, apertura en el servidor y continuar a /pos', async ({ page }) => {
+  // Sin ?escenario: caja y turno vienen de GET /pos/registers y GET /pos/shifts/current; la apertura va a POST /pos/shifts.
   await startAs(page, 'cajero', '/pos/acceso');
+  await expect(page.getByTestId('access-view')).toBeVisible();
   await page.getByRole('button', { name: 'Abrir caja' }).click();
-  await page.getByLabel('Cantidad de billete de 100000').fill('2');
+  await page.getByLabel('Cantidad de billete de 100000').fill('1');
   await page.getByRole('button', { name: 'Revisar apertura' }).click();
   await page.getByRole('button', { name: 'Confirmar apertura' }).dblclick();
   await expect(page.getByTestId('opened-shift')).toBeVisible();
-  await expect(page.getByTestId('confirm-count')).toHaveText('Confirmaciones enviadas: 1');
+  await expect(page.getByTestId('opened-shift')).not.toContainText('escenario de prueba');
   await page.getByRole('button', { name: /Continuar a Venta rápida/ }).click();
   await expect(page).toHaveURL(/\/pos$/);
 });

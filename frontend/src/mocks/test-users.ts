@@ -6,7 +6,7 @@ import type { Role } from '@/shared/contracts';
  */
 export type TestUser = { username: string; employeeId: string; role: Role; pin?: string };
 
-export const TEST_PASSWORD = 'cambiar-en-desarrollo';
+export const TEST_PASSWORD = '1234';
 
 export const testUsers: TestUser[] = [
   { username: 'laura.gomez', employeeId: 'emp-001', role: 'cajero' },
