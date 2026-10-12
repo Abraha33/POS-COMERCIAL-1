@@ -1,3 +1,4 @@
+import { registerReprint, reprintCount } from './reprints';
 import { useState } from 'react';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
@@ -32,6 +33,7 @@ export const SaleDetailDialog = ({
   sale, customerName, products, returnedInSession, canOperate, onReturn, onVoid, onHide,
 }: Props) => {
   const [tab, setTab] = useState<Tab>('info');
+  const [copies, setCopies] = useState(() => reprintCount(sale.number));
   const voided = sale.status === 'anulada';
   const gross = sale.lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
   const discount = sale.lines.reduce((sum, l) => sum + l.discount, 0);
@@ -51,6 +53,11 @@ export const SaleDetailDialog = ({
       modal
     >
       <div className="pos__receipt" data-testid="sale-detail">
+        {copies > 0 ? (
+          <p className="pos__hint" data-testid="reprint-note">
+            COPIA {copies} — mismo documento {sale.number}; no es una venta nueva ni mueve stock o caja.
+          </p>
+        ) : null}
         <SegmentedTabs ariaLabel="Secciones de la venta" variant="tabs" options={tabs} value={tab} onChange={setTab} />
 
         <div className="pos-detail__panel" role="tabpanel" aria-label="Información" hidden={tab !== 'info'}>
@@ -120,7 +127,10 @@ export const SaleDetailDialog = ({
 
       {voided ? <p className="pos__hint" role="status">Venta anulada: no admite devoluciones.</p> : null}
       <div className="app-dialog__footer">
-        <Button type="button" label="Imprimir" icon="pi pi-print" outlined onClick={() => window.print()} />
+        <Button
+          type="button" label={copies > 0 ? `Reimprimir copia (${copies})` : 'Reimprimir copia'} icon="pi pi-print" outlined
+          onClick={() => { setCopies(registerReprint(sale.number)); window.print(); }}
+        />
         {canOperate ? (
           <>
             <Button type="button" label="Devolver" icon="pi pi-replay" outlined disabled={voided} onClick={onReturn} />

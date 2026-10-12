@@ -7,6 +7,8 @@ export type HeldSale = {
   heldAt: string;
   customerId: string | null;
   lines: HeldLine[];
+  /** Precio unitario al suspender, para avisar de cambios al reanudar. */
+  prices?: Record<string, number>;
 };
 
 const storageKey = (registerId: string) => `pos.held.${registerId}`;
@@ -59,10 +61,10 @@ export const useHeldSales = (registerId: string) => {
   const held = useMemo(() => parse(raw), [raw]);
 
   const hold = useCallback(
-    (lines: HeldLine[], customerId: string | null) =>
+    (lines: HeldLine[], customerId: string | null, prices?: Record<string, number>) =>
       writeRaw(
         registerId,
-        JSON.stringify([...parse(readRaw(registerId)), { id: uuid(), heldAt: new Date().toISOString(), customerId, lines }]),
+        JSON.stringify([...parse(readRaw(registerId)), { id: uuid(), heldAt: new Date().toISOString(), customerId, lines, ...(prices ? { prices } : {}) }]),
       ),
     [registerId],
   );

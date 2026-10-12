@@ -63,6 +63,7 @@ export const PosPage = () => {
         heldCount={held.held.length}
         openOrders={openOrders}
         collectCount={withBalance(orders).length}
+        light={counts(orders)}
         onSell={() => setView('sell')}
         onHeld={() => { setView('sell'); setHeldToken((n) => n + 1); }}
         onCollections={() => { setBoardFilter('cobros'); setView('orders'); }}

@@ -1,9 +1,10 @@
-import type { RefObject } from 'react';
+import { useState, type RefObject } from 'react';
 import { Button } from 'primereact/button';
 import type { Customer } from '@/shared/contracts';
 import { MoneyText } from '@/shared/ui';
 import { formatMoney } from '@/shared/utils/format';
 import { payModeOptions, type PayMode } from './cart';
+import { searchCustomers } from './customerSearch';
 
 type Props = {
   customers: Customer[];
@@ -33,6 +34,9 @@ export const SalePanel = ({
   mode, onMode, hasLines, pending, onCharge, onHold, onCancel,
 }: Props) => {
   const creditNeedsCustomer = customerId === null;
+  const [search, setSearch] = useState('');
+  const found = searchCustomers(customers, search);
+  const options = customer && !found.some((c) => c.id === customer.id) ? [customer, ...found] : found;
   return (
     <aside className="pos__side" aria-label="Cobro">
       <section className="pos__panel" aria-label="Cliente">
@@ -40,6 +44,22 @@ export const SalePanel = ({
           <h2>Cliente</h2>
           <kbd className="pos__kbd">F3</kbd>
         </div>
+        <label htmlFor="pos-customer-search" className="sr-only">Buscar por nombre, NIT o teléfono</label>
+        <input
+          id="pos-customer-search" type="search" className="p-inputtext w-full"
+          placeholder="Buscar por nombre, NIT o teléfono" value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && found.length === 1 && found[0]) {
+              e.preventDefault();
+              onCustomer(found[0].id);
+              setSearch('');
+            }
+          }}
+        />
+        {search.trim() !== '' && found.length === 0 ? (
+          <p className="pos__hint" role="status">Sin coincidencias. Puedes crear el cliente con "Nuevo cliente".</p>
+        ) : null}
         <label htmlFor="pos-customer" className="sr-only">Cliente (F3)</label>
         <select
           id="pos-customer"
@@ -49,7 +69,7 @@ export const SalePanel = ({
           onChange={(e) => onCustomer(e.target.value || null)}
         >
           <option value="">Consumidor final</option>
-          {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          {options.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
         <Button type="button" label="Nuevo cliente" icon="pi pi-user-plus" text size="small" className="pos__new-customer" onClick={onNewCustomer} />
         <div className="pos__customer-card">

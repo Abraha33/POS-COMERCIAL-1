@@ -14,14 +14,14 @@ pasarela. Un banco nuevo es una fila de configuración, no un formulario. El cat
 |---|---|---|
 | Sede, caja, turno, conexión | ✔ | AppShell + Pos header |
 | Acceso directo a Pedidos con contador | ✔ | pestaña "Pedidos n" |
-| Vista previa del semáforo en el header | ✘ | los 4 contadores solo viven dentro de Pedidos; falta un resumen en el header |
+| Vista previa del semáforo en el header | ✔ | 4 contadores (pendientes, en proceso, con faltante, listos) junto a Pedidos |
 | Alertas reales (F12) en el header | ◐ | el estado existe en `pos-ops`, no se consume aquí |
 
 ## 02 Bandejas rápidas
 | Subflujo | Estado | Nota |
 |---|---|---|
 | Suspendidas, Cobros pendientes, Pedidos | ✔ | contadores y filtros |
-| Reanudar revalidando precios y stock | ✘ | hoy se reanuda con los precios actuales sin avisar diferencias |
+| Reanudar revalidando precios y catálogo | ✔ | aviso de cambios de precio y retiro de productos inactivos; el stock lo valida el servidor al cobrar |
 | Reintentar operación de resultado incierto | ◐ | la cola offline (F13) lo modela; no está atada al botón Cobrar |
 
 ## 03 Catálogo inteligente
@@ -41,7 +41,8 @@ pasarela. Un banco nuevo es una fila de configuración, no un formulario. El cat
 | Subflujo | Estado | Nota |
 |---|---|---|
 | Selección, alta rápida, cupo y saldo | ✔ | |
-| Buscar por NIT/teléfono, editar, direcciones | ✘ | |
+| Buscar por nombre, NIT o teléfono | ✔ | Enter selecciona si hay una sola coincidencia |
+| Editar cliente, direcciones | ✘ | |
 | Elegir documento a emitir (factura electrónica / documento equivalente POS) | ✔ | **selección**, recuerda el último; la emisión no existe (**B**, DIAN) |
 | No eliminar clientes con historial fiscal | ✘ **C** | no hay operación de borrado; falta la regla explícita |
 
@@ -88,7 +89,7 @@ pasarela. Un banco nuevo es una fila de configuración, no un formulario. El cat
 | Subflujo | Estado | Nota |
 |---|---|---|
 | Recibo, nueva venta, programar entrega, crear pedido | ✔ | |
-| Reimpresión sin duplicar | ✘ | |
+| Reimpresión sin duplicar | ✔ | "Reimprimir copia" cuenta copias del mismo documento; sin venta, stock ni caja nuevos |
 | Idempotencia (`clientOperationId`) | ✔ | cubierta en los mocks y en la conformidad del contrato; sin prueba E2E de doble clic |
 
 ## Pagos mixtos independientes
@@ -103,6 +104,6 @@ pasarela. Un banco nuevo es una fila de configuración, no un formulario. El cat
 Cerrado en esta rama: canales dinámicos, documento a emitir, comprobante móvil con verificación y excepción trazable,
 canal/referencia/cuenta/comprobante en la venta (contrato v0.6.0 PROPUESTA), plazo y abono inicial de crédito, y pagos
 mixtos como componentes independientes con reversa trazable.
-Sigue **sin** cerrar: cuotas/plan de pagos, autorización de excedente de cupo y de vencimiento libre, reimpresión sin
-duplicar, revalidar precios al reanudar, resumen del semáforo en el header, búsqueda de cliente por NIT, marca y
-presentaciones (contrato de producto), conciliación y backend real. Todo lo ✔ corre sobre mocks.
+Sigue **sin** cerrar: cuotas/plan de pagos, autorización de excedente de cupo y de vencimiento libre (necesitan acción
+de aprobación nueva en el contrato), editar cliente y direcciones, marca y presentaciones (contrato de producto),
+conciliación y backend real. Todo lo ✔ corre sobre mocks.

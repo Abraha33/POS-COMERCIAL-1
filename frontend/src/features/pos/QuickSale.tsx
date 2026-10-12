@@ -12,6 +12,7 @@ import { formatMoney } from '@/shared/utils/format';
 import { uuid } from '@/shared/utils/uuid';
 import { computeTotals } from '@/shared/utils/pricing';
 import { CartLines, type PricedLine } from './CartLines';
+import { revalidateHeld } from './heldRevalidate';
 import { NewCustomerDialog } from './NewCustomerDialog';
 import { ProductDetailPanel } from './ProductDetailPanel';
 import { ALL_CATEGORIES, CatalogPanel, type Availability } from './CatalogPanel';
@@ -381,13 +382,24 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
     );
   };
 
+  const priceSnapshot = (): Record<string, number> =>
+    Object.fromEntries(lines.flatMap((l) => { const p = byId.get(l.productId); return p ? [[p.id, p.price]] : []; }));
   const holdCurrent = () => {
     if (lines.length === 0) return;
-    heldSales.hold(lines, customerId);
+    heldSales.hold(lines, customerId, priceSnapshot());
     reset();
   };
   const resume = (sale: HeldSale) => {
-    setLines(sale.lines);
+    const check = revalidateHeld(sale, products.data ?? []);
+    if (check.dropped.length > 0 || check.changes.length > 0) {
+      const name = (id: string) => byId.get(id)?.name ?? id;
+      const parts = [
+        ...check.changes.map((c) => `${name(c.productId)}: ${formatMoney(c.from)} → ${formatMoney(c.to)}`),
+        ...check.dropped.map((id) => `${id}: ya no está disponible y se quitó`),
+      ];
+      notify({ severity: 'warn', summary: 'Revisa la venta reanudada', detail: parts.join(' · ') });
+    }
+    setLines(check.lines);
     setCustomerId(sale.customerId);
     setReceivedState(null);
     heldSales.remove(sale.id);
@@ -515,7 +527,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
                     <Button
                       type="button" label="Duplicar" icon="pi pi-copy" outlined
                       onClick={() => {
-                        heldSales.hold(lines, customerId);
+                        heldSales.hold(lines, customerId, priceSnapshot());
                         notify({ severity: 'info', summary: 'Copia guardada', detail: 'Está en Suspendidas; la venta actual sigue abierta.' });
                       }}
                     />
