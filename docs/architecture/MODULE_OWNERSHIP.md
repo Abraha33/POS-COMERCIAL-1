@@ -63,5 +63,5 @@ pasar por ese dueño o por el integrador.
 - Un cambio de contrato entra por PR `contract:` al integrador, con su Zod, su mock y su prueba de conformidad.
 
 ### Pendiente conocido de esta división
-- Denominaciones de apertura de caja (`features/pos-access/scenarios.ts`) siguen siendo constantes locales; migrar a `useCountryPack`.
+- Denominaciones: el acceso real usa las del CountryPack (`useAccessData`); `features/pos-access/scenarios.ts` conserva constantes solo como datos de escenarios de prueba.
 - Desborde horizontal a 375 px en `/pos` y tablas de datos (documentado en `TRASPASO.md`).
