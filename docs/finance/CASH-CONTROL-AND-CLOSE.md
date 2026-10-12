@@ -1,6 +1,6 @@
 # Control, conciliación y cierre integral de caja — F10 / CAJ-07
 
-**Decisión:** D-037, aprobada por el dueño el 2026-10-12.
+**Decisión:** D-044, aprobada por el dueño el 2026-10-12.
 **Estado de implementación:** PARTIAL y simulada. Este contrato no acredita ERPNext,
 DIAN, banco, datáfono, impresora ni contabilización real.
 

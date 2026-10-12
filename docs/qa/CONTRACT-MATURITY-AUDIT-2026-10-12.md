@@ -1,5 +1,9 @@
 # Auditoría de contratos y madurez — ERP/POS Holamigo
 
+> **Histórico:** reemplazado por
+> [CONTRACT-MATURITY-AUDIT-2026-10-12-V2.md](CONTRACT-MATURITY-AUDIT-2026-10-12-V2.md)
+> tras sincronizar decisiones D-037…D-052. No usar sus porcentajes como estado vigente.
+
 **Corte:** 2026-10-12. **Ámbito:** rama feat/pos-proofs, documentación,
 contratos y evidencia local disponible. **No acredita producción.**
 

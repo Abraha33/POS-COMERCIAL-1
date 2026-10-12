@@ -35,6 +35,27 @@
 4. Escribir PR con branch/commit, archivos, tests y riesgos.
 5. No reescribir documentos históricos para hacer parecer que siempre incorporaban la nueva decisión.
 
+## Ampliación aprobada tras consolidación inicial — grupos 3, 4, 5, 7 y 8
+
+Aprobación expresa del usuario para contratos de dominio: [CAT v1](catalog/CAT-PRODUCTS-PRICING-V1.md), [INV v1](inventory/INV-ZONES-CYCLE-STOCK-V1.md), [COM v1](purchasing/COM-PURCHASING-SUPPLIERS-V1.md), [PED v1](orders/PED-ORDERS-FULFILLMENT-V1.md), [REP v1](reports/REP-REPORTS-AUDIT-V1.md).
+
+Nuevas decisiones [D-037..D-044](decisions/2026-10-12-DECISION-REGISTER.md) **prevalecen** sobre propuestas previas:
+- **INV:** programa diario de conteos por zonas, urgencia rojo/amarillo/verde/gris separada de estado; ayudante cuenta, cajero registra, supervisor aprueba; considerar movimientos concurrentes.
+- **CAT:** catálogo maestro único, precio determinista con precedencia y no acumular descuentos automáticamente.
+- **COM:** compra rápida o controlada, recepción aceptada define entrada de inventario, pagos vía CAJ/TES.
+- **PED:** base funcional aprobada, pero **F08 sigue aplazado para implementación**; prioridad configurable con fecha prometida/riesgo como default actual y pago/antigüedad después.
+- **REP:** X provisional y Z definitivo integran facturas crédito, cobros antiguos, gastos, proveedores y movimientos; Z no sustituye DIAN.
+
+No interpretar esta aprobación de negocio como endpoints, UI implementada ni evidencia de tests pasados.
+
+## Handoff de especificaciones documentales etapas 1–3, sin F08/F13
+
+Por encargo del usuario se añadió [`docs/contracts-v1/README.md`](contracts-v1/README.md). Leer sus etapas en orden: propuestas F07/CLI/ADM/F09–F11, nueve paquetes UI con las seis secciones y operaciones/esquemas/estados/mocks declarativos. Los nombres de operaciones son **lógicos**, NO endpoints publicados. Las decisiones previas A prevalecen sobre nuevas propuestas P D-047..D-052.
+
+**NO iniciar etapa 4 por este encargo.** No crear React/TS, MSW, Zod, APIs, scripts ni pruebas ahora. **NO ampliar F08 Pedidos ni F13 Offline**. Registrar los vacíos de OpenAPI/branch frontend real como bloqueadores pendientes, no llenarlos fingiendo implementación.
+
+El próximo agente que vaya a construir deberá antes (1) auditar el repo/commit vigente de Vite/PrimeReact, (2) cotejar las 8 composiciones UI con componentes existentes, (3) mapear las operaciones lógicas a API real, (4) confirmar política de caja/stock/retornos con profesionales aplicables, (5) asignar worktrees exclusivos y tests.
+
 ## Estado y preguntas bloqueantes
 - ¿En qué repo/commit está la rama local actual `capa-2-responsive`? Aportar SHA o publicar branch para contrastar.
 - ¿Cuál es la URL/identificador exacto de **GitHub Project Six / Project 6**? Este handoff y repositorio no acreditan pertenencia a ese tablero; asociación de Issues/PR al Project requiere acceso compatible.

@@ -40,7 +40,6 @@
 | D-034 | C | Pagos Nequi, Daviplata, Bancolombia, Bre-B, tarjeta, efectivo, mixto y crédito: UI contextual y cuentas de destino configuradas por administrador, no formularios largos. |
 | D-035 | C | Venta, cobro, emisión fiscal, envío de documento, impresión y entrega son procesos con estados distintos, aunque el cajero vea una acción compacta. |
 | D-036 | P | Criterios WCAG 2.2 AA y breakpoints iniciales de contratos históricos son objetivos propuestos, no certificación. |
-| D-037 | A | F10 se redefine como **Control, conciliación y cierre integral de caja**: informe X repetible, conciliación de facturación/ingresos/egresos/custodia, arqueo físico solo del efectivo, incidencias y cierre Z único/auditable. No crea una segunda contabilidad ni reemplaza documentos fiscales. |
 
 ## Orden de precedencia y conflictos conocidos
 1. **Modelo simplificado anterior → estándar empresarial vigente (D-001)**.
@@ -49,7 +48,7 @@
 4. Impresión implícita al facturar → **estados separados (D-008)**.
 5. F08 era prioridad de detalle → **aplazado para profundización (D-010)**.
 6. Auditoría antigua sobre Next/shadcn de rama Frappe **no invalida** Vite/PrimeReact aprobado pero no verificado en árbol nuevo.
-7. El documento histórico v0.1 de pos-proofs NO incluye necesariamente las decisiones D-001..D-037; leer siempre primero este registro.
+7. El documento histórico v0.1 de pos-proofs NO incluye necesariamente las decisiones D-001..D-035; leer siempre primero este registro.
 
 ## Qué aún no está resuelto
 - Verificación del frontend real `capa-2-responsive` (rama local aparentemente no publicada) y si `pos-proofs` ya existe allí.
@@ -57,4 +56,44 @@
 - Clasificación contable colombiana, impuesto por línea, momento de expedición DIAN, conservación comprobantes, recepción/bancos, cierre.
 - Diseño detallado F08, periféricos específicos, políticas offline por operación, gestión de discrepancias y límites por empresa.
 - Los documentos publicados en GitHub son **documentación**; ningún componente de producción se declara validado por este commit.
+
+## Aprobaciones adicionales expresas — 2026-10-12, después de D-036
+
+El usuario aprobó explícitamente la propuesta funcional integrada para **los grupos 3, 4, 5, 7 y 8**. Los contratos vinculados quedan en nivel **A (funcional aprobado)**, no en estado de implementación. La aprobación comprende reglas operativas descritas; decisiones contables/fiscales, umbrales y contratos API conservan validación independiente.
+
+| ID | Nivel | Decisión nueva o aclaración de precedencia |
+|---|---|---|
+| D-037 | A | **Grupo 3/CAT**: catálogo maestro único, CAT-01..08, UOM/variantes, búsqueda multifiltro, lista por cliente, escala por volumen, promociones controladas, importación con previsualización y un motor de precios determinista con regla ganadora explícita. Sin acumulación automática de beneficios. Ver [CAT v1](../catalog/CAT-PRODUCTS-PRICING-V1.md). |
+| D-038 | A | **Grupo 4/INV**: INV-01..10, entradas por recepción aceptada, físico/reservado/disponible/no vendible/en tránsito, conteos diarios por zona, discrepancias aprobadas, traslados, merma y política de inventario negativo bloqueado por defecto. Ver [INV v1](../inventory/INV-ZONES-CYCLE-STOCK-V1.md). |
+| D-039 | A | **Grupo 5/COM**: COM-01..08, compra rápida (según permisos) y compra controlada, recepción parcial, comparación documento/orden/mercancía, devoluciones, costos adicionales y pagos reutilizando CAJ-05/TES-06. Ver [COM v1](../purchasing/COM-PURCHASING-SUPPLIERS-V1.md). |
+| D-040 | A | **Grupo 7/PED**: PED-01..08, base funcional de bandeja pipeline con etapas de preparación, prioridades, pedido parcial, empaque, despacho, entrega e incidencias. **F08 continúa aplazado para implementación** según D-010; su definición base ha sido aprobada. Ver [PED v1](../orders/PED-ORDERS-FULFILLMENT-V1.md). |
+| D-041 | A | **Grupo 8/REP**: REP-01..09, informes X/Z, consolidado sede, historial, KPIs comerciales, inventario/zonas, cartera, auditoría y exportaciones controladas; fuentes financieras únicas. Ver [REP v1](../reports/REP-REPORTS-AUDIT-V1.md). |
+| D-042 | A | **Conteo diario por zonas**, con semáforo ROJO urgente, AMARILLO próximo, VERDE al día, GRIS no disponible; prioridad independiente del estado sesión/reconteo/aprobación. Local ilustrativo 7 zonas, sin número fijo; ayudante cuenta, cajero registra, supervisor valida; operaciones concurrentes ajustadas por punto de corte. No suponer todas las zonas contadas cada día salvo política empresa. |
+| D-043 | A | Para **priorización de pedidos**, la propuesta reciente aprobada usa **fecha prometida/riesgo de incumplimiento → verificación de pago → orden de llegada**, configurable por empresa, con opción histórica **pagados → parciales → no pagados**; la posición de cola debe ser explicable. Esta aclaración actualiza el default de propuestas antiguas sin eliminar su disponibilidad como opción. |
+| D-044 | A | **F10/CAJ-07** integra control de documentos y movimientos más allá del efectivo: ventas/facturas a crédito, cobros cartera, pagos proveedor, compras contado, gastos, transferencias, devoluciones, anticipos, arqueo y X provisional/Z definitivo; REP-01..03 reutilizan el mismo corte. X/Z son reportes internos, nunca sustituyen la obligación DIAN. |
+
+### Límites de esta aprobación
+1. Los cinco grupos se consideran **funcionalmente aprobados en v1**; no implica que sus subflujos estén implementados, integrados o evaluados legalmente.
+2. D-010 se conserva para la **prioridad de implementación de F08**, mientras D-040 aprueba su contrato funcional base. No marcar PED como "implementado".
+3. CAT v1 no inventa listas/tarifas concretas; umbrales, redondeos, impuesto y tratamiento contable requieren validación.
+4. INV diario no exige contar siete zonas todos los días; frecuencia y urgencia son políticas por empresa.
+5. Si una política local contradice capacidad del backend o la normativa, registrar conflicto y abrir validación antes de activar la operación real.
+
+## Encargo adicional de preparación técnica (2026-10-12)
+
+El usuario autorizó **desarrollar documentación hasta etapa 3**, sin realizar etapa 4; **Pedidos/F08 y Offline/F13 fuera del alcance de este encargo**. Se registran nuevas hipótesis de diseño como `P`, para evitar elevar automáticamente todas las decisiones que el asistente derivó a políticas aprobadas.
+
+| ID | Nivel | Alcance y estado |
+|---|---|---|
+| D-045 | A | El encargo documental llega a **Etapa 1 (flujos), Etapa 2 (seis contratos UI), Etapa 3 (esquemas/adapters/mocks)** y se detiene antes de construcción/QA etapa 4. Documentar el resultado en `docs/contracts-v1/`. |
+| D-046 | A | **F08 Pedidos y F13 Offline** se conservan **por separado**, sin profundizar su UI/API/estados/mocks en este paquete. Se respetan los contratos/decisiones previos sin revocarlos. |
+| D-047 | P | Propuesta F07: tipos devolución comercial/garantía/retracto/corrección diferenciados, inspección stock, efecto fiscal/financiero por separado, refund UNKNOWN no duplicable. Derechos legales sujetos a especialista. Ver `docs/contracts-v1/01-functional/F07-RETURNS-EXCHANGES.md`. |
+| D-048 | P | Propuesta CLI: cliente/identificación, crédito con exposición concurrente, abonos multi-factura, anticipos, saldos de cartera, privacidad y validaciones. Ver `docs/contracts-v1/01-functional/CLI-CUSTOMERS-CREDIT.md`. |
+| D-049 | P | Propuesta ADM/F14: jerarquías empresa/sede/caja, roles y grants, cuentas destino versionadas, periféricos, fiscalidad delegada, importaciones seguras. Ver `docs/contracts-v1/01-functional/ADM-POS-OPERATIONS-CONFIG.md`. |
+| D-050 | P | Etapa 2: base UI reusable de seis secciones y nueve paquetes por dominio incluyendo POS Venta; evitar crear 43 pantallas o reimplementar PrimeReact. `docs/contracts-v1/02-ui/`. |
+| D-051 | P | Etapa 3: DTO/Zod **declarativos**, operaciones API **lógicas**, puertos de adapters, estados/roles/errores y escenarios MSW **documentados**. Sin endpoints reales, handlers, tests o implementación. `docs/contracts-v1/03-data/`. |
+| D-052 | P | Propuesta operativa: F09 consume CAJ-05, F10 CAJ-07/REP X/Z, F11 REP-04..09; no crear ledgers/reportes paralelos. `docs/contracts-v1/01-functional/POS-F09-F10-F11-CONVERGENCE.md`. |
+
+### Regla de gobernanza específica
+La autorización a documentar no aprueba automáticamente **porcentajes financieros, tratamiento de impuestos/garantías, endpoints, decisiones de ERPNext, umbrales, campos exactos ni pruebas**. Cualquier contradicción entre nuevas propuestas P y decisiones D-001..D-044 nivel A se resuelve a favor de las A previas. Antes de etapa 4, cotejar el frontend real con `capa-2-responsive` y OpenAPI real.
 

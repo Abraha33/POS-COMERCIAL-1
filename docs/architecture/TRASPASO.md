@@ -2,7 +2,7 @@
 
 Para cualquier herramienta o persona que retome el trabajo (Claude, ChatGPT/Codex, OpenCode). Léelo junto con
 `AGENTS.md` (reglas), `docs/PROJECT-STATE.md` (decisiones funcionales vigentes),
-`docs/qa/CONTRACT-MATURITY-AUDIT-2026-10-12.md` (medición y brechas) y
+`docs/qa/CONTRACT-MATURITY-AUDIT-2026-10-12-V2.md` (medición y brechas) y
 `docs/architecture/ENTORNO_OFICIAL.md` (carpetas y puertos).
 
 ## 1. Dónde estamos

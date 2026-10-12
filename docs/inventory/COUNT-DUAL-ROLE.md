@@ -1,6 +1,6 @@
 # Inventario — Conteos cíclicos coordinados por caja y ayudante
 
-**Corte:** 2026-10-12. **Estado:** regla operativa discutida; ampliar inventarios completos en otro contrato. Se mantiene independiente del módulo POS F04 y de su carrito.
+**Corte:** 2026-10-12. **Estado:** patrón operativo **aprobado y ampliado** por [INV-ZONES-CYCLE-STOCK-V1.md](INV-ZONES-CYCLE-STOCK-V1.md). Este documento se conserva como contrato detallado del trabajo ayudante/cajero; el contrato INV v1 manda en programación y prioridad por zonas. Se mantiene independiente del módulo POS F04 y de su carrito.
 
 ## Patrón empresarial aprobado como base
 En una tienda tipo conveniencia/distribuidora hay dos papeles durante el conteo: **ayudante cuenta físicamente**; **cajero guía, ingresa cantidades y notas**. Supervisor/administrador **revisa diferencias, valida o autoriza ajustes**. Los roles se asignan por capacidad, no obligan a contratar tres personas distintas.
@@ -34,4 +34,10 @@ En una tienda tipo conveniencia/distribuidora hay dos papeles durante el conteo:
 
 ## Diseño UI
 Una bandeja compacta de sesiones por estado + detalle de líneas; escáner/teclado primero, tablet/móvil para ayudante cuando se habilite. No crear una pantalla por rol: vista contextual por permisos. El cajero puede coordinar desde equipo fijo, ayudante con dispositivos si existen. Sin imágenes obligatorias.
+
+## Extensión aprobada: conteo diario priorizado por zonas
+
+**El negocio programa conteos diariamente, por zona física**, con cantidad de zonas configurable (siete es solo ejemplo). Bandeja visual semáforo de urgencia: rojo (vencido/riesgo/diferencia), amarillo (hoy/próximo), verde (al día), gris (bloqueado). **No confundir prioridad con estado**: pendiente, contando, reconteo, en aprobación, conciliado. Un conteo completado con diferencia abierta no equivale a zona sin incidencia.
+
+Cajero guía/registra; ayudante cuenta físicamente; supervisor valida ajustes. Cada sesión mantiene corte temporal por zona o ítem y contabiliza ventas/entradas/salidas ocurridas mientras se cuenta. Ninguna captura ajusta stock sin documento aprobado. Prioridad/periodicidad/umbrales son por empresa. **Fuente funcional completa:** [INV v1](INV-ZONES-CYCLE-STOCK-V1.md).
 

@@ -77,11 +77,11 @@ Reglas RBAC + capabilities + límites contextuales; nunca seguridad basada solo 
 **Excepciones:** recepción parcial, diferencia, traslado no recibido, sustitución responsable.
 **Aceptar:** no registrar gasto/ingreso interno ficticio; origen/destino equivalentes, importe e historial de custodios; no doble recepción.
 
-### CAJ-07 — Control, conciliación y cierre integral de caja
-**Flujo:** informe X repetible → conciliación documental de facturación, ingresos, egresos y custodia → conteo ciego por denominación cuando se configure → diferencia/incidencias → observación/aprobación → cierre e informe Z. Detalle: [CASH-CONTROL-AND-CLOSE.md](CASH-CONTROL-AND-CLOSE.md).
+### CAJ-07 — Arqueo y cierre
+**Flujo:** declarar cierre → conteo ciego por denominación cuando se configure → comparar movimientos → marcar diferencia → observación/aprobación → cerrar caja/turno, informe.
 **Roles:** cajero responsable y revisor con permiso.
-**Excepciones:** faltantes, sobrantes, transferencia en verificación, pago pendiente, soporte/documento faltante, autorización pendiente y cierre interrumpido.
-**Aceptar:** efectivo esperado/contado separados; documentos y pagos electrónicos conciliados sin contarlos como efectivo; diferencia/incidencia auditada; X no cierra; Z es único/auditable; turno cerrado bloquea nuevas transacciones; cierre no genera doble contabilización.
+**Excepciones:** faltantes, sobrantes, transferencia en verificación, pago pendiente, cierre interrumpido.
+**Aceptar:** efectivo esperado/contado separados; diferencia auditada; pagos digitales no agregados al efectivo; turno cerrado bloquea nuevas transacciones; cierre no genera doble contabilización.
 
 ## 5. Tesorería — 6 flujos
 
@@ -202,4 +202,17 @@ No garantizar que estos sean nombres exactos de estados ERPNext; mapear vía ada
 12. Ninguna operación entre tenants/sedes fuera del ámbito autorizado.
 
 **Estado final:** funcionalmente documentado; aprobado solamente el **modelo estándar empresarial** y las decisiones A del registro. Políticas de umbrales, modelos contables y fiscalidad quedan pendientes de firma técnica/profesional.
+
+## 12. Ampliación aprobada — F10/CAJ-07 y REP-01..03 (2026-10-12)
+
+La aprobación funcional del grupo 8 formaliza **cierre integral de operaciones por turno/caja**; ver [REP v1](../reports/REP-REPORTS-AUDIT-V1.md). El **conteo físico de billetes y monedas** continúa separado de la **conciliación documental y bancaria**.
+
+- Antes de cierre, el sistema resume ventas contado y crédito, notas, documentos fiscales; recibos por método, cobranzas de facturas antiguas, anticipos, pago mixto, transferencias no verificadas; egresos (compras pagadas, gastos, abonos y cancelaciones de cuentas por pagar, retiros, reembolsos), custodia y consignaciones.
+- **Informe X** es provisional consultable repetidamente, sin cerrar ni resetear transacciones.
+- **Informe Z** es cierre definitivo identificado, auditado por caja/turno, con corte, responsables y diferencias/pendientes. El reporte Z interno no es sustituto de documento fiscal DIAN ni debe duplicar asiento que ERPNext publique.
+- Consolidar Z de varios turnos/cajas por sede **sin duplicar** ventas, abonos o movimientos internos de dinero.
+- Incidencias pendientes pueden requerir aprobación/excepción documentada para cerrar; dinero en tránsito y pagos inciertos no se declaran efectivo contado ni recaudo bancario confirmado.
+- Caja/turno se cierra en ámbito operativo; contabilidad del período se cierra separadamente con CON-05.
+
+Los detalles de importes/tolerancias, integraciones, contabilidad y reglas fiscales requieren verificación profesional. No se ha ejecutado ni validado una prueba por aprobar el contrato.
 
