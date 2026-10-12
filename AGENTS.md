@@ -3,6 +3,8 @@
 Contrato de trabajo para **cualquier** herramienta o persona (Claude Code, ChatGPT/Codex, OpenCode, humano).
 Si tu herramienta lee otro archivo (`CLAUDE.md`, etc.), ese archivo remite aquí.
 
+> **Para retomar el trabajo, lee primero `docs/architecture/TRASPASO.md`** (estado, decisiones, pendientes y problemas conocidos).
+
 ## 1. Cuál es el proyecto oficial
 
 | Qué | Valor |
