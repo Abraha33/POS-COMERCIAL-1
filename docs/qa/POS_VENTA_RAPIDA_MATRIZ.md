@@ -107,5 +107,5 @@ Cerrado en esta rama: canales dinámicos, documento a emitir, comprobante móvil
 canal/referencia/cuenta/comprobante en la venta (contrato v0.6.0 PROPUESTA), plazo y abono inicial de crédito, y pagos
 mixtos como componentes independientes con reversa trazable.
 Capa 5: pedidos y la cola offline de `pos-ops` **ya consumen** la API simulada (ver `docs/architecture/CONTRATO_CAPA_5.md`);
-turnos y autorizaciones de `pos-ops` siguen locales en pantalla.
+las autorizaciones de `pos-ops` también sincronizan; la entrega de turno sigue local en pantalla.
 Sigue **sin** cerrar: conexión bancaria real para la conciliación y backend real. Todo lo ✔ corre sobre mocks.

@@ -5,7 +5,9 @@ import * as auth from './authorization';
 import * as offline from './offline';
 import * as shifts from './shift';
 import { useCurrentShift } from '@/shared/api/pos';
+import { posAuthorizationsApi } from '@/shared/api/authorizations';
 import { posSyncApi } from '@/shared/api/sync';
+import { runAuthSync } from './authSync';
 import { createHttpTransport } from './httpTransport';
 import { createSimulatedRemote, type SimulatedOutcome } from './simulator';
 
@@ -83,6 +85,32 @@ export const useOps = (options: OpsOptions = {}) => {
   const isSupervisor = SUPERVISOR_ROLES.includes(session.user.role);
 
   const saveShift = (next: ShiftRecord) => store.write('shifts', [...store.read<ShiftRecord>('shifts').filter((s) => s.id !== next.id), next]);
+  // Autorizaciones: con el servidor en modo API se emparejan con la capa 5 cada 5 s (la UI sigue siendo local-first).
+  const authBusy = useRef(false);
+  const guardRef = useRef(guard);
+  guardRef.current = guard;
+  useEffect(() => {
+    if (serverMode !== 'api' || !online) return undefined;
+    const tick = async () => {
+      if (authBusy.current) return;
+      authBusy.current = true;
+      try {
+        await runAuthSync(
+          posAuthorizationsApi,
+          () => store.read<AuthRequest>('auth'),
+          (next) => guardRef.current(() => store.write('auth', next)),
+          scope,
+          new Date(),
+        );
+      } finally {
+        authBusy.current = false;
+      }
+    };
+    void tick();
+    const t = window.setInterval(() => void tick(), 5000);
+    return () => window.clearInterval(t);
+  }, [serverMode, online, store, scope]);
+
   const saveAuth = (next: AuthRequest) => store.write('auth', [...store.read<AuthRequest>('auth').filter((a) => a.id !== next.id), next]);
 
   const run = <T,>(result: { ok: true; value: T } | { ok: false; message: string }, then: (v: T) => void): boolean => {

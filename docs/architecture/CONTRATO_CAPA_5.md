@@ -9,7 +9,7 @@ OpenAPI verificada por `tsc`, handlers MSW (`mocks/handlers/posops.ts`) y confor
 | Pedidos | `GET /pos/orders?branchId`, `PUT /pos/orders/{id}` (concurrencia optimista), `POST /pos/orders`, `POST …/transitions` | **`features/pos/orders`** vía `ordersSync.ts` (offline-first) |
 | Sincronización offline | `POST /pos/sync/batches`, `GET /pos/sync/operations/{key}` | **`features/pos-ops`** vía `httpTransport.ts` (por defecto) |
 | Turnos (F03) | `POST /pos/shifts/{id}/handover` | solo conformidad; la UI de turnos sigue local |
-| Autorizaciones (F12) | `GET/POST /pos/authorizations`, `POST …/decision` | solo conformidad; la UI sigue local |
+| Autorizaciones (F12) | `GET/POST /pos/authorizations`, `POST …/decision` | **`features/pos-ops`** vía `authSync.ts` (cada 5 s con conexión; el servidor gana) |
 
 ## Cómo consumen
 - **Pedidos:** el dispositivo sigue siendo la fuente mientras no hay conexión (`localStorage`). Cada cambio marca el
@@ -30,7 +30,7 @@ OpenAPI verificada por `tsc`, handlers MSW (`mocks/handlers/posops.ts`) y confor
   `TIENE_PAGOS`.
 
 ## Pendiente
-- UI de turnos y autorizaciones (`pos-ops`) todavía opera sobre registros locales: sus endpoints existen y están
-  probados, pero la pantalla no los llama.
+- Autorizaciones sincronizan con la API; `cancelada`/`ejecutada` siguen locales (el servidor no tiene ese estado).
+- La entrega de turno (`POST /pos/shifts/{id}/handover`) está probada en conformidad, pero la UI de turnos sigue local.
 - Resolución de conflictos más fina que "gana el servidor"; reloj real y caducidades; concurrencia real entre cajas.
 - Reglas del dueño y backend Frappe.

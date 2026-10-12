@@ -98,6 +98,8 @@ export type AuthRequest = {
   /** Huella de lo autorizado: si cambian los datos esenciales, la aprobación deja de valer. */
   fingerprint: string;
   audit: { at: string; actorId: string; event: string; detail: string }[];
+  /** Id de la misma solicitud en el servidor (capa 5); ausente hasta que se publica. */
+  serverId?: string;
 };
 
 // ---------- F13: offline ----------
