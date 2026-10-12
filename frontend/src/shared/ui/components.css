@@ -108,3 +108,6 @@ button.app-shortcuts__item {
 /* ---- Dialogos (FormDialog / ConfirmAction) ---- */
 .app-dialog__footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; margin-top: var(--app-gap-lg); }
 .app-dialog__error { margin: 0 0 var(--app-gap); color: var(--app-danger-fg); background: var(--app-danger-bg); padding: 0.5rem 0.75rem; border-radius: var(--app-radius); }
+
+/* Cierre de cualquier diálogo: objetivo táctil mínimo (antes parcheado en cada módulo). */
+.p-dialog .p-dialog-header-icon { min-width: var(--app-touch-min); min-height: var(--app-touch-min); }

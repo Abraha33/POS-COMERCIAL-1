@@ -47,6 +47,20 @@ const posAccessRoute = createRoute({
   ),
 });
 
+const PosOpsPage = lazy(() => import('@/features/pos-ops').then((m) => ({ default: m.PosOpsPage })));
+/** POS-F03/F12/F13: turnos, autorizaciones y operación offline (simulados). */
+const posOpsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/pos/turno',
+  component: () => (
+    <RouteGuard permission="pos.sell">
+      <Suspense fallback={<LoadingState />}>
+        <PosOpsPage />
+      </Suspense>
+    </RouteGuard>
+  ),
+});
+
 const moduleRoutes = modules.map((m) => {
   const Page = pages[m.id];
   return createRoute({
@@ -62,7 +76,7 @@ const moduleRoutes = modules.map((m) => {
   });
 });
 
-const routeTree = rootRoute.addChildren([homeRoute, loginRoute, ...moduleRoutes, posAccessRoute]);
+const routeTree = rootRoute.addChildren([homeRoute, loginRoute, ...moduleRoutes, posAccessRoute, posOpsRoute]);
 
 export const createAppRouter = (history?: Parameters<typeof createRouter>[0]['history']) =>
   createRouter({ routeTree, history });

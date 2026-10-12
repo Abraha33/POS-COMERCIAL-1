@@ -1,0 +1,52 @@
+/* POS-F03/F12/F13. Solo tokens --app-*. Móvil primero; 900 px = escritorio, como el shell. */
+.po-body { margin-top: 1rem; }
+.po-stack { display: grid; gap: 1rem; }
+.po-panel { background: var(--app-surface); border: 1px solid var(--app-border); border-radius: var(--app-radius-lg); padding: 1rem; min-width: 0; }
+.po-panel h2 { margin: 0; font-size: 1.1rem; }
+.po-panel__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.75rem; }
+.po-subtitle { margin: 1rem 0 0.25rem; font-size: 0.95rem; }
+
+.po-facts { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 0.5rem 1rem; }
+.po-facts dt { color: var(--app-text-muted); font-size: 0.875rem; }
+.po-facts dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+
+.po-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+.po-actions .p-button { min-height: var(--app-touch-min); }
+.po-hint { color: var(--app-text-muted); margin: 0.5rem 0; }
+.po-error { color: var(--app-danger-fg); margin: 0.5rem 0; }
+.po-ok { color: var(--app-success-fg); margin: 0.5rem 0; }
+.po-label { display: block; margin: 0.75rem 0 0.25rem; font-weight: 600; }
+
+.po-field { margin-bottom: 0.5rem; }
+.po-field select, .po-field input.p-inputtext, .po-field textarea { min-height: var(--app-touch-min); }
+.po-field--inline { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.75rem; }
+.po-field--inline input[type='checkbox'] { width: 1.5rem; height: 1.5rem; }
+.po-field--row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+.po-list { list-style: none; margin: 0.5rem 0 0; padding: 0; display: grid; gap: 0.5rem; }
+.po-list li { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; padding: 0.5rem 0; border-bottom: 1px solid var(--app-border); }
+.po-list--alert li { color: var(--app-danger-fg); }
+
+.po-table { width: 100%; border-collapse: collapse; }
+.po-table th, .po-table td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--app-border); vertical-align: middle; }
+.po-table th { font-size: 0.875rem; color: var(--app-text-muted); }
+.po-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.po-badge {
+  display: inline-flex; align-items: center; gap: 0.5rem; min-height: var(--app-touch-min); padding: 0 0.75rem;
+  border: 1px solid var(--app-border); border-radius: var(--app-radius-pill); background: var(--app-surface); color: var(--app-text);
+  font: inherit; font-weight: 600; cursor: pointer;
+}
+.po-badge--success { background: var(--app-success-bg); color: var(--app-success-fg); }
+.po-badge--info { background: var(--app-info-bg); color: var(--app-info-fg); }
+.po-badge--warning { background: var(--app-warning-bg); color: var(--app-warning-fg); }
+.po-badge--danger { background: var(--app-danger-bg); color: var(--app-danger-fg); }
+
+.po-details { margin-top: 1rem; }
+.po-details summary { cursor: pointer; min-height: var(--app-touch-min); display: flex; align-items: center; font-weight: 600; }
+
+@media (max-width: 599px) {
+  .po-actions .p-button { width: 100%; justify-content: center; }
+  .po-field--row { grid-template-columns: 1fr; }
+  .po-list li { flex-direction: column; align-items: flex-start; }
+}

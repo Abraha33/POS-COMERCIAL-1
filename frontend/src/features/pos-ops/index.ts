@@ -1,0 +1,1 @@
+export { PosOpsPage } from './PosOpsPage';
