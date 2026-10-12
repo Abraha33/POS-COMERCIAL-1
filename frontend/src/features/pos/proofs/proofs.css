@@ -1,0 +1,31 @@
+.proof { display: grid; gap: 0.75rem; padding: 0.75rem; border: 1px solid var(--app-border); border-radius: var(--app-radius); background: var(--app-surface); }
+.proof__head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.proof__badge { padding: 0.25rem 0.625rem; border-radius: 999px; font-weight: 600; font-size: 0.875rem; background: var(--app-surface-muted); color: var(--app-text); }
+.proof__badge--success { background: var(--app-success-bg); color: var(--app-success-fg); }
+.proof__badge--info { background: var(--app-info-bg); color: var(--app-info-fg); }
+.proof__badge--warning { background: var(--app-warning-bg); color: var(--app-warning-fg); }
+.proof__badge--danger { background: var(--app-danger-bg); color: var(--app-danger-fg); }
+.proof__request, .proof__review { display: grid; grid-template-columns: auto 1fr; gap: 0.75rem; align-items: start; }
+.proof__qr { background: white; border: 1px solid var(--app-border); border-radius: var(--app-radius); }
+.proof__photo { max-width: 9rem; max-height: 12rem; object-fit: contain; border: 1px solid var(--app-border); border-radius: var(--app-radius); }
+.proof__actions { display: grid; gap: 0.5rem; min-width: 0; }
+.proof__row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.proof__link { display: grid; gap: 0.25rem; }
+.proof__label { font-weight: 600; }
+.proof__note { margin: 0; color: var(--app-danger-fg); }
+.proof__ok { margin: 0; color: var(--app-success-fg); font-weight: 600; }
+.proof__exception summary { cursor: pointer; min-height: var(--app-touch-min); display: flex; align-items: center; }
+.proof__exception > * + * { margin-top: 0.5rem; }
+@media (max-width: 520px) { .proof__request, .proof__review { grid-template-columns: 1fr; } .proof__qr { justify-self: center; } }
+
+/* Página de captura del teléfono */
+.capture { min-height: 100dvh; display: grid; place-items: start center; padding: 1rem; background: var(--app-bg, var(--app-surface-muted)); }
+.capture__card { width: min(28rem, 100%); display: grid; gap: 1rem; padding: 1.25rem; background: var(--app-surface); border: 1px solid var(--app-border); border-radius: var(--app-radius); }
+.capture__card h1 { margin: 0; font-size: 1.25rem; }
+.capture__amount { font-size: 2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.capture__facts { display: grid; gap: 0.25rem; margin: 0; }
+.capture__facts div { display: flex; justify-content: space-between; gap: 1rem; }
+.capture__facts dt { color: var(--app-text-muted); }
+.capture__facts dd { margin: 0; font-weight: 600; text-align: right; }
+.capture__preview { max-width: 100%; max-height: 18rem; object-fit: contain; border-radius: var(--app-radius); border: 1px solid var(--app-border); }
+.proof__link input { width: 100%; min-width: 0; box-sizing: border-box; }

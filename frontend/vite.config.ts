@@ -52,8 +52,34 @@ const apiMocksForLan = (): Plugin => ({
   },
 });
 
+
+/** Simulador de comprobantes móviles (NO es contrato): estado compartido entre el computador y el teléfono. */
+const proofRelay = (): Plugin => ({
+  name: 'proof-relay',
+  apply: 'serve',
+  configureServer(server) {
+    server.middlewares.use('/dev-relay/proofs', (req, res) => {
+      void (async () => {
+        const { handleRelay } = (await server.ssrLoadModule('/src/features/pos/proofs/relay.ts')) as {
+          handleRelay: (m: string, p: string, b: Record<string, unknown>) => { status: number; body: unknown };
+        };
+        const raw = await readBody(req);
+        let body: Record<string, unknown> = {};
+        try {
+          body = raw.length > 0 ? (JSON.parse(raw.toString('utf8')) as Record<string, unknown>) : {};
+        } catch {
+          /* cuerpo inválido: se trata como vacío y el dominio lo rechaza */
+        }
+        const out = handleRelay(req.method ?? 'GET', (req.url ?? '/').split('?')[0] ?? '/', body);
+        res.writeHead(out.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify(out.body));
+      })();
+    });
+  },
+});
+
 export default defineConfig({
-  plugins: [react(), apiMocksForLan()],
+  plugins: [react(), apiMocksForLan(), proofRelay()],
   resolve: { alias: { '@': path.resolve(import.meta.dirname, 'src') } },
   // host: true expone el dev server en la LAN -> abrir desde otro equipo: http://<IP-LAN>:<puerto>/pos
   // (usa DEV_HOST=localhost para volver a restringirlo a esta máquina).

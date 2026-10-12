@@ -24,6 +24,7 @@
     "primeflex": "^4.0.0",
     "primeicons": "^8.0.2",
     "primereact": "10.9.9",
+    "qrcode-generator": "^2.0.4",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-hook-form": "^7.89.0",

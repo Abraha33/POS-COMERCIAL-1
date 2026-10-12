@@ -21,7 +21,11 @@ import { HeldSalesDialog } from './HeldSalesDialog';
 import { PaymentDialog } from './PaymentDialog';
 import { SalePanel } from './SalePanel';
 import { SupervisorPinDialog } from './SupervisorPinDialog';
-import { estimateIncludedVat, paymentsTotal, type CartLine, type DigitalChannel, type PayMode } from './cart';
+import { estimateIncludedVat, paymentsTotal, type CartLine, type PayMode } from './cart';
+import {
+  canCloseSale, channelById, ChannelSection, defaultChannels, documentOptions, isDuplicateReference, loadDocumentType,
+  loadReferences, missingFields, rememberReference, saveDocumentType, type ChannelState, type DocumentType, type ProofRequest,
+} from './proofs';
 import { CreateOrderDialog } from './orders/CreateOrderDialog';
 import { markCharged } from './orders/orders';
 import { useOrders } from './orders/useOrders';
@@ -75,7 +79,10 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   const [customerId, setCustomerId] = useState<string | null>(null);
   const [mode, setMode] = useState<PayMode>('efectivo');
   const [receivedState, setReceivedState] = useState<{ total: number; amount: number } | null>(null);
-  const [channel, setChannel] = useState<DigitalChannel>('transferencia');
+  const [chan, setChan] = useState<ChannelState>({ channelId: 'nequi', destinationId: '', values: {}, proofId: null });
+  const [proof, setProof] = useState<ProofRequest | null>(null);
+  const [docType, setDocType] = useState<DocumentType>(loadDocumentType);
+  const [usedRefs, setUsedRefs] = useState<string[]>(loadReferences);
   const [mixedRows, setMixedRows] = useState<Payment[]>([]);
   const [note, setNote] = useState('');
   const [operationId, setOperationId] = useState(() => uuid());
@@ -96,7 +103,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   const [view, setView] = useState<'lista' | 'cuadricula'>('lista');
   const [detail, setDetail] = useState<Product | null>(null);
   const [newCustomerOpen, setNewCustomerOpen] = useState(false);
-  const { session } = useSession();
+  const { session, can } = useSession();
   const notify = useNotify();
   const actor = { id: session.user.id, name: session.user.name };
   const orderStore = useOrders(session.branch.id);
@@ -158,13 +165,27 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   const totals = computeTotals(pricedForTotals, hasCash);
 
   const received = receivedState && receivedState.total === totals.total ? receivedState.amount : null;
+  const channelsForMode = defaultChannels.filter((c) =>
+    mode === 'tarjeta' ? c.kind === 'datafono' : mode === 'transferencia' ? ['cuenta', 'billetera', 'llave', 'qr', 'pasarela'].includes(c.kind) : false,
+  );
+  const activeChannel = mode === 'tarjeta' || mode === 'transferencia'
+    ? (channelById(channelsForMode, chan.channelId) ?? channelsForMode[0])
+    : undefined;
+  const digitalFieldsMissing = activeChannel ? missingFields(activeChannel, chan.values) : [];
+  const digitalDuplicate = activeChannel ? isDuplicateReference(usedRefs, chan.values.reference ?? '') : false;
+  const proofMatches = proof !== null && proof.operationId === operationId && proof.amount === totals.total;
+  const digitalOk = !activeChannel || (
+    digitalFieldsMissing.length === 0 &&
+    (!digitalDuplicate || (proofMatches && proof.exception !== null)) &&
+    (!activeChannel.requiresProof || (proofMatches && canCloseSale(proof)))
+  );
   const payments: Payment[] = (() => {
     const amount = totals.total;
     const single = (method: PaymentMethod): Payment[] => [{ method, amount }];
     switch (mode) {
       case 'efectivo': return [{ method: 'efectivo', amount: received ?? amount }];
-      case 'tarjeta': return single('tarjeta');
-      case 'transferencia': return single(channel);
+      case 'tarjeta': return single(activeChannel?.method ?? 'tarjeta');
+      case 'transferencia': return single(activeChannel?.method ?? 'transferencia');
       case 'credito': return single('credito');
       case 'mixto': return mixedRows.length > 0 ? mixedRows : single('efectivo');
     }
@@ -174,7 +195,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   const missing = Math.max(0, totals.total - paid);
   const change = Math.max(0, paid - totals.total);
   const creditBlocked = mode === 'credito' && customerId === null;
-  const canConfirm = lines.length > 0 && missing === 0 && change <= cashPaid && !creditBlocked && !createSale.isPending;
+  const canConfirm = lines.length > 0 && missing === 0 && change <= cashPaid && !creditBlocked && digitalOk && !createSale.isPending;
 
   const anyOverlay =
     payOpen || heldOpen || cashOpen || discountOpen || notesOpen || confirm !== null || pinRequest !== null || receipt !== null;
@@ -241,6 +262,8 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
     setCheckoutError(null);
     setNote('');
     setOperationId(uuid());
+    setChan((c) => ({ ...c, values: {}, proofId: null }));
+    setProof(null);
     setQuery('');
     setSearchMessage(null);
     setPane('catalog');
@@ -274,6 +297,9 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
         onSuccess: (result) => {
           setPayOpen(false);
           setReceipt(result);
+          if (activeChannel && chan.values.reference) setUsedRefs(rememberReference(chan.values.reference));
+          setChan((c) => ({ ...c, values: {}, proofId: null }));
+          setProof(null);
           // Pedido cobrado en caja: se vincula la venta y se registra lo cobrado, sin cobrar de nuevo.
           const linked = orderLink ? orderStore.orders.find((o) => o.id === orderLink) : undefined;
           if (linked) {
@@ -519,8 +545,36 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
         customer={customer}
         received={received}
         onReceived={(value) => setReceivedState(value === null ? null : { total: totals.total, amount: value })}
-        channel={channel}
-        onChannel={setChannel}
+        documentSlot={
+          <div>
+            <label htmlFor="pay-document" className="pos-pay__label">Documento a emitir</label>
+            <select
+              id="pay-document" className="p-inputtext w-full" value={docType}
+              onChange={(e) => { const v = e.target.value as DocumentType; setDocType(v); saveDocumentType(v); }}
+            >
+              {documentOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <p className="pos__hint">
+              {documentOptions.find((o) => o.value === docType)?.hint} Es una selección: la emisión depende del servidor.
+              {mode === 'credito' ? ' En crédito el documento se expide aunque el dinero aún no se haya recibido.' : ''}
+            </p>
+          </div>
+        }
+        digital={
+          activeChannel ? (
+            <ChannelSection
+              channels={channelsForMode}
+              state={{ ...chan, channelId: activeChannel.id }}
+              onState={setChan}
+              amount={totals.total}
+              operationId={operationId}
+              actor={session.user.name}
+              canAuthorizeException={can('admin.manage')}
+              usedReferences={usedRefs}
+              onProof={setProof}
+            />
+          ) : null
+        }
         rows={mixedRows}
         onRows={setMixedRows}
         paid={paid}

@@ -61,6 +61,18 @@ const posOpsRoute = createRoute({
   ),
 });
 
+const CapturePage = lazy(() => import('@/features/pos/proofs').then((m) => ({ default: m.CapturePage })));
+const CaptureRoute = () => {
+  const { token } = captureRoute.useParams();
+  return (
+    <Suspense fallback={<LoadingState />}>
+      <CapturePage token={token} />
+    </Suspense>
+  );
+};
+/** Captura móvil de comprobantes (PROPUESTA): pública por token, sin sesión ni menú; el token solo habilita su solicitud. */
+const captureRoute = createRoute({ getParentRoute: () => rootRoute, path: '/captura/$token', component: CaptureRoute });
+
 const moduleRoutes = modules.map((m) => {
   const Page = pages[m.id];
   return createRoute({
@@ -76,7 +88,7 @@ const moduleRoutes = modules.map((m) => {
   });
 });
 
-const routeTree = rootRoute.addChildren([homeRoute, loginRoute, ...moduleRoutes, posAccessRoute, posOpsRoute]);
+const routeTree = rootRoute.addChildren([homeRoute, loginRoute, ...moduleRoutes, posAccessRoute, posOpsRoute, captureRoute]);
 
 export const createAppRouter = (history?: Parameters<typeof createRouter>[0]['history']) =>
   createRouter({ routeTree, history });

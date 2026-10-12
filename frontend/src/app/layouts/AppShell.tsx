@@ -226,8 +226,8 @@ export const AppShell = () => {
     return () => window.removeEventListener('keydown', onKey);
   }, [navOpen]);
 
-  // La pantalla de acceso va sin barra ni menú.
-  if (pathname === '/login') {
+  // La pantalla de acceso y la captura del teléfono van sin barra ni menú.
+  if (pathname === '/login' || pathname.startsWith('/captura/')) {
     return (
       <ErrorBoundary>
         <Outlet />

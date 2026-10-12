@@ -1,9 +1,10 @@
+import type { ReactNode } from 'react';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
 import type { Customer, Payment, PaymentMethod } from '@/shared/contracts';
 import { MoneyInput, MoneyText } from '@/shared/ui';
 import { formatMoney } from '@/shared/utils/format';
-import { allMethods, digitalChannels, suggestCashAmounts, type DigitalChannel, type PayMode } from './cart';
+import { allMethods, suggestCashAmounts, type PayMode } from './cart';
 import type { CheckoutMessage } from './saleText';
 
 type Props = {
@@ -15,8 +16,9 @@ type Props = {
   /** Efectivo recibido (modo efectivo); null = exacto. */
   received: number | null;
   onReceived: (value: number | null) => void;
-  channel: DigitalChannel;
-  onChannel: (value: DigitalChannel) => void;
+  /** Formulario dinámico del canal (transferencia o datáfono) y selector de documento. */
+  digital: ReactNode;
+  documentSlot: ReactNode;
   rows: Payment[];
   onRows: (rows: Payment[]) => void;
   paid: number;
@@ -33,7 +35,7 @@ type Props = {
 /** Cobro: importes sugeridos y cambio con ajuste al peso (BR-GEN-05, BR-VEN-06/08). El servidor confirma el total. */
 export const PaymentDialog = (props: Props) => {
   const {
-    visible, mode, total, roundingAdjustment, customer, received, onReceived, channel, onChannel, rows, onRows,
+    visible, mode, total, roundingAdjustment, customer, received, onReceived, digital, documentSlot, rows, onRows,
     paid, missing, change, canConfirm, pending, error, onDismissError, onConfirm, onHide,
   } = props;
 
@@ -66,6 +68,8 @@ export const PaymentDialog = (props: Props) => {
             Ajuste al peso incluido: {formatMoney(roundingAdjustment)} (el efectivo se aproxima a $ 50).
           </p>
         ) : null}
+
+        {documentSlot}
 
         {error ? (
           <div className="pos-alert" role="alert" data-testid="checkout-error">
@@ -104,26 +108,7 @@ export const PaymentDialog = (props: Props) => {
           </section>
         ) : null}
 
-        {mode === 'tarjeta' ? (
-          <p className="pos-pay__instruction">
-            Cobra {formatMoney(total)} en el datáfono y confirma cuando el pago esté aprobado.
-          </p>
-        ) : null}
-
-        {mode === 'transferencia' ? (
-          <section aria-label="Pago digital">
-            <label htmlFor="pay-channel" className="pos-pay__label">Canal</label>
-            <select
-              id="pay-channel"
-              className="p-inputtext w-full"
-              value={channel}
-              onChange={(e) => onChannel(e.target.value as DigitalChannel)}
-            >
-              {digitalChannels.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-            </select>
-            <p className="pos-pay__instruction">Confirma cuando veas la transferencia recibida por {formatMoney(total)}.</p>
-          </section>
-        ) : null}
+        {mode === 'tarjeta' || mode === 'transferencia' ? digital : null}
 
         {mode === 'credito' ? (
           <p className="pos-pay__instruction">
