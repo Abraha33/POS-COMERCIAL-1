@@ -4,4 +4,5 @@ export { defaultChannels, channelById, missingFields, isDuplicateReference, type
 export { canCloseSale, type ProofRequest } from './proofs';
 export { documentOptions, loadDocumentType, saveDocumentType, type DocumentType } from './documents';
 export { loadReferences, rememberReference } from './references';
-export { setProofGateway, createMemoryGateway } from './gateway';
+export { setProofGateway, createContractGateway } from './gateway';
+export { setImageStore, createMemoryImageStore } from './imageStore';

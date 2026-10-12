@@ -53,15 +53,15 @@ const apiMocksForLan = (): Plugin => ({
 });
 
 
-/** Simulador de comprobantes móviles (NO es contrato): estado compartido entre el computador y el teléfono. */
+/** Transporte de fotos de comprobantes (NO es contrato): el estado vive en `/pos/payment-proofs`; aquí solo la imagen. */
 const proofRelay = (): Plugin => ({
   name: 'proof-relay',
   apply: 'serve',
   configureServer(server) {
-    server.middlewares.use('/dev-relay/proofs', (req, res) => {
+    server.middlewares.use('/dev-relay/images', (req, res) => {
       void (async () => {
-        const { handleRelay } = (await server.ssrLoadModule('/src/features/pos/proofs/relay.ts')) as {
-          handleRelay: (m: string, p: string, b: Record<string, unknown>) => { status: number; body: unknown };
+        const { handleImageRelay } = (await server.ssrLoadModule('/src/features/pos/proofs/imageRelay.ts')) as {
+          handleImageRelay: (m: string, t: string, b: Record<string, unknown>) => { status: number; body: unknown };
         };
         const raw = await readBody(req);
         let body: Record<string, unknown> = {};
@@ -70,7 +70,8 @@ const proofRelay = (): Plugin => ({
         } catch {
           /* cuerpo inválido: se trata como vacío y el dominio lo rechaza */
         }
-        const out = handleRelay(req.method ?? 'GET', (req.url ?? '/').split('?')[0] ?? '/', body);
+        const token = ((req.url ?? '/').split('?')[0] ?? '/').replace(/^\/+/, '');
+        const out = handleImageRelay(req.method ?? 'GET', token, body);
         res.writeHead(out.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify(out.body));
       })();

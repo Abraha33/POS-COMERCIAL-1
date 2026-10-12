@@ -27,6 +27,7 @@ type Props = {
 
 const toneOf: Record<ProofStatus, string> = {
   esperando: 'warning', recibido: 'info', verificando: 'info', confirmado: 'success', rechazado: 'danger',
+  excepcion: 'warning', vencido: 'danger',
 };
 
 const qrUrl = (text: string): string => {
@@ -151,10 +152,12 @@ export const ProofPanel = (props: Props) => {
               <Button type="button" label="Empezar verificación" icon="pi pi-search" outlined loading={busy}
                 onClick={() => void run(() => gw.verify(proof.id, actor))} />
             ) : null}
-            <div className="proof__row">
-              <Button type="button" label="Marcar pago como verificado" icon="pi pi-check" severity="success" loading={busy}
-                onClick={() => void run(() => gw.confirm(proof.id, actor))} />
-            </div>
+            {status === 'verificando' ? (
+              <div className="proof__row">
+                <Button type="button" label="Marcar pago como verificado" icon="pi pi-check" severity="success" loading={busy}
+                  onClick={() => void run(() => gw.confirm(proof.id, actor))} />
+              </div>
+            ) : null}
             <label className="proof__link">
               <span className="proof__label">Motivo si no coincide</span>
               <input className="p-inputtext" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Monto, cuenta o fecha no coinciden" />

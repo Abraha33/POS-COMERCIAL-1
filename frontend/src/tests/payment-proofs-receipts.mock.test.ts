@@ -10,7 +10,7 @@ import { getSaleReceipt, listSaleReprints, createSaleReprint } from '@/shared/ap
 
 const proofInput = {
   operationId: '11111111-1111-4111-8111-111111111111',
-  channelId: 'bancolombia', amount: 18000, destination: 'Ahorros 1234',
+  channelId: 'bancolombia', channelLabel: 'Bancolombia', amount: 18000, destination: 'Ahorros 1234',
 };
 
 beforeEach(() => {
@@ -60,5 +60,18 @@ describe('receipt and reprint mock contract', () => {
     expect(db.sales[0]).toEqual(sale);
     expect(db.shifts).toEqual(shifts);
     expect(db.stockLevels).toEqual(stock);
+  });
+});
+describe('payment proofs: datos que el teléfono necesita (servidor, no el cliente)', () => {
+  it('el comprobante guarda el canal legible y quién lo solicitó; la vista pública los expone', async () => {
+    const requester = db.employees.find((e) => e.id === 'emp-001')!.name;
+    const proof = await createPaymentProof({ ...proofInput, channelLabel: 'Bancolombia · Ahorros' });
+    expect(proof.channelLabel).toBe('Bancolombia · Ahorros');
+    expect(proof.requestedBy).toBe(requester);
+
+    const { getPublicPaymentProof } = await import('@/shared/api/paymentProofs');
+    const publicView = await getPublicPaymentProof(proof.token);
+    expect(publicView.channelLabel).toBe('Bancolombia · Ahorros');
+    expect(publicView.requestedBy).toBe(requester);
   });
 });

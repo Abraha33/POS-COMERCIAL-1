@@ -6,7 +6,8 @@ import { authenticate, failure, forbidden, notFound, unauthorized, validationErr
 const TTL_MS = 15 * 60 * 1000;
 const expired = (proof: PaymentProof) => Date.parse(proof.expiresAt) <= mockNow().getTime();
 const findProof = (id: string) => state.paymentProofs.get(id);
-const publicProof = (proof: PaymentProof) => ({ operationId: proof.operationId, channelId: proof.channelId, amount: proof.amount, destination: proof.destination, status: proof.status, expiresAt: proof.expiresAt });
+const publicProof = (proof: PaymentProof) => ({ operationId: proof.operationId, channelId: proof.channelId, channelLabel: proof.channelLabel, requestedBy: proof.requestedBy, amount: proof.amount, destination: proof.destination, status: proof.status, expiresAt: proof.expiresAt });
+const employeeName = (id: string): string => db.employees.find((employee) => employee.id === id)?.name ?? id;
 const receiptFor = (saleId: string, copyNumber: number): SaleReceiptDocument | null => {
   const sale = db.sales.find((item) => item.id === saleId);
   if (!sale) return null;
@@ -22,7 +23,7 @@ export const paymentProofHandlers = [
     if (!parsed.success) return validationError('Comprobante con formato inválido');
     const existing = [...state.paymentProofs.values()].find((item) => item.operationId === parsed.data.operationId && item.channelId === parsed.data.channelId && item.amount === parsed.data.amount);
     if (existing) return HttpResponse.json(existing);
-    const proof: PaymentProof = { id: nextId('prf'), ...parsed.data, status: 'pending_evidence', token: nextId('ptk'), expiresAt: new Date(mockNow().getTime() + TTL_MS).toISOString(), bankVerified: false, evidence: null, reviewedBy: null, reason: null };
+    const proof: PaymentProof = { id: nextId('prf'), ...parsed.data, requestedBy: employeeName(user.id), status:'pending_evidence', token: nextId('ptk'), expiresAt: new Date(mockNow().getTime() + TTL_MS).toISOString(), bankVerified: false, evidence: null, reviewedBy: null, reason: null };
     state.paymentProofs.set(proof.id, proof); return HttpResponse.json(proof, { status: 201 });
   }),
   http.get('/api/v1/pos/payment-proofs/:id', ({ request, params }) => { if (!authenticate(request)) return unauthorized(); const proof = findProof(String(params.id)); return proof ? HttpResponse.json(proof) : failure(404, 'PROOF_NOT_FOUND', 'Comprobante no encontrado'); }),

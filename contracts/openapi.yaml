@@ -1757,10 +1757,11 @@ components:
       enum: [pending_evidence, evidence_received, verifying, confirmed, rejected, exception_authorized, expired]
     PaymentProofCreate:
       type: object
-      required: [operationId, channelId, amount, destination]
+      required: [operationId, channelId, channelLabel, amount, destination]
       properties:
         operationId: { type: string }
         channelId: { type: string }
+        channelLabel: { type: string, minLength: 1, description: 'PROPUESTA (comprobantes): nombre legible del canal para el teléfono.' }
         amount: { type: integer, minimum: 0 }
         destination: { type: string }
     PaymentProofEvidenceCreate:
@@ -1776,11 +1777,13 @@ components:
         reason: { type: string, minLength: 5 }
     PaymentProof:
       type: object
-      required: [id, operationId, channelId, amount, destination, status, token, expiresAt, bankVerified, evidence, reviewedBy, reason]
+      required: [id, operationId, channelId, channelLabel, requestedBy, amount, destination, status, token, expiresAt, bankVerified, evidence, reviewedBy, reason]
       properties:
         id: { type: string }
         operationId: { type: string }
         channelId: { type: string }
+        channelLabel: { type: string }
+        requestedBy: { type: string, description: 'Empleado que solicitó el comprobante (lo fija el servidor).' }
         amount: { type: integer, minimum: 0 }
         destination: { type: string }
         status: { $ref: "#/components/schemas/PaymentProofStatus" }
@@ -1792,10 +1795,12 @@ components:
         reason: { type: [string, 'null'] }
     PaymentProofPublic:
       type: object
-      required: [operationId, channelId, amount, destination, status, expiresAt]
+      required: [operationId, channelId, channelLabel, requestedBy, amount, destination, status, expiresAt]
       properties:
         operationId: { type: string }
         channelId: { type: string }
+        channelLabel: { type: string }
+        requestedBy: { type: string }
         amount: { type: integer, minimum: 0 }
         destination: { type: string }
         status: { $ref: "#/components/schemas/PaymentProofStatus" }

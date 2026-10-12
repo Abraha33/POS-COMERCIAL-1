@@ -6,11 +6,16 @@ import { AppProviders } from '@/app/providers/AppProviders';
 import { createAppRouter } from '@/routes';
 import { setAccessToken } from '@/shared/api/client';
 import { mockTokenForRole } from '@/mocks/test-users';
-import { createMemoryGateway, setProofGateway } from '@/features/pos/proofs';
-import { resetRelay } from '@/features/pos/proofs/relay';
+import { setProofGateway } from '@/features/pos/proofs';
+import { createContractGateway } from '@/features/pos/proofs/gateway';
+import { createMemoryImageStore, type ImageStore } from '@/features/pos/proofs/imageStore';
 
 type User = ReturnType<typeof userEvent.setup>;
 const IMG = 'data:image/jpeg;base64,/9j/4AAQSkZJRg==';
+
+/** Cajero y teléfono comparten la misma transferencia de imágenes (en memoria) y el mismo contrato (MSW). */
+let images: ImageStore = createMemoryImageStore();
+const phone = () => createContractGateway(images);
 
 const renderAt = async (path: string, role: 'cajero' | 'propietario' = 'cajero') => {
   setAccessToken(mockTokenForRole(role));
@@ -34,8 +39,9 @@ const toPayment = async (user: User) => {
 
 beforeEach(() => {
   window.localStorage.clear();
-  resetRelay();
-  setProofGateway(createMemoryGateway());
+  setAccessToken(mockTokenForRole('cajero'));
+  images = createMemoryImageStore();
+  setProofGateway(phone());
 });
 
 describe('Cobro por transferencia con comprobante', { timeout: 30000 }, () => {
@@ -71,7 +77,8 @@ describe('Cobro por transferencia con comprobante', { timeout: 30000 }, () => {
     const confirmButton = within(dialog).getByRole('button', { name: /confirmar pago/i });
     expect(confirmButton).toBeDisabled();
 
-    await user.click(within(dialog).getByRole('button', { name: 'Marcar pago como verificado' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Empezar verificación' }));
+    await user.click(await within(dialog).findByRole('button', { name: 'Marcar pago como verificado' }));
     await waitFor(() => expect(within(dialog).getByTestId('proof-status')).toHaveTextContent('Pago confirmado'));
     await waitFor(() => expect(confirmButton).toBeEnabled());
     await user.click(confirmButton);
@@ -110,12 +117,11 @@ describe('Cobro por transferencia con comprobante', { timeout: 30000 }, () => {
 describe('Página de captura del teléfono', { timeout: 20000 }, () => {
   it('muestra monto y cuenta, y rechaza un enlace inexistente', async () => {
     await renderAt('/captura/inexistente');
-    expect(await screen.findByRole('alert')).toHaveTextContent(/no existe|no es válido/i);
+    expect(await screen.findByRole('alert')).toHaveTextContent(/token inválido|pide un código nuevo/i);
   });
 
   it('con un token válido muestra el monto y permite enviar', async () => {
-    const gw = createMemoryGateway();
-    setProofGateway(gw);
+    const gw = phone();
     const p = await gw.create({ operationId: 'op-x', method: 'nequi', channelId: 'nequi', channelLabel: 'Nequi', amount: 185000, destination: 'Nequi del negocio', employee: 'Ana' });
     await renderAt(`/captura/${p.token}`);
     expect(await screen.findByTestId('capture-amount')).toHaveTextContent('185.000');
@@ -180,7 +186,8 @@ describe('Pago mixto con componentes independientes', { timeout: 30000 }, () => 
     await user.type(refs[0]!, 'MX-1');
     await user.click(within(dialog).getByRole('button', { name: /solicitar comprobante/i }));
     const link = (await within(dialog).findByLabelText('Enlace de captura')) as HTMLInputElement;
-    await createMemoryGateway().submitPublic(link.value.split('/captura/')[1]!, IMG);
+    await phone().submitPublic(link.value.split('/captura/')[1]!, IMG);
+    await user.click(await within(dialog).findByRole('button', { name: 'Empezar verificación' }, { timeout: 6000 }));
     await user.click(await within(dialog).findByRole('button', { name: 'Marcar pago como verificado' }, { timeout: 6000 }));
     await waitFor(() => expect(within(dialog).getByTestId('component-status-2')).toHaveTextContent('Confirmado'));
     await waitFor(() => expect(confirmButton).toBeEnabled());
@@ -196,7 +203,7 @@ describe('Pago mixto con componentes independientes', { timeout: 30000 }, () => 
 });
 
 const setPhone = async (token: string) => {
-  await createMemoryGateway().submitPublic(token, IMG);
+  await phone().submitPublic(token, IMG);
 };
 
 describe('Crédito en cuotas', { timeout: 30000 }, () => {

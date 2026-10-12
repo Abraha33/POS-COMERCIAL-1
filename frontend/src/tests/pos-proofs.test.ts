@@ -1,112 +1,46 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { defaultChannels, isDuplicateReference, missingFields } from '@/features/pos/proofs/channels';
-import { createMemoryGateway, ProofGatewayError } from '@/features/pos/proofs/gateway';
-import {
-  authorizeException, canCloseSale, confirmPayment, createProof, isExpired, PROOF_TTL_MS, rejectPayment,
-  startVerification, submitEvidence, toPublic, type ProofRequest,
-} from '@/features/pos/proofs/proofs';
-import { resetRelay } from '@/features/pos/proofs/relay';
+import { createContractGateway, ProofGatewayError } from '@/features/pos/proofs/gateway';
+import { createMemoryImageStore } from '@/features/pos/proofs/imageStore';
+import { canCloseSale, proofStatusLabel, validateEvidenceImage, type ProofRequest, type ProofStatus } from '@/features/pos/proofs/proofs';
 import { componentReady, componentStatus, reverseComponent, type MixedComponent } from '@/features/pos/mixed/mixed';
+import { setAccessToken } from '@/shared/api/client';
+import { mockTokenForRole } from '@/mocks/test-users';
+import { resetDb } from '@/mocks/db';
 
 const T0 = new Date('2026-10-11T10:00:00Z');
 const IMG = 'data:image/jpeg;base64,/9j/4AAQSkZJRg==';
-const input = {
-  id: 'p1', token: 'tok', operationId: 'op-1', method: 'transferencia', channelId: 'bancolombia',
-  channelLabel: 'Bancolombia', amount: 185000, destination: 'Ahorros ••• 1234', employee: 'Ana',
-};
-const fresh = (): ProofRequest => {
-  const r = createProof(input, T0);
-  if (!r.ok) throw new Error(r.message);
-  return r.value;
-};
-const ok = <T,>(r: { ok: true; value: T } | { ok: false; message: string }): T => {
-  if (!r.ok) throw new Error(r.message);
-  return r.value;
-};
 
-describe('comprobantes: máquina de estados', () => {
-  it('nace esperando y no deja cerrar la venta', () => {
-    const p = fresh();
-    expect(p.status).toBe('esperando');
-    expect(canCloseSale(p)).toBe(false);
+/** Solicitud en la forma de la vista. El estado lo decide el servidor; aquí solo se fija para probar reglas de presentación. */
+const proofOf = (status: ProofStatus, exception: ProofRequest['exception'] = null): ProofRequest => ({
+  id: 'p1', token: 'tok', operationId: 'op-1', method: 'transferencia', channelId: 'bancolombia', channelLabel: 'Bancolombia',
+  amount: 185000, destination: 'Ahorros ••• 1234', employee: 'Ana', createdAt: T0.toISOString(),
+  expiresAt: new Date(T0.getTime() + 15 * 60 * 1000).toISOString(), status, image: null, receivedAt: null,
+  attempts: 0, exception, history: [],
+});
+
+describe('comprobantes: reglas de la vista', () => {
+  it('una foto no es confirmación: solo confirmado o excepción habilitan cerrar la venta', () => {
+    expect(canCloseSale(proofOf('esperando'))).toBe(false);
+    expect(canCloseSale(proofOf('recibido'))).toBe(false);
+    expect(canCloseSale(proofOf('rechazado'))).toBe(false);
+    expect(canCloseSale(proofOf('confirmado'))).toBe(true);
+    expect(canCloseSale(proofOf('excepcion', { authorizedBy: 'Dueño', reason: 'Banco caído', at: '' }))).toBe(true);
   });
 
-  it('una foto es evidencia: recibido no confirma el pago', () => {
-    const p = ok(submitEvidence(fresh(), IMG, 'teléfono', T0));
-    expect(p.status).toBe('recibido');
-    expect(canCloseSale(p)).toBe(false);
+  it('cada estado tiene etiqueta visible; la excepción no se presenta como verificación', () => {
+    const statuses: ProofStatus[] = ['esperando', 'recibido', 'verificando', 'confirmado', 'rechazado', 'excepcion', 'vencido'];
+    for (const status of statuses) expect(proofStatusLabel[status]).toBeTruthy();
+    expect(proofStatusLabel.excepcion).toMatch(/sin verificación/i);
   });
 
-  it('recibido → verificando → confirmado habilita cerrar y deja trazabilidad', () => {
-    let p = ok(submitEvidence(fresh(), IMG, 'teléfono', T0));
-    p = ok(startVerification(p, 'Ana', T0));
-    expect(p.status).toBe('verificando');
-    p = ok(confirmPayment(p, 'Ana', T0));
-    expect(canCloseSale(p)).toBe(true);
-    expect(p.history.map((h) => h.status)).toEqual(['esperando', 'recibido', 'verificando', 'confirmado']);
-  });
-
-  it('no se confirma sin evidencia ni sin responsable', () => {
-    const p = fresh();
-    const r = confirmPayment(p, 'Ana', T0);
-    expect(r.ok).toBe(false);
-    const received = ok(submitEvidence(p, IMG, 'x', T0));
-    const noActor = confirmPayment(received, ' ', T0);
-    expect(noActor.ok === false && noActor.code).toBe('ACTOR_REQUIRED');
-  });
-
-  it('rechazar exige motivo y permite volver a enviar evidencia', () => {
-    const received = ok(submitEvidence(fresh(), IMG, 'x', T0));
-    const noReason = rejectPayment(received, 'Ana', '', T0);
-    expect(noReason.ok === false && noReason.code).toBe('REASON_REQUIRED');
-    const rejected = ok(rejectPayment(received, 'Ana', 'Monto no coincide', T0));
-    expect(rejected.status).toBe('rechazado');
-    expect(canCloseSale(rejected)).toBe(false);
-    const again = ok(submitEvidence(rejected, IMG, 'x', T0));
-    expect(again.status).toBe('recibido');
-    expect(again.attempts).toBe(2);
-  });
-
-  it('un comprobante ya confirmado no admite otra imagen', () => {
-    const confirmed = ok(confirmPayment(ok(submitEvidence(fresh(), IMG, 'x', T0)), 'Ana', T0));
-    const r = submitEvidence(confirmed, IMG, 'x', T0);
-    expect(r.ok === false && r.code).toBe('INVALID_STATE');
-  });
-
-  it('el enlace vence', () => {
-    const p = fresh();
-    const later = new Date(T0.getTime() + PROOF_TTL_MS + 1000);
-    expect(isExpired(p, later)).toBe(true);
-    const r = submitEvidence(p, IMG, 'x', later);
-    expect(r.ok === false && r.code).toBe('EXPIRED');
-  });
-
-  it('valida tipo y tamaño de imagen', () => {
-    const bad = submitEvidence(fresh(), 'data:application/pdf;base64,AAAA', 'x', T0);
-    expect(bad.ok === false && bad.code).toBe('IMAGE_TYPE');
+  it('valida tipo y tamaño de la imagen antes de subirla', () => {
+    expect(validateEvidenceImage(IMG).ok).toBe(true);
+    const pdf = validateEvidenceImage('data:application/pdf;base64,AAAA');
+    expect(pdf.ok === false && pdf.code).toBe('IMAGE_TYPE');
     const big = `data:image/png;base64,${'A'.repeat(5 * 1024 * 1024)}`;
-    const tooBig = submitEvidence(fresh(), big, 'x', T0);
+    const tooBig = validateEvidenceImage(big);
     expect(tooBig.ok === false && tooBig.code).toBe('IMAGE_TOO_LARGE');
-  });
-
-  it('la excepción autorizada es trazable y exige motivo', () => {
-    const p = fresh();
-    const noReason = authorizeException(p, 'Dueño', 'no', T0);
-    expect(noReason.ok === false && noReason.code).toBe('REASON_REQUIRED');
-    const exc = ok(authorizeException(p, 'Dueño', 'Cliente habitual, banco caído', T0));
-    expect(exc.status).toBe('esperando');
-    expect(exc.exception?.authorizedBy).toBe('Dueño');
-    expect(canCloseSale(exc)).toBe(true);
-  });
-
-  it('el monto debe ser entero COP positivo', () => {
-    expect(createProof({ ...input, amount: 0 }, T0).ok).toBe(false);
-    expect(createProof({ ...input, amount: 10.5 }, T0).ok).toBe(false);
-  });
-
-  it('la vista pública no expone imagen, token ni historial', () => {
-    const view = toPublic(ok(submitEvidence(fresh(), IMG, 'x', T0)));
-    expect(Object.keys(view).sort()).toEqual(['amount', 'channelLabel', 'destination', 'employee', 'expiresAt', 'operationId', 'status']);
   });
 });
 
@@ -130,52 +64,101 @@ describe('canales dinámicos', () => {
   });
 });
 
-describe('relay: flujo teléfono ↔ computador', () => {
-  beforeEach(() => resetRelay());
-  const gw = createMemoryGateway();
-  const base = { operationId: 'op-9', method: 'nequi', channelId: 'nequi', channelLabel: 'Nequi', amount: 50000, destination: 'Nequi del negocio', employee: 'Ana' };
+describe('gateway de comprobantes sobre el contrato (MSW)', () => {
+  beforeEach(() => {
+    resetDb();
+    setAccessToken(mockTokenForRole('cajero'));
+  });
+  const base = { operationId: '22222222-2222-4222-8222-222222222222', method: 'nequi', channelId: 'nequi', channelLabel: 'Nequi', amount: 50000, destination: 'Nequi del negocio', employee: 'Ana' };
 
   it('crear es idempotente por operación, canal y monto', async () => {
+    const gw = createContractGateway(createMemoryImageStore());
     const a = await gw.create(base);
     const b = await gw.create(base);
     expect(b.id).toBe(a.id);
   });
 
-  it('el teléfono entrega la imagen por token y el cajero la ve y la confirma', async () => {
+  it('el teléfono entrega la foto por token; el cajero la ve, verifica y confirma', async () => {
+    const images = createMemoryImageStore();
+    const gw = createContractGateway(images);
     const p = await gw.create(base);
     const view = await gw.getPublic(p.token);
     expect(view.amount).toBe(50000);
+    expect(view.channelLabel).toBe('Nequi');
+
     await gw.submitPublic(p.token, IMG);
     const seen = await gw.get(p.id);
     expect(seen.status).toBe('recibido');
     expect(seen.image).toBe(IMG);
+    expect(canCloseSale(seen)).toBe(false);
+
+    const verifying = await gw.verify(p.id, 'Ana');
+    expect(verifying.status).toBe('verificando');
     const confirmed = await gw.confirm(p.id, 'Ana');
     expect(canCloseSale(confirmed)).toBe(true);
+    expect(confirmed.history.map((h) => h.status)).toEqual(['esperando', 'recibido', 'verificando', 'confirmado']);
+  });
+
+  it('confirmar sin evidencia recibida lo rechaza el servidor (no el cliente)', async () => {
+    const gw = createContractGateway(createMemoryImageStore());
+    const p = await gw.create(base);
+    await expect(gw.confirm(p.id, 'Ana')).rejects.toMatchObject({ code: 'PROOF_INVALID_STATE', status: 409 });
+  });
+
+  it('una excepción autorizada cierra la venta sin marcar el pago como confirmado', async () => {
+    const gw = createContractGateway(createMemoryImageStore());
+    const p = await gw.create(base);
+    // Solo propietario o administrador autorizan la excepción (regla del servidor, no de la vista).
+    setAccessToken(mockTokenForRole('propietario'));
+    const exc = await gw.authorizeException(p.id, 'Dueño', 'Banco caído hoy');
+    expect(exc.status).toBe('excepcion');
+    expect(exc.exception?.authorizedBy).toBeTruthy();
+    expect(canCloseSale(exc)).toBe(true);
+  });
+
+  it('rechazar pide motivo y permite enviar otra foto', async () => {
+    const gw = createContractGateway(createMemoryImageStore());
+    const p = await gw.create(base);
+    await gw.submitPublic(p.token, IMG);
+    await expect(gw.reject(p.id, 'Ana', 'no')).rejects.toBeInstanceOf(ProofGatewayError);
+    const rejected = await gw.reject(p.id, 'Ana', 'Monto no coincide');
+    expect(rejected.status).toBe('rechazado');
+    const again = await gw.submitPublic(p.token, IMG);
+    expect(again.status).toBe('recibido');
   });
 
   it('un token inexistente no da acceso', async () => {
+    const gw = createContractGateway(createMemoryImageStore());
     await expect(gw.getPublic('nope')).rejects.toBeInstanceOf(ProofGatewayError);
     await expect(gw.submitPublic('nope', IMG)).rejects.toMatchObject({ status: 404 });
   });
 
   it('segundo envío sobre un pago confirmado es rechazado con 409', async () => {
+    const gw = createContractGateway(createMemoryImageStore());
     const p = await gw.create(base);
     await gw.submitPublic(p.token, IMG);
+    await gw.verify(p.id, 'Ana');
     await gw.confirm(p.id, 'Ana');
-    await expect(gw.submitPublic(p.token, IMG)).rejects.toMatchObject({ status: 409, code: 'INVALID_STATE' });
+    await expect(gw.submitPublic(p.token, IMG)).rejects.toMatchObject({ status: 409, code: 'PROOF_INVALID_STATE' });
+  });
+
+  it('una imagen inválida se rechaza antes de llegar al servidor', async () => {
+    const gw = createContractGateway(createMemoryImageStore());
+    const p = await gw.create(base);
+    await expect(gw.submitPublic(p.token, 'data:application/pdf;base64,AAAA')).rejects.toMatchObject({ code: 'IMAGE_TYPE' });
   });
 });
 
 describe('pago mixto: componentes independientes', () => {
   const ch = (id: string) => defaultChannels.find((c) => c.id === id)!;
-  const confirmed = ok(confirmPayment(ok(submitEvidence(fresh(), IMG, 'x', T0)), 'Ana', T0));
-  const withException = ok(authorizeException(fresh(), 'Dueño', 'Banco caído hoy', T0));
+  const confirmed = proofOf('confirmado');
+  const withException = proofOf('excepcion', { authorizedBy: 'Dueño', reason: 'Banco caído hoy', at: '' });
 
   it('estados por componente', () => {
     expect(componentStatus(ch('efectivo'), {}, null)).toBe('recibido');
     expect(componentStatus(ch('datafono'), {}, null)).toBe('por-verificar');
     expect(componentStatus(ch('datafono'), { authCode: '99' }, null)).toBe('recibido');
-    expect(componentStatus(ch('nequi'), { reference: 'r' }, fresh())).toBe('por-verificar');
+    expect(componentStatus(ch('nequi'), { reference: 'r' }, proofOf('esperando'))).toBe('por-verificar');
     expect(componentStatus(ch('nequi'), { reference: 'r' }, confirmed)).toBe('confirmado');
     expect(componentStatus(ch('nequi'), { reference: 'r' }, withException)).toBe('sujeto-a-autorizacion');
     expect(componentStatus(ch('credito'), {}, null)).toBe('sujeto-a-autorizacion');
