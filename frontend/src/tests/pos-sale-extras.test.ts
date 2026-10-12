@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import type { Customer, Product } from '@/shared/contracts';
 import { searchCustomers } from '@/features/pos/customerSearch';
 import { revalidateHeld } from '@/features/pos/heldRevalidate';
-import { registerReprint, reprintCount } from '@/features/pos/reprints';
 import type { HeldSale } from '@/features/pos/useHeldSales';
 
 const customers = [
@@ -45,12 +44,3 @@ describe('reanudar revalidando', () => {
   });
 });
 
-describe('reimpresión', () => {
-  it('cuenta copias del mismo documento sin crear otra venta', () => {
-    window.localStorage.clear();
-    expect(reprintCount('POS-0001')).toBe(0);
-    expect(registerReprint('POS-0001')).toBe(1);
-    expect(registerReprint('POS-0001')).toBe(2);
-    expect(reprintCount('POS-0002')).toBe(0);
-  });
-});

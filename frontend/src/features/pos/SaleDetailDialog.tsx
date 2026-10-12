@@ -1,4 +1,4 @@
-import { registerReprint, reprintCount } from './reprints';
+import { useCreateSaleReprint, useSaleReprints } from './reprints';
 import { useState } from 'react';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
@@ -33,7 +33,9 @@ export const SaleDetailDialog = ({
   sale, customerName, products, returnedInSession, canOperate, onReturn, onVoid, onHide,
 }: Props) => {
   const [tab, setTab] = useState<Tab>('info');
-  const [copies, setCopies] = useState(() => reprintCount(sale.number));
+  const reprints = useSaleReprints(sale.id);
+  const reprint = useCreateSaleReprint(sale.id);
+  const copies = reprints.data?.length ?? 0;
   const voided = sale.status === 'anulada';
   const gross = sale.lines.reduce((sum, l) => sum + l.unitPrice * l.quantity, 0);
   const discount = sale.lines.reduce((sum, l) => sum + l.discount, 0);
@@ -129,7 +131,8 @@ export const SaleDetailDialog = ({
       <div className="app-dialog__footer">
         <Button
           type="button" label={copies > 0 ? `Reimprimir copia (${copies})` : 'Reimprimir copia'} icon="pi pi-print" outlined
-          onClick={() => { setCopies(registerReprint(sale.number)); window.print(); }}
+          disabled={reprint.isPending}
+          onClick={() => reprint.mutate(undefined, { onSuccess: () => window.print() })}
         />
         {canOperate ? (
           <>

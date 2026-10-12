@@ -1,23 +1,19 @@
-const KEY = 'pos.reprints.v1';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { createSaleReprint, listSaleReprints } from '@/shared/api/receipts';
 
-const read = (): Record<string, number> => {
-  try {
-    const raw: unknown = JSON.parse(window.localStorage.getItem(KEY) ?? '{}');
-    return raw && typeof raw === 'object' ? (raw as Record<string, number>) : {};
-  } catch {
-    return {};
-  }
-};
+/**
+ * Copias de un comprobante. El servidor registra cada COPIA; reimprimir no crea venta ni mueve stock o caja.
+ * Contrato: `GET/POST /pos/sales/{id}/reprints` (ver contracts/openapi.yaml).
+ */
+const reprintsKey = (saleId: string) => ['sale-reprints', saleId] as const;
 
-export const reprintCount = (saleNumber: string): number => read()[saleNumber] ?? 0;
+export const useSaleReprints = (saleId: string) =>
+  useQuery({ queryKey: reprintsKey(saleId), queryFn: () => listSaleReprints(saleId) });
 
-/** Reimprimir es una copia del mismo documento: cuenta copias, no crea venta, ni stock, ni caja. */
-export const registerReprint = (saleNumber: string): number => {
-  const next = { ...read(), [saleNumber]: reprintCount(saleNumber) + 1 };
-  try {
-    window.localStorage.setItem(KEY, JSON.stringify(next));
-  } catch {
-    /* sin almacenamiento: la copia se imprime igual */
-  }
-  return next[saleNumber] ?? 1;
+export const useCreateSaleReprint = (saleId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => createSaleReprint(saleId, {}),
+    onSettled: () => void queryClient.invalidateQueries({ queryKey: reprintsKey(saleId) }),
+  });
 };
