@@ -36,6 +36,10 @@ import { CreateOrderDialog } from './orders/CreateOrderDialog';
 import { markCharged } from './orders/orders';
 import { useOrders } from './orders/useOrders';
 import { describeCheckoutError, isUnknownOutcome, UNKNOWN_CHECKOUT_MESSAGE, type CheckoutMessage } from './saleText';
+import { newPaymentSession } from './payment-session/newPaymentSession';
+import {
+  canStartNewSale, completePaymentSession, markUnknown, rejectSubmission, retryUnknown, startSubmission,
+} from './payment-session/paymentSession';
 import { useHeldSales, type HeldSale } from './useHeldSales';
 import './pos.css';
 import './catalog-extras.css';
@@ -135,12 +139,15 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   const onMixedProof = useCallback((id: string, p: ProofRequest | null) => {
     setMixedProofs((prev) => (prev[id] === p ? prev : { ...prev, [id]: p }));
   }, []);
-  const [operationId, setOperationId] = useState(() => uuid());
+  // La sesión de cobro es dueña de la clave idempotente y del estado (UNKNOWN, envío, completado).
+  const [paymentSession, setPaymentSession] = useState(() => newPaymentSession({
+    registerId: shift.registerId, shiftId: shift.id, documentType: '', mode: 'efectivo', now: new Date().toISOString(),
+  }));
+  const operationId = paymentSession.clientOperationId;
   const [approvalToken, setApprovalToken] = useState<string | undefined>();
   const [pinRequest, setPinRequest] = useState<PinRequest | null>(null);
   const [receipt, setReceipt] = useState<SaleReceipt | null>(null);
   const [checkoutError, setCheckoutError] = useState<CheckoutMessage | null>(null);
-  const [saleUnknown, setSaleUnknown] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const [heldOpen, setHeldOpen] = useState(false);
   const [cashOpen, setCashOpen] = useState(false);
@@ -343,7 +350,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
 
   const reset = () => {
     // Un cobro desconocido conserva su clave: vaciar generaría otra y podría duplicar el cobro.
-    if (saleUnknown) return;
+    if (!canStartNewSale(paymentSession)) return;
     setLines([]);
     setReceivedState(null);
     setMixed([]);
@@ -358,7 +365,9 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
     setApprovalToken(undefined);
     setCheckoutError(null);
     setNote('');
-    setOperationId(uuid());
+    setPaymentSession(newPaymentSession({
+      registerId: shift.registerId, shiftId: shift.id, documentType: docType, mode: 'efectivo', now: new Date().toISOString(),
+    }));
     setChan((c) => ({ ...c, values: {}, proofId: null }));
     setProof(null);
     setQuery('');
@@ -381,8 +390,11 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   };
 
   const submit = (token?: string) => {
-    if (!canConfirm) return;
+    if (!canConfirm || paymentSession.state === 'completed') return;
     setCheckoutError(null);
+    // Reintentar un cobro desconocido usa la misma clave; cualquier otro envío pasa la sesión a "enviando".
+    const now = new Date().toISOString();
+    setPaymentSession(paymentSession.state === 'unknown' ? retryUnknown(paymentSession, now) : startSubmission(paymentSession, now));
     createSale.mutate(
       {
         clientOperationId: operationId,
@@ -398,7 +410,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
       },
       {
         onSuccess: (result) => {
-          setSaleUnknown(false);
+          setPaymentSession((current) => completePaymentSession(current, new Date().toISOString()));
           setPayOpen(false);
           setReceipt(result);
           if (activeChannel && chan.values.reference) setUsedRefs(rememberReference(chan.values.reference));
@@ -418,9 +430,11 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
             setPayOpen(false);
             setPinRequest(request);
           };
+          // Rechazo definitivo: el cobro no se registró, así que la sesión vuelve a editar con la misma clave.
+          setPaymentSession((current) => rejectSubmission(current, new Date().toISOString()));
           // Sin respuesta (red caída) o 5xx: el servidor pudo registrar el cobro. No es un rechazo.
           if (isUnknownOutcome(error)) {
-            setSaleUnknown(true);
+            setPaymentSession((current) => markUnknown(current, new Date().toISOString()));
             return setCheckoutError(UNKNOWN_CHECKOUT_MESSAGE);
           }
           switch (error.code) {

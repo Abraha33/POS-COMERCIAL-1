@@ -130,6 +130,15 @@ export const retryUnknown = (session: PaymentSession, now: string): PaymentSessi
 
 export const canStartNewSale = (session: PaymentSession): boolean => session.state !== 'unknown';
 
+/** Enviar el cobro al servidor: la clave no cambia. */
+export const startSubmission = (session: PaymentSession, now: string): PaymentSession => updateSession(session, { state: 'submitting' }, now);
+
+/** Rechazo definitivo (el servidor respondió que no se cobró): vuelve a editar con la misma clave. */
+export const rejectSubmission = (session: PaymentSession, now: string): PaymentSession => updateSession(session, { state: 'editing' }, now);
+
+/** Cobro registrado: la sesión queda cerrada y no admite más envíos. */
+export const completePaymentSession = (session: PaymentSession, now: string): PaymentSession => updateSession(session, { state: 'completed' }, now);
+
 export const canCompletePaymentSession = (session: PaymentSession): boolean => {
   const digitalAttempts = session.attempts.filter((attempt) => DIGITAL_METHODS.has(attempt.method));
   return digitalAttempts.length > 0 && digitalAttempts.every((attempt) => COMPLETE_DIGITAL_STATUSES.has(attempt.status));

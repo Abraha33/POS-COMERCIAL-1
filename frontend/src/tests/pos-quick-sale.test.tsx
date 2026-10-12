@@ -150,4 +150,27 @@ describe('POS: venta rápida', { timeout: 20000 }, () => {
     expect(await screen.findByTestId('receipt-number')).toBeInTheDocument();
     expect(db.sales.length).toBe(salesBefore + 1);
   });
+
+  it('la sesión de cobro conserva la misma clave idempotente entre un rechazo y el reintento', async () => {
+    const user = userEvent.setup();
+    await renderPos();
+    await openShift(user);
+    const keys: string[] = [];
+    // Primer envío: rechazo definitivo (422). Segundo envío: undefined deja pasar al handler real.
+    server.use(http.post('/api/v1/pos/sales', async ({ request }) => {
+      keys.push(String((await request.clone().json() as { clientOperationId: string }).clientOperationId));
+      if (keys.length === 1) return HttpResponse.json({ code: 'VALIDATION_ERROR', message: 'Datos de venta inválidos' }, { status: 422 });
+      return undefined;
+    }));
+
+    await user.type(screen.getByLabelText(/buscar producto o escanear/i), '7701234567890{Enter}');
+    await user.click(screen.getByRole('button', { name: /cobrar/i }));
+    await user.click(await screen.findByRole('button', { name: /confirmar pago/i }));
+    await screen.findByTestId('checkout-error');
+
+    await user.click(screen.getByRole('button', { name: /confirmar pago/i }));
+    expect(await screen.findByTestId('receipt-number')).toBeInTheDocument();
+    expect(keys).toHaveLength(2);
+    expect(new Set(keys).size).toBe(1);
+  });
 });

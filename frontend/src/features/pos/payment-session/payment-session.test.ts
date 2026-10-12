@@ -3,7 +3,10 @@ import {
   addAttempt,
   canCompletePaymentSession,
   canStartNewSale,
+  completePaymentSession,
   createPaymentSession,
+  rejectSubmission,
+  startSubmission,
   markAttempt,
   markUnknown,
   retryUnknown,
@@ -74,5 +77,16 @@ describe('POS · PaymentSession foundation', () => {
 
     expect(serialized).toContain('proof-1');
     expect(serialized).not.toMatch(/base64|data:image|imageData/i);
+  });
+
+  it('completar cierra el cobro; enviar pasa a submitting; un rechazo definitivo vuelve a editar con la misma clave', () => {
+    const now = '2026-10-12T22:01:00.000Z';
+    const submitting = startSubmission(createPaymentSession(base), now);
+    expect(submitting.state).toBe('submitting');
+    expect(submitting.clientOperationId).toBe('operation-1');
+    const rejected = rejectSubmission(submitting, now);
+    expect(rejected.state).toBe('editing');
+    expect(rejected.clientOperationId).toBe('operation-1');
+    expect(completePaymentSession(submitting, now).state).toBe('completed');
   });
 });
