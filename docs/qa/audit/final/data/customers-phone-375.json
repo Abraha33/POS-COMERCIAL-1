@@ -1,17 +1,13 @@
 {
   "route": "/customers",
   "viewport": "phone-375",
-  "overflow": true,
-  "scrollWidth": 391,
+  "overflow": false,
+  "scrollWidth": 375,
   "innerWidth": 375,
-  "widest": [
-    "div.flex gap-2 right=391",
-    "button.ledger__btn p-button p-component right=391",
-    "table.p-datatable-table right=897",
-    "thead.p-datatable-thead right=897",
-    "tr. right=897"
-  ],
-  "smallTargets": 0,
+  "widest": [],
+  "smallTargets": 1,
   "violations": [],
-  "consoleErrors": []
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
 }

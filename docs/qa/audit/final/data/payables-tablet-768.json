@@ -1,17 +1,13 @@
 {
   "route": "/payables",
   "viewport": "tablet-768",
-  "overflow": true,
-  "scrollWidth": 865,
+  "overflow": false,
+  "scrollWidth": 768,
   "innerWidth": 768,
-  "widest": [
-    "div.ledger__summary right=865",
-    "div.ledger__stat right=865",
-    "div.ledger__stat-label right=852",
-    "div.ledger__stat-value right=852",
-    "div.ledger__filters right=865"
-  ],
+  "widest": [],
   "smallTargets": 0,
   "violations": [],
-  "consoleErrors": []
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
 }

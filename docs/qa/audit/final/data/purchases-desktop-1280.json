@@ -5,7 +5,9 @@
   "scrollWidth": 1280,
   "innerWidth": 1280,
   "widest": [],
-  "smallTargets": 2,
+  "smallTargets": 1,
   "violations": [],
-  "consoleErrors": []
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
 }

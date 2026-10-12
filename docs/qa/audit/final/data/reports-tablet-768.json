@@ -4,10 +4,16 @@
   "overflow": false,
   "scrollWidth": 768,
   "innerWidth": 768,
-  "widest": [],
+  "widest": [
+    "table. right=1065",
+    "caption. right=1065",
+    "thead. right=1063",
+    "tr. right=1063",
+    "th. right=1063"
+  ],
   "smallTargets": 0,
   "violations": [],
   "consoleErrors": [
-    "Invalid ARIA attribute `%s`. Did you mean `%s`? ariaLabel aria-label"
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
   ]
 }

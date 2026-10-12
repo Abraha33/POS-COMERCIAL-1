@@ -5,17 +5,9 @@
   "scrollWidth": 1280,
   "innerWidth": 1280,
   "widest": [],
-  "smallTargets": 0,
-  "violations": [
-    {
-      "id": "color-contrast",
-      "impact": "serious",
-      "help": "Elements must meet minimum color contrast ratio thresholds",
-      "nodes": 1,
-      "targets": [
-        "#pr_id_11_header_0 > .p-tabview-title[data-pc-section=\"headertitle\"]"
-      ]
-    }
-  ],
-  "consoleErrors": []
+  "smallTargets": 1,
+  "violations": [],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
 }

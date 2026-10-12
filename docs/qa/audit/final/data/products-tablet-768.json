@@ -4,8 +4,16 @@
   "overflow": false,
   "scrollWidth": 768,
   "innerWidth": 768,
-  "widest": [],
+  "widest": [
+    "table.p-datatable-table right=817",
+    "thead.p-datatable-thead right=817",
+    "tr. right=817",
+    "th. right=817",
+    "div.p-column-header-content right=809"
+  ],
   "smallTargets": 0,
   "violations": [],
-  "consoleErrors": []
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
 }
