@@ -1,6 +1,25 @@
-import type { AuthorizationCreate, AuthorizationRequest } from '@/shared/contracts';
-import type { PosAuthorizationsApi } from '@/shared/api/authorizations';
-import type { AuthRequest, Scope } from './types';
+import type { ApprovalAction, ApprovalTicket, ApprovalTicketCreate, ApprovalTicketStatus } from '@/shared/contracts';
+import type { PosApprovalsApi } from '@/shared/api/approvals';
+import type { AuthRequest, AuthStatus, AuthType, Scope } from './types';
+
+/**
+ * ADAPTER TEMPORAL (ver docs/architecture/DECISIONES_CONTRATOS.md §2): la interfaz de pos-ops conserva su vocabulario
+ * en español; el contrato usa el vocabulario único de máquina. Este es el único lugar que traduce entre ambos.
+ */
+const ACTION_OF_TYPE: Record<AuthType, ApprovalAction> = {
+  descuento: 'discount', precio: 'price_override', devolucion: 'return', anulacion: 'void_sale',
+  'dif-apertura': 'cash_difference_opening', 'dif-cierre': 'cash_difference_closing', relevo: 'shift_handover',
+  'movimiento-efectivo': 'cash_movement', otra: 'other',
+};
+const TYPE_OF_ACTION: Partial<Record<ApprovalAction, AuthType>> = {
+  discount: 'descuento', price_override: 'precio', return: 'devolucion', void_sale: 'anulacion',
+  cash_difference_opening: 'dif-apertura', cash_difference_closing: 'dif-cierre', shift_handover: 'relevo',
+  cash_movement: 'movimiento-efectivo',
+};
+const STATUS_OF_TICKET: Record<ApprovalTicketStatus, AuthStatus> = {
+  pending: 'pendiente', approved: 'aprobada', rejected: 'rechazada', expired: 'vencida', cancelled: 'cancelada',
+  executed: 'ejecutada',
+};
 
 /**
  * Sincronización de autorizaciones con la API (PROPUESTA v0.6.0). La UI sigue operando sobre registros locales
@@ -10,18 +29,18 @@ import type { AuthRequest, Scope } from './types';
  *  - lo decidido en otra terminal (o vencido) se baja y gana el servidor.
  * El servidor no tiene "cancelar" ni "ejecutar": esos estados quedan locales (ver docs/architecture/CONTRATO_CAPA_5.md).
  */
-export const toCreate = (a: AuthRequest): AuthorizationCreate => ({
-  type: a.type, resource: a.resource, amount: a.amount, reason: a.reason, fingerprint: a.fingerprint,
+export const toCreate = (a: AuthRequest): ApprovalTicketCreate => ({
+  action: ACTION_OF_TYPE[a.type], resource: a.resource, amount: a.amount, reason: a.reason, fingerprint: a.fingerprint,
 });
 
-export type AuthDecisionPush = { local: AuthRequest; decision: 'aprobar' | 'rechazar'; note: string };
+export type AuthDecisionPush = { local: AuthRequest; decision: 'approve' | 'reject'; note: string };
 export type AuthPlan = { merged: AuthRequest[]; create: AuthRequest[]; decide: AuthDecisionPush[]; pulled: number };
 
-const fromServer = (s: AuthorizationRequest, scope: Scope): AuthRequest => ({
+const fromServer = (s: ApprovalTicket, scope: Scope): AuthRequest => ({
   id: `srv-${s.id}`,
   serverId: s.id,
-  type: s.type,
-  status: s.status,
+  type: TYPE_OF_ACTION[s.action] ?? 'otra',
+  status: STATUS_OF_TICKET[s.status],
   scope,
   requesterId: s.requesterId,
   requesterName: s.requesterId,
@@ -39,10 +58,11 @@ const fromServer = (s: AuthorizationRequest, scope: Scope): AuthRequest => ({
   validUntil: s.validUntil ?? null,
   executedAt: s.executedAt ?? null,
   fingerprint: s.fingerprint,
+  ...(s.approvalToken ? { serverToken: s.approvalToken } : {}),
   audit: [{ at: s.createdAt, actorId: s.requesterId, event: 'solicitada', detail: 'Creada en otra terminal' }],
 });
 
-export const planAuthSync = (local: AuthRequest[], server: AuthorizationRequest[], scope: Scope, now: Date): AuthPlan => {
+export const planAuthSync = (local: AuthRequest[], server: ApprovalTicket[], scope: Scope, now: Date): AuthPlan => {
   const byServerId = new Map(server.map((s) => [s.id, s]));
   const create: AuthRequest[] = [];
   const decide: AuthDecisionPush[] = [];
@@ -56,23 +76,29 @@ export const planAuthSync = (local: AuthRequest[], server: AuthorizationRequest[
     const s = byServerId.get(a.serverId);
     if (!s) return a;
     // Local decidió y el servidor no lo sabe: se envía (el servidor valida supervisor y auto-aprobación).
-    if ((a.status === 'aprobada' || a.status === 'rechazada') && s.status === 'pendiente') {
-      decide.push({ local: a, decision: a.status === 'aprobada' ? 'aprobar' : 'rechazar', note: a.decisionNote });
+    if ((a.status === 'aprobada' || a.status === 'rechazada') && s.status === 'pending') {
+      decide.push({ local: a, decision: a.status === 'aprobada' ? 'approve' : 'reject', note: a.decisionNote });
       return a;
     }
     // El servidor decidió o venció algo que aquí sigue pendiente: gana el servidor.
-    if (a.status === 'pendiente' && s.status !== 'pendiente') {
+    if (a.status === 'pendiente' && s.status !== 'pending') {
       pulled += 1;
       return {
         ...a,
-        status: s.status,
+        status: STATUS_OF_TICKET[s.status],
+        ...(s.approvalToken ? { serverToken: s.approvalToken } : {}),
         decidedById: s.decidedById ?? a.decidedById,
         decidedByName: a.decidedByName ?? s.decidedById ?? null,
         decidedAt: s.decidedAt ?? a.decidedAt,
         decisionNote: s.decisionNote ?? a.decisionNote,
         validUntil: s.validUntil ?? a.validUntil,
-        audit: [...a.audit, { at: now.toISOString(), actorId: 'servidor', event: s.status, detail: 'Sincronizada desde el servidor' }],
+        audit: [...a.audit, { at: now.toISOString(), actorId: 'servidor', event: STATUS_OF_TICKET[s.status], detail: 'Sincronizada desde el servidor' }],
       };
+    }
+    // Aprobada localmente y el servidor ya emitió el token (visible solo para quien pidió): se guarda para usarlo.
+    if (a.status === 'aprobada' && !a.serverToken && s.status === 'approved' && s.approvalToken) {
+      pulled += 1;
+      return { ...a, serverToken: s.approvalToken };
     }
     return a;
   });
@@ -97,14 +123,14 @@ const codeOf = (e: unknown): string | null =>
  * que el usuario cambió mientras tanto (solo se agregan `serverId` y decisiones del servidor sobre pendientes).
  */
 export const runAuthSync = async (
-  api: PosAuthorizationsApi,
+  api: PosApprovalsApi,
   read: () => AuthRequest[],
   write: (next: AuthRequest[]) => void,
   scope: Scope,
   now: Date,
 ): Promise<AuthSyncResult> => {
   const result: AuthSyncResult = { created: 0, decided: 0, pulled: 0, failed: 0, offline: false };
-  let server: AuthorizationRequest[];
+  let server: ApprovalTicket[];
   try {
     server = await api.list();
   } catch (e) {

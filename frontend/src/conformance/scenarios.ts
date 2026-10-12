@@ -11,7 +11,7 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
-  approvalSchema, apiErrorSchema, authorizationRequestSchema, custodyEntrySchema, posOrderSchema,
+  approvalSchema, apiErrorSchema, approvalTicketSchema, custodyEntrySchema, posOrderSchema,
   syncBatchResultSchema, authSessionSchema, inventoryAlertSchema, receivableSchema, saleReceiptSchema,
   payableSchema, purchaseOrderSchema, saleReturnSchema, saleSchema, shiftSchema, stockLevelSchema, transferSchema, z,
   agingReportSchema, companySchema, customerPaymentResultSchema, customerSchema, inventoryCountSchema,
@@ -380,45 +380,56 @@ export const registerConformance = (target: string | (() => string)) => {
       expectError(await sell(token, free), 422, 'VALIDATION_ERROR');
     });
 
-    it('PROPUESTA v0.6.0 · autorizaciones y relevo: sin auto-aprobación, diferencia exige autorización aprobada', async () => {
+    it('PROPUESTA v0.7.0 · aprobaciones (modo request): sin auto-aprobación, token de un solo uso y relevo con diferencia', async () => {
       const cashier = await login('laura.gomez');
       const admin = await login('maria.perez');
       const shift = await ensureOpenShift(cashier);
 
-      const created = await call('POST', '/pos/authorizations', {
+      const created = await call('POST', '/auth/supervisor-approvals/requests', {
         token: cashier,
-        body: { type: 'relevo', resource: { kind: 'shift', id: shift.id }, amount: 1000, reason: 'Sobrante en el arqueo', fingerprint: 'fp-1' },
+        body: { action: 'shift_handover', resource: { kind: 'shift', id: shift.id }, amount: 1000, reason: 'Sobrante en el arqueo', fingerprint: 'fp-1' },
       });
       expect(created.status, JSON.stringify(created.body)).toBe(201);
-      expectSchema('AuthorizationRequest', created.body);
-      const auth = authorizationRequestSchema.parse(created.body);
-      expect(auth.status).toBe('pendiente');
+      expectSchema('ApprovalTicket', created.body);
+      const ticket = approvalTicketSchema.parse(created.body);
+      expect(ticket.status).toBe('pending');
+      expect(ticket.approvalToken).toBeUndefined();
 
-      expectError(await call('POST', `/pos/authorizations/${auth.id}/decision`, { token: cashier, body: { decision: 'aprobar' } }), 403, 'FORBIDDEN');
-      const approved = await call('POST', `/pos/authorizations/${auth.id}/decision`, { token: admin, body: { decision: 'aprobar' } });
+      expectError(await call('POST', `/auth/supervisor-approvals/requests/${ticket.id}/decision`, { token: cashier, body: { decision: 'approve' } }), 403, 'FORBIDDEN');
+      const approved = await call('POST', `/auth/supervisor-approvals/requests/${ticket.id}/decision`, { token: admin, body: { decision: 'approve' } });
       expect(approved.status, JSON.stringify(approved.body)).toBe(200);
-      expect(authorizationRequestSchema.parse(approved.body).status).toBe('aprobada');
-      expectError(await call('POST', `/pos/authorizations/${auth.id}/decision`, { token: admin, body: { decision: 'rechazar' } }), 409, 'INVALID_STATE');
+      expect(approvalTicketSchema.parse(approved.body).status).toBe('approved');
+      expectError(await call('POST', `/auth/supervisor-approvals/requests/${ticket.id}/decision`, { token: admin, body: { decision: 'reject' } }), 409, 'INVALID_STATE');
 
-      const own = authorizationRequestSchema.parse((await call('POST', '/pos/authorizations', {
+      const own = approvalTicketSchema.parse((await call('POST', '/auth/supervisor-approvals/requests', {
         token: admin,
-        body: { type: 'otra', resource: { kind: 'x', id: '1' }, amount: 0, reason: 'Prueba propia', fingerprint: 'fp-2' },
+        body: { action: 'other', resource: { kind: 'x', id: '1' }, amount: 0, reason: 'Prueba propia', fingerprint: 'fp-2' },
       })).body);
-      expectError(await call('POST', `/pos/authorizations/${own.id}/decision`, { token: admin, body: { decision: 'aprobar' } }), 403, 'SELF_APPROVAL');
+      expectError(await call('POST', `/auth/supervisor-approvals/requests/${own.id}/decision`, { token: admin, body: { decision: 'approve' } }), 403, 'SELF_APPROVAL');
 
-      // Relevo con diferencia: sin autorización -> 409; con la autorización aprobada -> 200 y se consume.
+      // Solo quien pidió ve el token; el supervisor decide, no ejecuta.
+      const mine = z.array(approvalTicketSchema).parse((await call('GET', '/auth/supervisor-approvals/requests', { token: cashier })).body);
+      const token = mine.find((t) => t.id === ticket.id)?.approvalToken;
+      expect(token, 'el solicitante recibe el token al aprobarse').toBeTruthy();
+      const seenBySupervisor = z.array(approvalTicketSchema).parse((await call('GET', '/auth/supervisor-approvals/requests', { token: admin })).body);
+      expect(seenBySupervisor.find((t) => t.id === ticket.id)?.approvalToken).toBeUndefined();
+
+      // Relevo con diferencia: sin token -> 409; con el token aprobado -> 200 y se consume.
       const counted = shift.expectedCash + 1000;
-      expectError(await call('POST', `/pos/shifts/${shift.id}/handover`, { token: cashier, body: { toEmployeeId: 'emp-003', countedCash: counted } }), 409, 'AUTHORIZATION_REQUIRED');
+      expectError(await call('POST', `/pos/shifts/${shift.id}/handover`, { token: cashier, body: { toEmployeeId: 'emp-003', countedCash: counted } }), 409, 'APPROVAL_REQUIRED');
       const handed = await call('POST', `/pos/shifts/${shift.id}/handover`, {
-        token: cashier, body: { toEmployeeId: 'emp-003', countedCash: counted, authorizationId: auth.id },
+        token: cashier, body: { toEmployeeId: 'emp-003', countedCash: counted, approvalToken: token },
       });
       expect(handed.status, JSON.stringify(handed.body)).toBe(200);
       expectSchema('CustodyEntry', handed.body);
       expect(custodyEntrySchema.parse(handed.body).difference).toBe(1000);
       const reused = await call('POST', `/pos/shifts/${shift.id}/handover`, {
-        token: admin, body: { toEmployeeId: 'emp-001', countedCash: counted, authorizationId: auth.id },
+        token: admin, body: { toEmployeeId: 'emp-001', countedCash: counted, approvalToken: token },
       });
-      expectError(reused, 409, 'AUTHORIZATION_REQUIRED'); // la autorización era de un solo uso
+      expectError(reused, 409, 'APPROVAL_REQUIRED'); // el token era de un solo uso
+
+      const after = z.array(approvalTicketSchema).parse((await call('GET', '/auth/supervisor-approvals/requests', { token: cashier })).body);
+      expect(after.find((t) => t.id === ticket.id)?.status).toBe('executed');
 
       // Devolver la caja a la cajera para no alterar los escenarios siguientes (arqueo exacto).
       const back = await call('POST', `/pos/shifts/${shift.id}/handover`, { token: admin, body: { toEmployeeId: 'emp-001', countedCash: shift.expectedCash } });

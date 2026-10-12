@@ -1,8 +1,8 @@
 import { http, HttpResponse } from 'msw';
 import {
-  authorizationCreateSchema, authorizationDecisionSchema, posOrderCreateSchema, posOrderTransitionSchema,
+  approvalTicketCreateSchema, approvalTicketDecisionSchema, posOrderCreateSchema, posOrderTransitionSchema,
   savePosOrderRequestSchema, shiftHandoverRequestSchema, syncBatchSchema,
-  type AuthorizationRequest, type CustodyEntry, type PosOrder, type SyncOperationResult,
+  type Approval, type ApprovalTicket, type CustodyEntry, type PosOrder, type SyncOperationResult,
 } from '@/shared/contracts';
 import { db, mockNow, nextId, state } from '../db';
 import { authenticate, canSell, failure, forbidden, isSupervisor, notFound, unauthorized, validationError } from '../http';
@@ -27,9 +27,15 @@ const TRANSITIONS: Record<string, string[]> = {
   cancelado: [],
 };
 
-const expireIfNeeded = (a: AuthorizationRequest): AuthorizationRequest => {
-  if (a.status === 'pendiente' && Date.parse(a.expiresAt) < mockNow().getTime()) a.status = 'vencida';
-  return a;
+/** Estado derivado: vence si nadie decidió a tiempo; pasa a `executed` cuando la operación protegida consumió el token. */
+const refresh = (t: ApprovalTicket): ApprovalTicket => {
+  if (t.status === 'pending' && Date.parse(t.expiresAt) < mockNow().getTime()) t.status = 'expired';
+  if (t.status === 'approved' && t.approvalToken && state.approvals.get(t.approvalToken)?.used) {
+    t.status = 'executed';
+    t.executedAt = mockNow().toISOString();
+    delete t.approvalToken;
+  }
+  return t;
 };
 
 export const posOpsHandlers = [
@@ -49,75 +55,95 @@ export const posOpsHandlers = [
     if (target.id === shift.cashierId) return validationError('El receptor es el mismo responsable');
 
     const difference = parsed.data.countedCash - shift.expectedCash;
-    let authorizationId: string | null = null;
+    let approvalId: string | null = null;
     if (difference !== 0) {
-      const auth = parsed.data.authorizationId ? state.authorizations.get(parsed.data.authorizationId) : undefined;
-      if (!auth || auth.type !== 'relevo' || auth.status !== 'aprobada' || Date.parse(auth.validUntil ?? '') < mockNow().getTime()) {
-        return failure(409, 'AUTHORIZATION_REQUIRED', 'La diferencia del arqueo exige una autorización aprobada', {
-          expected: shift.expectedCash, counted: parsed.data.countedCash, difference,
+      const token = parsed.data.approvalToken ? state.approvals.get(parsed.data.approvalToken) : undefined;
+      const valid = token && !token.used && ['shift_handover', 'cash_difference_closing'].includes(token.action)
+        && Date.parse(token.expiresAt) >= mockNow().getTime();
+      if (!token || !valid) {
+        return failure(409, 'APPROVAL_REQUIRED', 'La diferencia del arqueo exige una aprobación vigente', {
+          action: 'shift_handover', expected: shift.expectedCash, counted: parsed.data.countedCash, difference,
         });
       }
-      auth.status = 'ejecutada';
-      auth.executedAt = mockNow().toISOString();
-      authorizationId = auth.id;
+      token.used = true;
+      approvalId = token.approvalToken;
     }
     const entry: CustodyEntry = {
       id: nextId('cust'), at: mockNow().toISOString(), fromId: shift.cashierId, toId: target.id,
       expectedCash: shift.expectedCash, countedCash: parsed.data.countedCash, difference,
-      ...(parsed.data.note ? { note: parsed.data.note } : {}), authorizationId,
+      ...(parsed.data.note ? { note: parsed.data.note } : {}), approvalId,
     };
     shift.cashierId = target.id;
     state.custody.push(entry);
     return HttpResponse.json(entry);
   }),
 
-  // ---------- Autorizaciones ----------
-  http.get('/api/v1/pos/authorizations', ({ request }) => {
+  // ---------- Aprobaciones: modo `request` (PROPUESTA v0.7.0) ----------
+  http.get('/api/v1/auth/supervisor-approvals/requests', ({ request }) => {
     const user = authenticate(request);
     if (!user) return unauthorized();
-    if (!canSell(user.role)) return forbidden();
+    if (!canSell(user.role) && !isSupervisor(user.role)) return forbidden();
     const status = new URL(request.url).searchParams.get('status');
-    const list = [...state.authorizations.values()]
-      .map(expireIfNeeded)
-      .filter((a) => (isSupervisor(user.role) || a.requesterId === user.id) && (!status || a.status === status));
+    const list = [...state.approvalTickets.values()]
+      .map(refresh)
+      .filter((t) => (isSupervisor(user.role) || t.requesterId === user.id) && (!status || t.status === status))
+      // El token solo lo ve quien pidió; el supervisor decide, no ejecuta.
+      .map((t) => (t.requesterId === user.id ? t : { ...t, approvalToken: undefined }));
     return HttpResponse.json(list);
   }),
 
-  http.post('/api/v1/pos/authorizations', async ({ request }) => {
+  http.post('/api/v1/auth/supervisor-approvals/requests', async ({ request }) => {
     const user = authenticate(request);
     if (!user) return unauthorized();
-    if (!canSell(user.role)) return forbidden();
-    const parsed = authorizationCreateSchema.safeParse(await request.json());
-    if (!parsed.success) return validationError('Solicitud de autorización inválida');
+    if (!canSell(user.role) && !isSupervisor(user.role)) return forbidden();
+    const parsed = approvalTicketCreateSchema.safeParse(await request.json());
+    if (!parsed.success) return validationError('Solicitud de aprobación inválida');
     const now = mockNow();
-    const created: AuthorizationRequest = {
-      ...parsed.data, id: nextId('auth'), status: 'pendiente', requesterId: user.id,
+    const created: ApprovalTicket = {
+      ...parsed.data, id: nextId('apr'), status: 'pending', requesterId: user.id,
       createdAt: now.toISOString(), expiresAt: new Date(now.getTime() + AUTH_TTL_MS).toISOString(),
       decidedById: null, decidedAt: null, validUntil: null, executedAt: null,
     };
-    state.authorizations.set(created.id, created);
+    state.approvalTickets.set(created.id, created);
     return HttpResponse.json(created, { status: 201 });
   }),
 
-  http.post('/api/v1/pos/authorizations/:id/decision', async ({ request, params }) => {
+  http.post('/api/v1/auth/supervisor-approvals/requests/:id/decision', async ({ request, params }) => {
     const user = authenticate(request);
     if (!user) return unauthorized();
-    if (!isSupervisor(user.role)) return forbidden('Solo un supervisor decide autorizaciones');
-    const parsed = authorizationDecisionSchema.safeParse(await request.json());
+    if (!isSupervisor(user.role)) return forbidden('Solo un supervisor decide aprobaciones');
+    const parsed = approvalTicketDecisionSchema.safeParse(await request.json());
     if (!parsed.success) return validationError('Decisión inválida');
-    const auth = state.authorizations.get(String(params.id));
-    if (!auth) return notFound('Autorización');
-    if (auth.requesterId === user.id) return failure(403, 'SELF_APPROVAL', 'No puedes decidir tu propia solicitud');
-    expireIfNeeded(auth);
-    if (auth.status === 'vencida') return failure(410, 'AUTHORIZATION_EXPIRED', 'La solicitud venció');
-    if (auth.status !== 'pendiente') return failure(409, 'INVALID_STATE', 'La solicitud ya fue resuelta');
+    const ticket = state.approvalTickets.get(String(params.id));
+    if (!ticket) return notFound('Solicitud de aprobación');
+    if (ticket.requesterId === user.id) return failure(403, 'SELF_APPROVAL', 'No puedes decidir tu propia solicitud');
+    refresh(ticket);
+    if (ticket.status === 'expired') return failure(410, 'APPROVAL_EXPIRED', 'La solicitud venció');
+    if (ticket.status !== 'pending') return failure(409, 'INVALID_STATE', 'La solicitud ya fue resuelta');
     const now = mockNow();
-    auth.status = parsed.data.decision === 'aprobar' ? 'aprobada' : 'rechazada';
-    auth.decidedById = user.id;
-    auth.decidedAt = now.toISOString();
-    if (parsed.data.note) auth.decisionNote = parsed.data.note;
-    if (auth.status === 'aprobada') auth.validUntil = new Date(now.getTime() + AUTH_VALID_MS).toISOString();
-    return HttpResponse.json(auth);
+    if (parsed.data.decision === 'approve') {
+      // Mismas reglas de rol que el modo `pin` (BR-VEN-14, crédito).
+      if (ticket.action === 'below_cost' && user.role !== 'propietario') {
+        return forbidden('Solo el propietario autoriza ventas bajo el costo');
+      }
+      if (ticket.action === 'credit_exception' && user.role !== 'propietario' && user.role !== 'admin') {
+        return forbidden('Solo el propietario o un administrador autoriza excepciones de crédito');
+      }
+      const validUntil = new Date(now.getTime() + AUTH_VALID_MS).toISOString();
+      const approval: Approval = {
+        approvalToken: nextId('appr'), action: ticket.action, supervisorId: user.id, expiresAt: validUntil,
+      };
+      state.approvals.set(approval.approvalToken, { ...approval, used: false, supervisorRole: user.role });
+      ticket.status = 'approved';
+      ticket.validUntil = validUntil;
+      ticket.approvalToken = approval.approvalToken;
+    } else {
+      ticket.status = 'rejected';
+    }
+    ticket.decidedById = user.id;
+    ticket.decidedAt = now.toISOString();
+    if (parsed.data.note) ticket.decisionNote = parsed.data.note;
+    return HttpResponse.json(ticket);
   }),
 
   // ---------- Sincronización idempotente ----------

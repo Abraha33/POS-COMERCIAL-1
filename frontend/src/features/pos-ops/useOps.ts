@@ -5,7 +5,7 @@ import * as auth from './authorization';
 import * as offline from './offline';
 import * as shifts from './shift';
 import { useCurrentShift } from '@/shared/api/pos';
-import { posAuthorizationsApi } from '@/shared/api/authorizations';
+import { posApprovalsApi } from '@/shared/api/approvals';
 import { posSyncApi } from '@/shared/api/sync';
 import { posShiftsApi } from '@/shared/api/shiftHandover';
 import { runAuthSync } from './authSync';
@@ -101,7 +101,7 @@ export const useOps = (options: OpsOptions = {}) => {
       authBusy.current = true;
       try {
         await runAuthSync(
-          posAuthorizationsApi,
+          posApprovalsApi,
           () => store.read<AuthRequest>('auth'),
           (next) => guardRef.current(() => store.write('auth', next)),
           scope,
@@ -148,7 +148,7 @@ export const useOps = (options: OpsOptions = {}) => {
    * Avisa al servidor (POST /pos/shifts/{id}/handover). El relevo local ya quedó registrado: si no hay conexión, turno
    * en el servidor o el servidor lo rechaza, la custodia sigue válida aquí y el estado se muestra sin ocultarlo.
    */
-  const pushHandover = async (input: Omit<shifts.HandoverInput, 'fromId'>, serverAuthorizationId: string | null) => {
+  const pushHandover = async (input: Omit<shifts.HandoverInput, 'fromId'>, approvalToken: string | null) => {
     if (serverMode !== 'api') return setHandoverSync({ state: 'local', message: 'Relevo registrado solo en este dispositivo (servidor local simulado).' });
     const shiftId = serverShiftRef.current;
     if (!online) return setHandoverSync({ state: 'local', message: 'Sin conexión: el relevo quedó solo en este dispositivo y no se ha enviado al servidor.' });
@@ -157,7 +157,7 @@ export const useOps = (options: OpsOptions = {}) => {
     try {
       await posShiftsApi.handover(shiftId, {
         toEmployeeId: input.toId, countedCash: input.countedCash,
-        ...(input.note ? { note: input.note } : {}), ...(serverAuthorizationId ? { authorizationId: serverAuthorizationId } : {}),
+        ...(input.note ? { note: input.note } : {}), ...(approvalToken ? { approvalToken } : {}),
       });
       setHandoverSync({ state: 'sincronizado', message: 'Relevo confirmado por el servidor.' });
     } catch (e) {
@@ -179,13 +179,13 @@ export const useOps = (options: OpsOptions = {}) => {
     },
     pause: () => current && run(shifts.pause(current), saveShift),
     resume: (reauthId: string | null) => current && run(shifts.resume(current, reauthId), saveShift),
-    handover: (input: Omit<shifts.HandoverInput, 'fromId'>, policy: shifts.HandoverPolicy, serverAuthorizationId?: string | null) => {
+    handover: (input: Omit<shifts.HandoverInput, 'fromId'>, policy: shifts.HandoverPolicy, approvalToken?: string | null) => {
       if (!current) return false;
       const done = run(shifts.handover(current, { ...input, fromId: session.user.id }, policy, new Date()), (o) => {
         saveShift(o.current);
         if (o.closed) saveShift(o.closed);
       });
-      if (done) void pushHandover(input, serverAuthorizationId ?? null);
+      if (done) void pushHandover(input, approvalToken ?? null);
       return done;
     },
     addIncident: (kind: IncidentKind, detail: string) =>

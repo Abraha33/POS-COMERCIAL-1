@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { approvalActionSchema } from './auth';
 import { money } from './common';
 
 /**
@@ -11,7 +12,8 @@ export const shiftHandoverRequestSchema = z.object({
   toEmployeeId: z.string(),
   countedCash: money,
   note: z.string().optional(),
-  authorizationId: z.string().optional(),
+  /** PROPUESTA v0.7.0: `approvalToken` de la acción `shift_handover`; obligatorio si hay diferencia. */
+  approvalToken: z.string().optional(),
 });
 export type ShiftHandoverRequest = z.infer<typeof shiftHandoverRequestSchema>;
 
@@ -24,30 +26,27 @@ export const custodyEntrySchema = z.object({
   countedCash: money,
   difference: z.number().int(),
   note: z.string().optional(),
-  authorizationId: z.string().nullable().optional(),
+  /** Token de aprobación consumido por el relevo (si hubo diferencia). */
+  approvalId: z.string().nullable().optional(),
 });
 export type CustodyEntry = z.infer<typeof custodyEntrySchema>;
 
-// ---------- Autorizaciones ----------
-export const authorizationStatusSchema = z.enum(['pendiente', 'aprobada', 'rechazada', 'vencida', 'cancelada', 'ejecutada']);
-export type AuthorizationStatus = z.infer<typeof authorizationStatusSchema>;
+// ---------- Aprobaciones: modo `request` del mecanismo único (PROPUESTA v0.7.0) ----------
+export const approvalTicketStatusSchema = z.enum(['pending', 'approved', 'rejected', 'expired', 'cancelled', 'executed']);
+export type ApprovalTicketStatus = z.infer<typeof approvalTicketStatusSchema>;
 
-export const authorizationTypeSchema = z.enum([
-  'descuento', 'precio', 'devolucion', 'anulacion', 'dif-apertura', 'dif-cierre', 'relevo', 'movimiento-efectivo', 'otra',
-]);
-
-export const authorizationCreateSchema = z.object({
-  type: authorizationTypeSchema,
+export const approvalTicketCreateSchema = z.object({
+  action: approvalActionSchema,
   resource: z.object({ kind: z.string(), id: z.string() }),
   amount: money,
   reason: z.string().min(3),
   fingerprint: z.string(),
 });
-export type AuthorizationCreate = z.infer<typeof authorizationCreateSchema>;
+export type ApprovalTicketCreate = z.infer<typeof approvalTicketCreateSchema>;
 
-export const authorizationRequestSchema = authorizationCreateSchema.extend({
+export const approvalTicketSchema = approvalTicketCreateSchema.extend({
   id: z.string(),
-  status: authorizationStatusSchema,
+  status: approvalTicketStatusSchema,
   requesterId: z.string(),
   createdAt: z.string(),
   expiresAt: z.string(),
@@ -56,14 +55,16 @@ export const authorizationRequestSchema = authorizationCreateSchema.extend({
   decisionNote: z.string().optional(),
   validUntil: z.string().nullable().optional(),
   executedAt: z.string().nullable().optional(),
+  /** Presente solo cuando está aprobada y aún no se ejecutó; se usa como el token del modo `pin`. */
+  approvalToken: z.string().optional(),
 });
-export type AuthorizationRequest = z.infer<typeof authorizationRequestSchema>;
+export type ApprovalTicket = z.infer<typeof approvalTicketSchema>;
 
-export const authorizationDecisionSchema = z.object({
-  decision: z.enum(['aprobar', 'rechazar']),
+export const approvalTicketDecisionSchema = z.object({
+  decision: z.enum(['approve', 'reject']),
   note: z.string().optional(),
 });
-export type AuthorizationDecision = z.infer<typeof authorizationDecisionSchema>;
+export type ApprovalTicketDecision = z.infer<typeof approvalTicketDecisionSchema>;
 
 // ---------- Sincronización ----------
 export const syncOperationSchema = z.object({

@@ -13,6 +13,14 @@ const titles: Record<Action, string> = {
   negative_stock: 'Autorizar venta sin existencias',
   below_cost: 'Autorizar venta bajo el costo (solo propietario)',
   credit_exception: 'Autorizar excepción de crédito (propietario o administrador)',
+  price_override: 'Autorizar cambio de precio',
+  void_sale: 'Autorizar anulación de venta',
+  return: 'Autorizar devolución',
+  cash_difference_opening: 'Autorizar diferencia en la apertura',
+  cash_difference_closing: 'Autorizar diferencia en el cierre',
+  shift_handover: 'Autorizar relevo con diferencia',
+  cash_movement: 'Autorizar movimiento de efectivo',
+  other: 'Autorizar operación',
 };
 
 type Props = {

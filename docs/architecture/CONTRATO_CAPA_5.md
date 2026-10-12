@@ -9,7 +9,7 @@ OpenAPI verificada por `tsc`, handlers MSW (`mocks/handlers/posops.ts`) y confor
 | Pedidos | `GET /pos/orders?branchId`, `PUT /pos/orders/{id}` (concurrencia optimista), `POST /pos/orders`, `POST …/transitions` | **`features/pos/orders`** vía `ordersSync.ts` (offline-first) |
 | Sincronización offline | `POST /pos/sync/batches`, `GET /pos/sync/operations/{key}` | **`features/pos-ops`** vía `httpTransport.ts` (por defecto) |
 | Turnos (F03) | `POST /pos/shifts/{id}/handover` | **`features/pos-ops`** (`useOps.handover`): el relevo local se registra primero y se avisa al servidor; el estado se muestra |
-| Autorizaciones (F12) | `GET/POST /pos/authorizations`, `POST …/decision` | **`features/pos-ops`** vía `authSync.ts` (cada 5 s con conexión; el servidor gana) |
+| Aprobaciones (F12) | `GET/POST /auth/supervisor-approvals/requests`, `POST …/{id}/decision` (v0.7.0; reemplaza `/pos/authorizations`) | **`features/pos-ops`** vía `authSync.ts` (adapter de vocabulario; cada 5 s con conexión; el servidor gana) |
 
 ## Cómo consumen
 - **Pedidos:** el dispositivo sigue siendo la fuente mientras no hay conexión (`localStorage`). Cada cambio marca el

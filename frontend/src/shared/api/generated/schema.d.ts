@@ -756,7 +756,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/pos/authorizations": {
+    "/auth/supervisor-approvals/requests": {
         parameters: {
             query?: never;
             header?: never;
@@ -764,23 +764,25 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description PROPUESTA v0.6.0 (capa 5, POS-F12). Bandeja de solicitudes de autorización por sede. El supervisor no puede
-         *     aprobar su propia solicitud (regla del servidor).
+         * @description PROPUESTA v0.7.0. Solicitudes del modo `request` del mecanismo único de aprobación (el modo `pin` es
+         *     `POST /auth/supervisor-approvals`). El supervisor ve todas; el solicitante, las suyas. Al aprobarse, la solicitud
+         *     trae `approvalToken`, que se usa igual que el del modo `pin` en la operación protegida. Un supervisor no decide
+         *     su propia solicitud.
          */
-        get: operations["listAuthorizations"];
+        get: operations["listApprovalRequests"];
         put?: never;
         /**
-         * @description PROPUESTA v0.6.0. Crea la solicitud con huella (`fingerprint`) de lo esencial; si esos datos cambian después,
+         * @description PROPUESTA v0.7.0. Crea la solicitud con huella (`fingerprint`) de lo esencial; si esos datos cambian después,
          *     la aprobación deja de valer.
          */
-        post: operations["requestAuthorization"];
+        post: operations["createApprovalRequest"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/pos/authorizations/{id}/decision": {
+    "/auth/supervisor-approvals/requests/{id}/decision": {
         parameters: {
             query?: never;
             header?: never;
@@ -790,10 +792,10 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * @description PROPUESTA v0.6.0. Aprueba o rechaza una solicitud. La aprobación es de un solo uso y vence en `validUntil`.
-         *     Errores: `SELF_APPROVAL` 403, `AUTHORIZATION_EXPIRED` 410, `FINGERPRINT_MISMATCH` 409.
+         * @description PROPUESTA v0.7.0. Aprueba o rechaza. Aprobar emite un `approvalToken` de un solo uso que vence en `validUntil`.
+         *     Errores: `SELF_APPROVAL` 403, `APPROVAL_EXPIRED` 410, `INVALID_STATE` 409.
          */
-        post: operations["decideAuthorization"];
+        post: operations["decideApprovalRequest"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1188,15 +1190,19 @@ export interface components {
             amount: number;
             note?: string;
         };
+        /**
+         * @description Vocabulario único de acciones que exigen aprobación de supervisor (código de máquina, sin idioma).
+         *     Aprobadas: `discount`, `negative_stock`, `below_cost`. PROPUESTA v0.6.0/v0.7.0: el resto.
+         * @enum {string}
+         */
+        ApprovalAction: "discount" | "negative_stock" | "below_cost" | "credit_exception" | "price_override" | "void_sale" | "return" | "cash_difference_opening" | "cash_difference_closing" | "shift_handover" | "cash_movement" | "other";
         ApprovalRequest: {
-            /** @enum {string} */
-            action: "discount" | "negative_stock" | "below_cost" | "credit_exception";
+            action: components["schemas"]["ApprovalAction"];
             pin: string;
         };
         Approval: {
             approvalToken: string;
-            /** @enum {string} */
-            action: "discount" | "negative_stock" | "below_cost" | "credit_exception";
+            action: components["schemas"]["ApprovalAction"];
             supervisorId: string;
             expiresAt: string;
         };
@@ -1596,7 +1602,8 @@ export interface components {
             toEmployeeId: string;
             countedCash: number;
             note?: string;
-            authorizationId?: string;
+            /** @description PROPUESTA v0.7.0. `approvalToken` (acción `shift_handover`) cuando hay diferencia en el arqueo. */
+            approvalToken?: string;
         };
         CustodyEntry: {
             id: string;
@@ -1607,13 +1614,12 @@ export interface components {
             countedCash: number;
             difference: number;
             note?: string;
-            authorizationId?: string | null;
+            approvalId?: string | null;
         };
         /** @enum {string} */
-        AuthorizationStatus: "pendiente" | "aprobada" | "rechazada" | "vencida" | "cancelada" | "ejecutada";
-        AuthorizationCreate: {
-            /** @enum {string} */
-            type: "descuento" | "precio" | "devolucion" | "anulacion" | "dif-apertura" | "dif-cierre" | "relevo" | "movimiento-efectivo" | "otra";
+        ApprovalTicketStatus: "pending" | "approved" | "rejected" | "expired" | "cancelled" | "executed";
+        ApprovalTicketCreate: {
+            action: components["schemas"]["ApprovalAction"];
             resource: {
                 kind: string;
                 id: string;
@@ -1622,9 +1628,9 @@ export interface components {
             reason: string;
             fingerprint: string;
         };
-        AuthorizationRequest: components["schemas"]["AuthorizationCreate"] & {
+        ApprovalTicket: components["schemas"]["ApprovalTicketCreate"] & {
             id: string;
-            status: components["schemas"]["AuthorizationStatus"];
+            status: components["schemas"]["ApprovalTicketStatus"];
             requesterId: string;
             createdAt: string;
             expiresAt: string;
@@ -1633,10 +1639,12 @@ export interface components {
             decisionNote?: string;
             validUntil?: string | null;
             executedAt?: string | null;
+            /** @description Presente solo cuando la solicitud está aprobada y aún no se ejecutó. */
+            approvalToken?: string;
         };
-        AuthorizationDecision: {
+        ApprovalTicketDecision: {
             /** @enum {string} */
-            decision: "aprobar" | "rechazar";
+            decision: "approve" | "reject";
             note?: string;
         };
         SyncOperation: {
@@ -3108,10 +3116,10 @@ export interface operations {
             409: components["responses"]["Conflict"];
         };
     };
-    listAuthorizations: {
+    listApprovalRequests: {
         parameters: {
             query?: {
-                status?: components["schemas"]["AuthorizationStatus"];
+                status?: components["schemas"]["ApprovalTicketStatus"];
             };
             header?: never;
             path?: never;
@@ -3125,12 +3133,13 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuthorizationRequest"][];
+                    "application/json": components["schemas"]["ApprovalTicket"][];
                 };
             };
+            403: components["responses"]["Forbidden"];
         };
     };
-    requestAuthorization: {
+    createApprovalRequest: {
         parameters: {
             query?: never;
             header?: never;
@@ -3139,7 +3148,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AuthorizationCreate"];
+                "application/json": components["schemas"]["ApprovalTicketCreate"];
             };
         };
         responses: {
@@ -3149,12 +3158,13 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuthorizationRequest"];
+                    "application/json": components["schemas"]["ApprovalTicket"];
                 };
             };
+            403: components["responses"]["Forbidden"];
         };
     };
-    decideAuthorization: {
+    decideApprovalRequest: {
         parameters: {
             query?: never;
             header?: never;
@@ -3165,7 +3175,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AuthorizationDecision"];
+                "application/json": components["schemas"]["ApprovalTicketDecision"];
             };
         };
         responses: {
@@ -3175,10 +3185,11 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuthorizationRequest"];
+                    "application/json": components["schemas"]["ApprovalTicket"];
                 };
             };
             403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
             409: components["responses"]["Conflict"];
         };
     };

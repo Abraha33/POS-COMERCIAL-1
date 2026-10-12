@@ -40,7 +40,7 @@ Reglas:
   segundo recurso.
 - Hasta que se resuelva, `/pos/authorizations` queda congelado: sin ampliaciones.
 
-## 3. Pagos — canales explícitos por paquete de país
+## 3. Pagos — canales explícitos por paquete de país (implementado: ver §6)
 
 > Corrige la primera versión de este ADR («enum cerrado de 9 canales»): con varios países el catálogo no puede ser
 > global. Lo que sigue vigente es la regla del dueño: **ningún medio distinto se esconde dentro de otro**.
@@ -84,7 +84,32 @@ Reglas:
 Para cada cambio: (1) OpenAPI + Zod + `contract-types` + ejemplo; (2) handler MSW + conformidad; (3) adapter en
 `shared/api`; (4) recién entonces la UI. Una UI que necesite algo sin contrato **se detiene y pide el contrato**.
 
-## 6. Hecho en este paso
+## 6. Hecho
+
+### Paso 1 — contratos (v0.7.0), todo con Zod + OpenAPI + mock + conformidad
+| Recurso | Estado | Detalle |
+|---|---|---|
+| `GET /pos/registers` | `approved` | Cajas, terminal, base esperada (`null` = sin configurar) y ocupación derivada del turno abierto |
+| `GET /pos/country-pack` | `proposed` | Paquete de país CO: 9 canales explícitos, tipos de documento con valor por defecto, denominaciones, moneda |
+| `Session.regional` | `proposed` | `countryCode`, `locale`, `currency`, `direction` (opcional; sin él la UI usa es-CO/COP/ltr) |
+| `SaleCreate.documentType` | `proposed` | Obligatorio; `DOCUMENT_TYPE_UNKNOWN` / `CHANNEL_UNKNOWN` contra el paquete; `Sale.documentType` opcional |
+| Aprobaciones | `approved` (pin) + `proposed` (request) | **Un solo mecanismo**: `POST /auth/supervisor-approvals` (pin) + `…/requests` (solicitud) + `…/requests/{id}/decision`; mismo `approvalToken`, un solo vocabulario (`ApprovalAction`). `/pos/authorizations` **eliminado**. El relevo consume `approvalToken` (`APPROVAL_REQUIRED`) |
+
+Adapters temporales (se retiran cuando la UI hable el vocabulario canónico):
+- `features/pos-ops/authSync.ts`: traduce tipos/estados en español ↔ `ApprovalAction`/`ApprovalTicketStatus`.
+- `tests/country-pack-drift.test.ts`: impide que las constantes de la UI (canales, documentos, denominaciones) se
+  desvíen del paquete mientras la UI no consuma `GET /pos/country-pack`.
+
+Gates (`openapi.test.ts`): toda operación declara `x-approval` y `x-status`; ninguna `proposed` es `real`.
+
+### Pendiente (paso 2 y siguientes)
+- `ShiftRecord`→derivado de `Shift`; `pos-access` consume `GET /pos/registers`; la UI consume `GET /pos/country-pack`.
+- Códigos de error con `code` + `params` y catálogo en el cliente (con i18n).
+- i18n (FormatJS), `Session.regional` en la interfaz, panel de escenarios y matriz de flujos.
+- Nota de verificación: con `TEST_PASSWORD` modificado sin commitear en `mocks/test-users.ts`, la suite exige
+  `CONFORMANCE_PASSWORD=<valor>` y fallan 2 pruebas que comparan contra `users.json`/login documentado.
+
+## 6.0 Primer paso (estados)
 - `x-approval: approved` explícito en las 25 operaciones aprobadas (antes era implícito por ausencia).
 - Tres gates en `openapi.test.ts`: toda operación declara `x-approval` y `x-status`; ninguna `proposed` es `real`.
 - Sin cambios de UI, mocks ni esquemas.

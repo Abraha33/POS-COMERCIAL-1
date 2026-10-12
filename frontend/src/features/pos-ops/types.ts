@@ -97,6 +97,8 @@ export type AuthRequest = {
   executedAt: string | null;
   /** Huella de lo autorizado: si cambian los datos esenciales, la aprobación deja de valer. */
   fingerprint: string;
+  /** Token de aprobación emitido por el servidor al aprobarse (modo `request`); se usa en la operación protegida. */
+  serverToken?: string;
   audit: { at: string; actorId: string; event: string; detail: string }[];
   /** Id de la misma solicitud en el servidor (capa 5); ausente hasta que se publica. */
   serverId?: string;

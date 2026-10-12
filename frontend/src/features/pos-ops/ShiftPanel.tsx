@@ -224,7 +224,7 @@ const HandoverDialog = ({ ops, shift, visible, onHide }: { ops: Ops; shift: Shif
     const done = ops.actions.handover(
       { toId: to.id, toName: to.name, expectedCash: expected, countedCash: counted, note, authorizationId: approved?.id ?? null },
       { requireCount: true, mode },
-      approved?.serverId ?? null,
+      approved?.serverToken ?? null,
     );
     if (done) onHide();
   };

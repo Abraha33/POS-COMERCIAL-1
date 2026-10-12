@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw';
 import {
-  saleCreateSchema, saleReturnCreateSchema, saleVoidSchema, type InventoryAlert, type Sale, type SaleCreate,
+  saleCreateSchema, saleReturnCreateSchema, saleVoidSchema, type ApprovalAction, type InventoryAlert, type Sale, type SaleCreate,
   type SaleReceipt, type SaleReturn,
 } from '@/shared/contracts';
 import { computeTotals, lineGross } from '@/shared/utils/pricing';
@@ -95,7 +95,6 @@ export const saleHandlers = [
     }
 
     const token = body.approvalToken ? state.approvals.get(body.approvalToken) : undefined;
-    type ApprovalAction = 'discount' | 'negative_stock' | 'below_cost' | 'credit_exception';
     /** `accepted`: acciones cuyo token vale para esta comprobación (el de below_cost, solo del propietario, cubre descuento). */
     const needApproval = (accepted: ApprovalAction[]) => {
       if (!body.approvalToken) {

@@ -32,7 +32,14 @@ export const authSessionContract: Contract<typeof authSessionSchema> = {
 };
 
 /** Acciones que exigen PIN de supervisor (BR-VEN-04/05/14). `below_cost` solo lo autoriza el propietario. `credit_exception` (PROPUESTA v0.6.0): excedente de cupo o vencimiento libre; propietario o administrador. */
-export const approvalActionSchema = z.enum(['discount', 'negative_stock', 'below_cost', 'credit_exception']);
+export const approvalActionSchema = z.enum([
+  // Aprobadas (BR-VEN-04/05/14).
+  'discount', 'negative_stock', 'below_cost',
+  // PROPUESTA v0.6.0 / v0.7.0.
+  'credit_exception', 'price_override', 'void_sale', 'return', 'cash_difference_opening', 'cash_difference_closing',
+  'shift_handover', 'cash_movement', 'other',
+]);
+export type ApprovalAction = z.infer<typeof approvalActionSchema>;
 
 export const approvalRequestSchema = z.object({ action: approvalActionSchema, pin: z.string().min(4) });
 export type ApprovalRequest = z.infer<typeof approvalRequestSchema>;

@@ -1257,22 +1257,24 @@ paths:
                 $ref: "#/components/schemas/CustodyEntry"
         "409":
           $ref: "#/components/responses/Conflict"
-  /pos/authorizations:
+  /auth/supervisor-approvals/requests:
     get:
       tags:
-        - pos
-      operationId: listAuthorizations
+        - auth
+      operationId: listApprovalRequests
       x-status: simulated
       x-approval: proposed
       description: |
-        PROPUESTA v0.6.0 (capa 5, POS-F12). Bandeja de solicitudes de autorización por sede. El supervisor no puede
-        aprobar su propia solicitud (regla del servidor).
+        PROPUESTA v0.7.0. Solicitudes del modo `request` del mecanismo único de aprobación (el modo `pin` es
+        `POST /auth/supervisor-approvals`). El supervisor ve todas; el solicitante, las suyas. Al aprobarse, la solicitud
+        trae `approvalToken`, que se usa igual que el del modo `pin` en la operación protegida. Un supervisor no decide
+        su propia solicitud.
       parameters:
         - name: status
           in: query
           required: false
           schema:
-            $ref: "#/components/schemas/AuthorizationStatus"
+            $ref: "#/components/schemas/ApprovalTicketStatus"
       responses:
         "200":
           description: OK
@@ -1281,39 +1283,43 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/AuthorizationRequest"
+                  $ref: "#/components/schemas/ApprovalTicket"
+        "403":
+          $ref: "#/components/responses/Forbidden"
     post:
       tags:
-        - pos
-      operationId: requestAuthorization
+        - auth
+      operationId: createApprovalRequest
       x-status: simulated
       x-approval: proposed
       description: |
-        PROPUESTA v0.6.0. Crea la solicitud con huella (`fingerprint`) de lo esencial; si esos datos cambian después,
+        PROPUESTA v0.7.0. Crea la solicitud con huella (`fingerprint`) de lo esencial; si esos datos cambian después,
         la aprobación deja de valer.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AuthorizationCreate"
+              $ref: "#/components/schemas/ApprovalTicketCreate"
       responses:
         "201":
           description: Solicitud creada
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthorizationRequest"
-  /pos/authorizations/{id}/decision:
+                $ref: "#/components/schemas/ApprovalTicket"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+  /auth/supervisor-approvals/requests/{id}/decision:
     post:
       tags:
-        - pos
-      operationId: decideAuthorization
+        - auth
+      operationId: decideApprovalRequest
       x-status: simulated
       x-approval: proposed
       description: |
-        PROPUESTA v0.6.0. Aprueba o rechaza una solicitud. La aprobación es de un solo uso y vence en `validUntil`.
-        Errores: `SELF_APPROVAL` 403, `AUTHORIZATION_EXPIRED` 410, `FINGERPRINT_MISMATCH` 409.
+        PROPUESTA v0.7.0. Aprueba o rechaza. Aprobar emite un `approvalToken` de un solo uso que vence en `validUntil`.
+        Errores: `SELF_APPROVAL` 403, `APPROVAL_EXPIRED` 410, `INVALID_STATE` 409.
       parameters:
         - name: id
           in: path
@@ -1325,16 +1331,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/AuthorizationDecision"
+              $ref: "#/components/schemas/ApprovalTicketDecision"
       responses:
         "200":
           description: Decisión registrada
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/AuthorizationRequest"
+                $ref: "#/components/schemas/ApprovalTicket"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
   /pos/sync/batches:
@@ -2297,6 +2305,24 @@ components:
           exclusiveMinimum: 0
         note:
           type: string
+    ApprovalAction:
+      type: string
+      description: |
+        Vocabulario único de acciones que exigen aprobación de supervisor (código de máquina, sin idioma).
+        Aprobadas: `discount`, `negative_stock`, `below_cost`. PROPUESTA v0.6.0/v0.7.0: el resto.
+      enum:
+        - discount
+        - negative_stock
+        - below_cost
+        - credit_exception
+        - price_override
+        - void_sale
+        - return
+        - cash_difference_opening
+        - cash_difference_closing
+        - shift_handover
+        - cash_movement
+        - other
     ApprovalRequest:
       type: object
       required:
@@ -2304,12 +2330,7 @@ components:
         - pin
       properties:
         action:
-          type: string
-          enum:
-            - discount
-            - negative_stock
-            - below_cost
-            - credit_exception
+          $ref: "#/components/schemas/ApprovalAction"
         pin:
           type: string
           minLength: 4
@@ -2325,12 +2346,7 @@ components:
           type: string
           minLength: 1
         action:
-          type: string
-          enum:
-            - discount
-            - negative_stock
-            - below_cost
-            - credit_exception
+          $ref: "#/components/schemas/ApprovalAction"
         supervisorId:
           type: string
         expiresAt:
@@ -3585,8 +3601,9 @@ components:
           minimum: 0
         note:
           type: string
-        authorizationId:
+        approvalToken:
           type: string
+          description: PROPUESTA v0.7.0. `approvalToken` (acción `shift_handover`) cuando hay diferencia en el arqueo.
     CustodyEntry:
       type: object
       required:
@@ -3616,40 +3633,30 @@ components:
           type: integer
         note:
           type: string
-        authorizationId:
+        approvalId:
           type:
             - string
             - "null"
-    AuthorizationStatus:
+    ApprovalTicketStatus:
       type: string
       enum:
-        - pendiente
-        - aprobada
-        - rechazada
-        - vencida
-        - cancelada
-        - ejecutada
-    AuthorizationCreate:
+        - pending
+        - approved
+        - rejected
+        - expired
+        - cancelled
+        - executed
+    ApprovalTicketCreate:
       type: object
       required:
-        - type
+        - action
         - resource
         - amount
         - reason
         - fingerprint
       properties:
-        type:
-          type: string
-          enum:
-            - descuento
-            - precio
-            - devolucion
-            - anulacion
-            - dif-apertura
-            - dif-cierre
-            - relevo
-            - movimiento-efectivo
-            - otra
+        action:
+          $ref: "#/components/schemas/ApprovalAction"
         resource:
           type: object
           required:
@@ -3668,9 +3675,9 @@ components:
           minLength: 3
         fingerprint:
           type: string
-    AuthorizationRequest:
+    ApprovalTicket:
       allOf:
-        - $ref: "#/components/schemas/AuthorizationCreate"
+        - $ref: "#/components/schemas/ApprovalTicketCreate"
         - type: object
           required:
             - id
@@ -3682,7 +3689,7 @@ components:
             id:
               type: string
             status:
-              $ref: "#/components/schemas/AuthorizationStatus"
+              $ref: "#/components/schemas/ApprovalTicketStatus"
             requesterId:
               type: string
             createdAt:
@@ -3707,7 +3714,10 @@ components:
               type:
                 - string
                 - "null"
-    AuthorizationDecision:
+            approvalToken:
+              type: string
+              description: Presente solo cuando la solicitud está aprobada y aún no se ejecutó.
+    ApprovalTicketDecision:
       type: object
       required:
         - decision
@@ -3715,8 +3725,8 @@ components:
         decision:
           type: string
           enum:
-            - aprobar
-            - rechazar
+            - approve
+            - reject
         note:
           type: string
     SyncOperation:
