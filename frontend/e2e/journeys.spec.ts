@@ -14,8 +14,9 @@ test.describe('Recorridos E2E multi-módulo', () => {
     await addToCart(page, 'Arroz 500 g');
     await expect(page.getByTestId('pos-total')).toContainText('2.800');
     await page.getByRole('button', { name: /Cobrar/ }).click();
+    await page.getByRole('dialog', { name: 'Cobrar venta' }).getByRole('button', { name: /Confirmar pago/ }).click();
 
-    const receipt = page.getByRole('dialog', { name: 'Venta registrada' });
+    const receipt = page.getByRole('dialog', { name: 'Venta completada' });
     await expect(receipt).toBeVisible();
     await expect(page.getByTestId('receipt-number')).toHaveText('POS-0004');
     await expect(receipt).toContainText('2.800');
@@ -24,7 +25,7 @@ test.describe('Recorridos E2E multi-módulo', () => {
     // Otro rol, mismo estado de mocks (sin recargar).
     await switchRole(page, 'bodeguero');
     await gotoModule(page, 'inventory');
-    const row = stockRow(page, 'prd-001', 'br-001');
+    const row = stockRow(page, 'Arroz 500 g', 'Sede Principal');
     await expect(row).toBeVisible();
     // Seed: 40 unidades. Tras vender 1 deben quedar 39.
     await expect(row).toContainText('39');
@@ -35,13 +36,14 @@ test.describe('Recorridos E2E multi-módulo', () => {
     await openShift(page);
 
     await addToCart(page, 'Aceite 1 L');
-    await page.getByLabel('Cliente').selectOption({ label: 'Tienda La Esquina' });
-    await page.getByLabel('Medio de pago 1').selectOption('credito');
+    await page.locator('#pos-customer').selectOption({ label: 'Tienda La Esquina' });
+    await page.getByRole('button', { name: 'Crédito' }).click();
     const total = copValue(await page.getByTestId('pos-total').textContent());
     expect(total).toBeGreaterThan(0);
     await page.getByRole('button', { name: /Cobrar/ }).click();
+    await page.getByRole('dialog', { name: 'Cobrar venta' }).getByRole('button', { name: /Confirmar pago/ }).click();
     await expect(page.getByTestId('receipt-number')).toHaveText('POS-0004');
-    await page.getByRole('dialog', { name: 'Venta registrada' }).getByRole('button', { name: 'Nueva venta' }).click();
+    await page.getByRole('dialog', { name: 'Venta completada' }).getByRole('button', { name: 'Nueva venta' }).click();
 
     await switchRole(page, 'cartera');
     await gotoModule(page, 'receivables');
@@ -53,7 +55,7 @@ test.describe('Recorridos E2E multi-módulo', () => {
     await expect(page.getByRole('heading', { name: 'Detalle de ventas' })).toBeVisible();
     const sale = page.locator('tbody tr').filter({ hasText: 'POS-0004' });
     await expect(sale).toBeVisible();
-    await expect(sale).toContainText('Crédito');
+    await expect(sale).toContainText('A crédito');
   });
 
   test('(c) un abono en cuentas por cobrar reduce el saldo', async ({ page }) => {
@@ -106,7 +108,7 @@ test.describe('Recorridos E2E multi-módulo', () => {
     await detail.getByRole('button', { name: 'Cerrar' }).first().click();
 
     await gotoModule(page, 'inventory');
-    await expect(stockRow(page, 'prd-001', 'br-001')).toContainText('50');
+    await expect(stockRow(page, 'Arroz 500 g', 'Sede Principal')).toContainText('50');
 
     await gotoModule(page, 'payables');
     await expect(page.locator('tbody tr').filter({ hasText: 'Distribuidora Andina' })).toHaveCount(2);
@@ -128,7 +130,7 @@ test.describe('Recorridos E2E multi-módulo', () => {
     await expect(close).toBeEnabled();
     await close.click();
     // Sin turno abierto, el POS vuelve a pedir apertura (BR-CAJ-01).
-    await expect(page.getByRole('heading', { name: 'Abrir turno de caja' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Apertura de caja' })).toBeVisible();
   });
 
   test('(e2) el servidor rechaza cerrar con diferencia sin nota (422 CASH_NOTE_REQUIRED)', async ({ page }) => {
@@ -155,7 +157,7 @@ test.describe('Recorridos E2E multi-módulo', () => {
     await expect(cash.getByTestId('cash-difference')).toContainText('cuadra');
     await expect(cash.getByLabel('Nota de justificación (obligatoria)')).toHaveCount(0);
     await cash.getByRole('button', { name: 'Cerrar turno' }).click();
-    await expect(page.getByRole('heading', { name: 'Abrir turno de caja' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Apertura de caja' })).toBeVisible();
   });
 });
 
@@ -168,12 +170,13 @@ test.describe('POS por teclado y lector', () => {
     await search.pressSequentially('7701234567891'); // Aceite 1 L
     await search.press('Enter');
     await expect(page.getByTestId('pos-total')).not.toHaveText(/\$\s?0$/);
-    await expect(page.getByLabel('Cantidad Aceite 1 L')).toHaveText('1');
+    await expect(page.getByLabel('Cantidad Aceite 1 L')).toHaveValue('1');
     // Segundo escaneo del mismo código suma cantidad.
     await search.pressSequentially('7701234567891');
     await search.press('Enter');
-    await expect(page.getByLabel('Cantidad Aceite 1 L')).toHaveText('2');
-    await page.keyboard.press('F9');
+    await expect(page.getByLabel('Cantidad Aceite 1 L')).toHaveValue('2');
+    await page.keyboard.press('F8');
+    await page.getByRole('dialog', { name: 'Cobrar venta' }).getByRole('button', { name: /Confirmar pago/ }).click();
     await expect(page.getByTestId('receipt-number')).toHaveText('POS-0004');
   });
 
@@ -184,6 +187,6 @@ test.describe('POS por teclado y lector', () => {
     await search.pressSequentially('0000000000000');
     await search.press('Enter');
     await expect(page.getByTestId('cart-empty')).toBeVisible();
-    await expect(page.getByText('Sin coincidencia única')).toBeVisible();
+    await expect(page.getByText(/No hay productos con/)).toBeVisible();
   });
 });

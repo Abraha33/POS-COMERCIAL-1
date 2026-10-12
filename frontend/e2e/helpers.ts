@@ -42,7 +42,7 @@ export const dots = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d
 
 /** Abre turno con la base indicada (cajero ya en /pos sin turno). */
 export const openShift = async (page: Page, base?: number) => {
-  await expect(page.getByRole('heading', { name: 'Abrir turno de caja' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Apertura de caja' })).toBeVisible();
   if (base !== undefined) await typeNumber(page.locator('#opening-cash'), String(base));
   await page.getByRole('button', { name: 'Abrir turno' }).click();
   await expect(page.locator('#pos-search')).toBeVisible();

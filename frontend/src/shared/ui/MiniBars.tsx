@@ -32,7 +32,8 @@ export const MiniBars = ({ data, ariaLabel, formatValue = String, height = 160, 
       <div className="app-bars__plot" aria-hidden="true">
         {data.map((d, index) => <span className="app-bars__label" key={`${d.label}-l${index}`}>{d.label}</span>)}
       </div>
-      <table className="sr-only">
+      <div className="sr-only">
+      <table>
         <caption>{ariaLabel}</caption>
         <thead><tr><th scope="col">Periodo</th><th scope="col">Valor</th></tr></thead>
         <tbody>
@@ -41,6 +42,7 @@ export const MiniBars = ({ data, ariaLabel, formatValue = String, height = 160, 
           ))}
         </tbody>
       </table>
+      </div>
     </figure>
   );
 };

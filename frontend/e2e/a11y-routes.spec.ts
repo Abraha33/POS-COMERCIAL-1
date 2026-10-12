@@ -23,14 +23,7 @@ const widths = [
 const targets = [...ROUTES.map((r) => ({ id: r, path: `/${r}` })), { id: 'not-found', path: '/ruta-inexistente' }];
 
 /** Violaciones conocidas (ver docs/qa/FINDINGS.md): la prueba se marca test.fail para no ocultarlas. */
-const KNOWN_FAILURES: Record<string, string> = {
-  'administration@desktop-1280': 'F-05: color-contrast del título de pestaña activa (PrimeReact tabview)',
-  'administration@tablet-768': 'F-05: color-contrast del título de pestaña activa (PrimeReact tabview)',
-  'administration@phone-375': 'F-05: color-contrast del título de pestaña activa (PrimeReact tabview)',
-  'payables@tablet-768': 'F-01: las tarjetas de resumen desbordan la página (865 px)',
-  'payables@phone-375': 'F-01: las tarjetas de resumen desbordan la página (865 px)',
-  'customers@phone-375': 'F-06: el botón "Nuevo cliente" y la tabla desbordan a 375 px',
-};
+const KNOWN_FAILURES: Record<string, string> = {};
 
 for (const viewport of widths) {
   test.describe(`axe a ${viewport.width}px`, () => {
