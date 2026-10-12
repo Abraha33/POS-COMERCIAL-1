@@ -45,6 +45,47 @@ describe('POS: venta rápida', { timeout: 20000 }, () => {
     expect(db.sales.at(-1)?.total).toBe(5600);
   });
 
+  it('consume canales y documentos exclusivamente desde CountryPack', async () => {
+    const originalChannels = db.countryPack.paymentChannels;
+    const originalDocuments = db.countryPack.documentTypes;
+    db.countryPack.paymentChannels = [{
+      id: 'canal-prueba', label: 'Canal de configuración', type: 'wallet', method: 'nequi', requiresProof: false,
+      fields: [], destinations: [{ id: 'destino-prueba', label: 'Destino configurado' }],
+    }];
+    db.countryPack.documentTypes = [{ id: 'documento-prueba', label: 'Documento configurado', hint: 'Viene de CountryPack.', isDefault: true }];
+    try {
+      const user = userEvent.setup();
+      await renderPos();
+      await openShift(user);
+      await user.type(screen.getByLabelText(/buscar producto o escanear/i), 'SKU-002{Enter}');
+      await user.click(screen.getByRole('button', { name: 'Transferencia' }));
+      await user.click(screen.getByRole('button', { name: /cobrar/i }));
+
+      expect(await screen.findByRole('option', { name: 'Documento configurado' })).toBeInTheDocument();
+      expect(screen.queryByRole('option', { name: /factura electrónica de venta/i })).not.toBeInTheDocument();
+      expect(screen.getByRole('option', { name: 'Canal de configuración' })).toBeInTheDocument();
+      expect(screen.queryByRole('option', { name: 'Nequi' })).not.toBeInTheDocument();
+    } finally {
+      db.countryPack.paymentChannels = originalChannels;
+      db.countryPack.documentTypes = originalDocuments;
+    }
+  });
+
+  it('muestra un error recuperable cuando CountryPack no es válido', async () => {
+    const originalChannels = db.countryPack.paymentChannels;
+    db.countryPack.paymentChannels = [];
+    try {
+      const user = userEvent.setup();
+      await renderPos();
+      await openShift(user);
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(/no se pudo cargar la configuración de cobro/i);
+      expect(screen.getByRole('button', { name: /reintentar configuración de cobro/i })).toBeInTheDocument();
+    } finally {
+      db.countryPack.paymentChannels = originalChannels;
+    }
+  });
+
   it('pago mixto: muestra lo que falta hasta cubrir el total', async () => {
     const user = userEvent.setup();
     await renderPos();

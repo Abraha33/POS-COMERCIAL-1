@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from 'react';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
-import type { ApprovalRequest, Payment, PaymentMethod, Product, SaleReceipt, Shift } from '@/shared/contracts';
+import type { ApprovalRequest, CountryPack, Payment, PaymentMethod, Product, SaleReceipt, Shift } from '@/shared/contracts';
 import { useSession } from '@/app/providers/SessionProvider';
 import { useNotify } from '@/app/providers/ToastProvider';
 import { useCreateSale } from '@/shared/api/pos';
+import { useCountryPack } from '@/shared/api/countryPack';
 import { useBranches, useCustomers, useProducts, useStockLevels } from '@/shared/api/queries';
 import { useHotkey } from '@/shared/keyboard/useHotkey';
 import { ConfirmAction, FormDialog, MoneyText, ScreenTemplate, ShortcutBar } from '@/shared/ui';
@@ -26,10 +27,10 @@ import { componentReady, type MixedComponent } from './mixed/mixed';
 import { SalePanel } from './SalePanel';
 import { SupervisorPinDialog } from './SupervisorPinDialog';
 import { estimateIncludedVat, paymentsTotal, type CartLine, type CreditTerm, type PayMode } from './cart';
-import { loadDraft, saveDraft } from './draft';
+import { loadSaleDraft, saveSaleDraft, updateSaleDraft, type SaleDraft } from './sale-draft';
 import {
-  canCloseSale, channelById, ChannelSection, defaultChannels, documentOptions, isDuplicateReference, loadDocumentType,
-  loadReferences, missingFields, rememberReference, saveDocumentType, type ChannelState, type DocumentType, type ProofRequest,
+  canCloseSale, channelById, ChannelSection, isDuplicateReference,
+  loadReferences, missingFields, rememberReference, type ChannelState, type PaymentChannel, type ProofRequest,
 } from './proofs';
 import { CreateOrderDialog } from './orders/CreateOrderDialog';
 import { markCharged } from './orders/orders';
@@ -59,6 +60,18 @@ const approvalActions: ApprovalRequest['action'][] = ['discount', 'negative_stoc
 const asApprovalAction = (value: unknown): ApprovalRequest['action'] | null =>
   approvalActions.find((a) => a === value) ?? null;
 
+const channelKindByCountryType = {
+  cash: 'efectivo', wallet: 'billetera', bank_transfer: 'cuenta', instant_key: 'llave', qr: 'qr',
+  card_terminal: 'datafono', gateway: 'pasarela', credit: 'credito',
+} as const;
+
+/** Adaptador temporal de composición: CountryPack es la fuente y Proofs conserva su UI actual. */
+const paymentChannelsFromCountryPack = (pack: CountryPack | undefined): PaymentChannel[] =>
+  (pack?.paymentChannels ?? []).map((channel) => ({
+    ...channel,
+    kind: channelKindByCountryType[channel.type],
+  }));
+
 const matches = (product: Product, query: string): boolean => {
   const q = query.trim().toLowerCase();
   if (!q) return true;
@@ -76,34 +89,52 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   const stockLevels = useStockLevels();
   const branches = useBranches();
   const createSale = useCreateSale();
+  const { session, can } = useSession();
+  const countryPack = useCountryPack(session.regional?.countryCode);
+  const draftContext = useMemo(() => ({ registerId: shift.registerId, shiftId: shift.id }), [shift.id, shift.registerId]);
+  const [saleDraft, setSaleDraft] = useState<SaleDraft>(() => loadSaleDraft(draftContext));
+  const lines = saleDraft.lines;
+  const customerId = saleDraft.customerId;
+  const note = saleDraft.note;
+  const updateDraft = useCallback((update: Parameters<typeof updateSaleDraft>[1]) => {
+    setSaleDraft((current) => updateSaleDraft(current, update));
+  }, []);
+  const setLines = useCallback((next: SetStateAction<CartLine[]>) => {
+    setSaleDraft((current) => updateSaleDraft(current, {
+      lines: typeof next === 'function' ? next(current.lines) : next,
+    }));
+  }, []);
+  const setCustomerId = useCallback((customerId: string | null) => updateDraft({ customerId }), [updateDraft]);
+  const setNote = useCallback((note: string) => updateDraft({ note }), [updateDraft]);
+  useEffect(() => {
+    setSaleDraft(loadSaleDraft(draftContext));
+  }, [draftContext]);
+  useEffect(() => {
+    saveSaleDraft(saleDraft);
+  }, [saleDraft]);
 
+  const channels = useMemo(() => paymentChannelsFromCountryPack(countryPack.data), [countryPack.data]);
+  const documentOptions = countryPack.data?.documentTypes ?? [];
+  const countryPackReady = countryPack.isSuccess && channels.length > 0 && documentOptions.length > 0;
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState(ALL_CATEGORIES);
   const [searchMessage, setSearchMessage] = useState<string | null>(null);
-  // El borrador sobrevive a cambiar de módulo (la pantalla se desmonta): ver draft.ts.
-  const [draft] = useState(() => loadDraft(shift.registerId));
-  const [lines, setLines] = useState<CartLine[]>(draft.lines);
-  const [customerId, setCustomerId] = useState<string | null>(draft.customerId);
-  useEffect(() => {
-    saveDraft(shift.registerId, { lines, customerId });
-  }, [shift.registerId, lines, customerId]);
   const [mode, setMode] = useState<PayMode>('efectivo');
   const [receivedState, setReceivedState] = useState<{ total: number; amount: number } | null>(null);
-  const [chan, setChan] = useState<ChannelState>({ channelId: 'nequi', destinationId: '', values: {}, proofId: null });
+  const [chan, setChan] = useState<ChannelState>({ channelId: '', destinationId: '', values: {}, proofId: null });
   const [proof, setProof] = useState<ProofRequest | null>(null);
   const [creditTerm, setCreditTerm] = useState<CreditTerm>(30);
   const [creditInitial, setCreditInitial] = useState(0);
   const [creditInstallments, setCreditInstallments] = useState(1);
   const [creditDueDate, setCreditDueDate] = useState('');
   const [creditExcess, setCreditExcess] = useState(false);
-  const [docType, setDocType] = useState<DocumentType>(loadDocumentType);
+  const [docType, setDocType] = useState('');
   const [usedRefs, setUsedRefs] = useState<string[]>(loadReferences);
   const [mixed, setMixed] = useState<MixedComponent[]>([]);
   const [mixedProofs, setMixedProofs] = useState<Record<string, ProofRequest | null>>({});
   const onMixedProof = useCallback((id: string, p: ProofRequest | null) => {
     setMixedProofs((prev) => (prev[id] === p ? prev : { ...prev, [id]: p }));
   }, []);
-  const [note, setNote] = useState('');
   const [operationId, setOperationId] = useState(() => uuid());
   const [approvalToken, setApprovalToken] = useState<string | undefined>();
   const [pinRequest, setPinRequest] = useState<PinRequest | null>(null);
@@ -124,7 +155,6 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   const [newCustomerOpen, setNewCustomerOpen] = useState(false);
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const { session, can } = useSession();
   const notify = useNotify();
   const actor = { id: session.user.id, name: session.user.name };
   const orderStore = useOrders(session.branch.id);
@@ -182,13 +212,13 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   const vat = estimateIncludedVat(priced.map(({ line, product }) => ({ product, quantity: line.quantity, discount: line.discount })));
 
   const mixedActive = mixed.filter((c) => c.reversed === null);
-  const mixedHasCash = mixedActive.some((c) => channelById(defaultChannels, c.state.channelId)?.method === 'efectivo');
+  const mixedHasCash = mixedActive.some((c) => channelById(channels, c.state.channelId)?.method === 'efectivo');
   const initialPayment = mode === 'credito' ? creditInitial : 0;
   const hasCash = mode === 'mixto' ? mixedHasCash : mode === 'efectivo' || initialPayment > 0;
   const totals = computeTotals(pricedForTotals, hasCash);
 
   const received = receivedState && receivedState.total === totals.total ? receivedState.amount : null;
-  const channelsForMode = defaultChannels.filter((c) =>
+  const channelsForMode = channels.filter((c) =>
     mode === 'tarjeta' ? c.kind === 'datafono' : mode === 'transferencia' ? ['cuenta', 'billetera', 'llave', 'qr', 'pasarela'].includes(c.kind) : false,
   );
   const activeChannel = mode === 'tarjeta' || mode === 'transferencia'
@@ -197,7 +227,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   const digitalFieldsMissing = activeChannel ? missingFields(activeChannel, chan.values) : [];
   const digitalDuplicate = activeChannel ? isDuplicateReference(usedRefs, chan.values.reference ?? '') : false;
   const mixedOk = mode !== 'mixto' || (mixedActive.length > 0 && mixedActive.every((c) => {
-    const ch = channelById(defaultChannels, c.state.channelId);
+    const ch = channelById(channels, c.state.channelId);
     if (!ch) return false;
     const dup = isDuplicateReference(usedRefs, c.state.values.reference ?? '');
     return componentReady(ch, c.state.values, mixedProofs[c.id] ?? null, dup) && (ch.kind !== 'credito' || customerId !== null);
@@ -234,7 +264,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
       }
       case 'mixto':
         return mixedActive.map((c): Payment => {
-          const ch = channelById(defaultChannels, c.state.channelId) ?? defaultChannels[0]!;
+          const ch = channelById(channels, c.state.channelId) ?? channels[0]!;
           const dest = ch.destinations.find((d) => d.id === c.state.destinationId) ?? ch.destinations[0];
           const ref = c.state.values.reference ?? c.state.values.authCode;
           const prf = mixedProofs[c.id];
@@ -253,7 +283,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   const missing = Math.max(0, totals.total - paid);
   const change = Math.max(0, paid - totals.total);
   const creditBlocked = mode === 'credito' && customerId === null;
-  const canConfirm = lines.length > 0 && missing === 0 && change <= cashPaid && !creditBlocked && digitalOk && !createSale.isPending;
+  const canConfirm = countryPackReady && docType !== '' && lines.length > 0 && missing === 0 && change <= cashPaid && !creditBlocked && digitalOk && !createSale.isPending;
 
   const anyOverlay =
     payOpen || heldOpen || cashOpen || discountOpen || notesOpen || confirm !== null || pinRequest !== null || receipt !== null;
@@ -338,7 +368,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
     setMode(next);
     setCheckoutError(null);
     if (next === 'mixto' && mixedActive.length === 0) {
-      setMixed((cur) => [...cur, { id: uuid().slice(0, 8), state: { channelId: 'efectivo', destinationId: '', values: {}, proofId: null }, amount: totals.total, reversed: null }]);
+      setMixed((cur) => [...cur, { id: uuid().slice(0, 8), state: { channelId: channels.find((channel) => channel.kind === 'efectivo')?.id ?? '', destinationId: '', values: {}, proofId: null }, amount: totals.total, reversed: null }]);
     }
   };
 
@@ -430,7 +460,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   };
 
   const openPay = () => {
-    if (lines.length === 0 || creditBlocked) return;
+    if (lines.length === 0 || creditBlocked || !countryPackReady) return;
     setCheckoutError(null);
     setPayOpen(true);
   };
@@ -452,6 +482,14 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
     setPane('cart');
     onPreloadUsed?.();
   }, [preload?.orderId, products.isLoading]);
+
+  useEffect(() => {
+    if (!countryPackReady) return;
+    setDocType((current) => {
+      if (documentOptions.some((option) => option.id === current)) return current;
+      return documentOptions.find((option) => option.isDefault)?.id ?? documentOptions[0]?.id ?? '';
+    });
+  }, [countryPackReady, documentOptions]);
 
   useEffect(() => {
     if (openHeldToken > 0) setHeldOpen(true);
@@ -484,6 +522,14 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
       }
     >
       <div className="pos" data-pane={pane}>
+        {countryPack.isError ? (
+          <section className="pos__hint" role="alert">
+            <p>No se pudo cargar la configuración de cobro. Reintentá antes de cobrar.</p>
+            <Button type="button" label="Reintentar configuración de cobro" outlined onClick={() => void countryPack.refetch()} />
+          </section>
+        ) : countryPack.isLoading ? (
+          <p className="pos__hint" role="status">Cargando configuración de cobro…</p>
+        ) : null}
         <div className="pos__layout">
           <div className="pos__main">
             <CatalogPanel
@@ -636,12 +682,12 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
             <label htmlFor="pay-document" className="pos-pay__label">Documento a emitir</label>
             <select
               id="pay-document" className="p-inputtext w-full" value={docType}
-              onChange={(e) => { const v = e.target.value as DocumentType; setDocType(v); saveDocumentType(v); }}
+              onChange={(e) => setDocType(e.target.value)}
             >
-              {documentOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {documentOptions.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
             </select>
             <p className="pos__hint">
-              {documentOptions.find((o) => o.value === docType)?.hint} Es una selección: la emisión depende del servidor.
+              {documentOptions.find((option) => option.id === docType)?.hint} Es una selección: la emisión depende del servidor.
               {mode === 'credito' ? ' En crédito el documento se expide aunque el dinero aún no se haya recibido.' : ''}
             </p>
           </div>
