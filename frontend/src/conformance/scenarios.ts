@@ -16,14 +16,15 @@ import {
   payableSchema, purchaseOrderSchema, saleReturnSchema, saleSchema, shiftSchema, stockLevelSchema, transferSchema, z,
   agingReportSchema, companySchema, customerPaymentResultSchema, customerSchema, inventoryCountSchema,
   inventoryValuationSchema, purchaseOrderReceiptSchema, receivablePaymentSchema, salesSummarySchema,
-  stockAdjustmentResultSchema, stockMovementSchema,
+  stockAdjustmentResultSchema, stockMovementSchema, registerSchema,
   type SaleCreate, type Shift,
 } from './contracts-bridge';
 import { createSchemaValidator } from './spec';
 
 type Result = { status: number; body: unknown };
 
-const PASSWORD = 'cambiar-en-desarrollo';
+/** Contraseña de los usuarios de prueba; `CONFORMANCE_PASSWORD` permite apuntar la suite a otra instancia. */
+const PASSWORD = (typeof process !== 'undefined' ? process.env.CONFORMANCE_PASSWORD : undefined) ?? 'cambiar-en-desarrollo';
 const PINS = { admin: '1234', owner: '9999' } as const;
 
 export const registerConformance = (target: string | (() => string)) => {
@@ -1059,6 +1060,28 @@ export const registerConformance = (target: string | (() => string)) => {
         active: true, creditLimit: 0,
       };
       expectError(await call('POST', '/customers', { token: admin, body: bad }), 422, 'VALIDATION_ERROR');
+    });
+
+    it('v0.7.0 (aprobado) · cajas: lista con terminal, base esperada y ocupación derivada del turno', async () => {
+      const cashier = await login('laura.gomez');
+      expectError(await call('GET', '/pos/registers'), 401, 'UNAUTHORIZED');
+      const keeper = await login('andres.rojas'); // bodeguero: no vende
+      expectError(await call('GET', '/pos/registers', { token: keeper }), 403, 'FORBIDDEN');
+
+      const all = await call('GET', '/pos/registers', { token: cashier });
+      expect(all.status, JSON.stringify(all.body)).toBe(200);
+      const registers = z.array(registerSchema).parse(all.body);
+      expect(registers.length).toBeGreaterThanOrEqual(2);
+      registers.forEach((r) => expectSchema('Register', r));
+      expect(registers.find((r) => r.id === 'reg-001')?.expectedOpening).toBe(100000);
+      expect(registers.find((r) => r.id === 'reg-002')?.expectedOpening).toBeNull(); // sin base configurada
+
+      const shift = await ensureOpenShift(cashier);
+      const afterOpen = z.array(registerSchema).parse((await call('GET', '/pos/registers?branchId=br-001', { token: cashier })).body);
+      expect(afterOpen.every((r) => r.branchId === 'br-001')).toBe(true);
+      const occupied = afterOpen.find((r) => r.id === shift.registerId);
+      expect(occupied?.status).toBe('occupied');
+      expect(occupied?.occupiedBy?.id).toBe(shift.cashierId);
     });
 
     it('la sesión trae la sede real del empleado (Session.branch)', async () => {

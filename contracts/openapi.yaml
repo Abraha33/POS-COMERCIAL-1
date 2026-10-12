@@ -1386,6 +1386,32 @@ paths:
                 $ref: "#/components/schemas/SyncOperationResult"
         "404":
           $ref: "#/components/responses/NotFound"
+  /pos/registers:
+    get:
+      tags:
+        - pos
+      operationId: listRegisters
+      x-status: simulated
+      x-approval: approved
+      description: |
+        Cajas de la sede con su terminal, la base esperada de apertura (`expectedOpening`, null si no está configurada) y
+        quién la ocupa (turno abierto). Solo lectura. Aprobado por el dueño (2026-10-12); es la fuente de las cajas que
+        hoy la interfaz de acceso simula con escenarios locales.
+      parameters:
+        - $ref: "#/components/parameters/BranchIdQuery"
+      responses:
+        "200":
+          description: Cajas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Register"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
   /pos/orders:
     get:
       tags:
@@ -3277,6 +3303,54 @@ components:
                 type: integer
                 minimum: 0
                 description: max(onHand, 0) × unitCost.
+    Register:
+      type: object
+      required:
+        - id
+        - name
+        - branchId
+        - terminal
+        - expectedOpening
+        - status
+        - occupiedBy
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        branchId:
+          type: string
+        terminal:
+          type: object
+          required:
+            - id
+            - name
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+        expectedOpening:
+          type: integer
+          minimum: 0
+          nullable: true
+          description: Base esperada de apertura; null = sin base configurada (la apertura sigue siendo posible).
+        status:
+          type: string
+          enum:
+            - free
+            - occupied
+        occupiedBy:
+          type: object
+          nullable: true
+          required:
+            - id
+            - name
+          properties:
+            id:
+              type: string
+            name:
+              type: string
     ShiftHandoverRequest:
       type: object
       required:

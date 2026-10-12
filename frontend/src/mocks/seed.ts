@@ -1,5 +1,5 @@
 import type {
-  Branch, Company, CustomerRecord, Employee, InventoryAlert, InventoryCount, PayableRecord, Product, PurchaseOrder,
+  Branch, Register, Company, CustomerRecord, Employee, InventoryAlert, InventoryCount, PayableRecord, Product, PurchaseOrder,
   ReceivablePayment, ReceivableRecord, Sale, Shift, StockLevel, SaleReturn, StockMovement, Supplier, Transfer,
 } from '@/shared/contracts';
 
@@ -66,6 +66,11 @@ export const branches: Branch[] = [
   { id: 'br-001', name: 'Sede Principal', active: true },
   { id: 'br-002', name: 'Sede Norte', active: true },
 ];
+/** Una caja por sede (reg-00N para br-00N, ver `sessionFor`). La base esperada de reg-002 queda sin configurar a propósito. */
+export const registers: Omit<Register, 'status' | 'occupiedBy'>[] = [
+  { id: 'reg-001', name: 'Caja 1', branchId: 'br-001', terminal: { id: 'ter-001', name: 'Terminal 1' }, expectedOpening: 100000 },
+  { id: 'reg-002', name: 'Caja 1', branchId: 'br-002', terminal: { id: 'ter-002', name: 'Terminal 1' }, expectedOpening: null },
+];
 export const saleReturns: SaleReturn[] = [];
 export const shifts: Shift[] = [];
 export const transfers: Transfer[] = [];
@@ -106,6 +111,6 @@ export const inventoryCounts: InventoryCount[] = [];
 
 export const createSeed = () => structuredClone({
   products, customers, suppliers, employees, sales, stockLevels, stockMovements, purchaseOrders, receivables, payables,
-  shifts, transfers, alerts, branches, saleReturns, company, receivablePayments, inventoryCounts,
+  shifts, transfers, alerts, branches, saleReturns, registers, company, receivablePayments, inventoryCounts,
 });
 export type MockDb = ReturnType<typeof createSeed>;

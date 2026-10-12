@@ -11,3 +11,4 @@ export * from './pos-ops';
 export * from './auth';
 export * from './inventory';
 export * from './reports';
+export * from './platform';

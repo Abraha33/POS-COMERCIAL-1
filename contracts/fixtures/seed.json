@@ -453,6 +453,28 @@
     }
   ],
   "saleReturns": [],
+  "registers": [
+    {
+      "id": "reg-001",
+      "name": "Caja 1",
+      "branchId": "br-001",
+      "terminal": {
+        "id": "ter-001",
+        "name": "Terminal 1"
+      },
+      "expectedOpening": 100000
+    },
+    {
+      "id": "reg-002",
+      "name": "Caja 1",
+      "branchId": "br-002",
+      "terminal": {
+        "id": "ter-002",
+        "name": "Terminal 1"
+      },
+      "expectedOpening": null
+    }
+  ],
   "company": {
     "id": "co-001",
     "name": "Comercial Demo S.A.S.",

@@ -841,6 +841,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pos/registers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Cajas de la sede con su terminal, la base esperada de apertura (`expectedOpening`, null si no está configurada) y
+         *     quién la ocupa (turno abierto). Solo lectura. Aprobado por el dueño (2026-10-12); es la fuente de las cajas que
+         *     hoy la interfaz de acceso simula con escenarios locales.
+         */
+        get: operations["listRegisters"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/pos/orders": {
         parameters: {
             query?: never;
@@ -1472,6 +1493,23 @@ export interface components {
                 /** @description max(onHand, 0) × unitCost. */
                 value: number;
             }[];
+        };
+        Register: {
+            id: string;
+            name: string;
+            branchId: string;
+            terminal: {
+                id: string;
+                name: string;
+            };
+            /** @description Base esperada de apertura; null = sin base configurada (la apertura sigue siendo posible). */
+            expectedOpening: number | null;
+            /** @enum {string} */
+            status: "free" | "occupied";
+            occupiedBy: {
+                id: string;
+                name: string;
+            } | null;
         };
         ShiftHandoverRequest: {
             toEmployeeId: string;
@@ -3108,6 +3146,31 @@ export interface operations {
                 };
             };
             404: components["responses"]["NotFound"];
+        };
+    };
+    listRegisters: {
+        parameters: {
+            query?: {
+                /** @description Limita el resultado a una sede. */
+                branchId?: components["parameters"]["BranchIdQuery"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cajas */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Register"][];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
         };
     };
     listPosOrders: {
