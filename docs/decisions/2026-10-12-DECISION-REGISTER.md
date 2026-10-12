@@ -40,6 +40,7 @@
 | D-034 | C | Pagos Nequi, Daviplata, Bancolombia, Bre-B, tarjeta, efectivo, mixto y crédito: UI contextual y cuentas de destino configuradas por administrador, no formularios largos. |
 | D-035 | C | Venta, cobro, emisión fiscal, envío de documento, impresión y entrega son procesos con estados distintos, aunque el cajero vea una acción compacta. |
 | D-036 | P | Criterios WCAG 2.2 AA y breakpoints iniciales de contratos históricos son objetivos propuestos, no certificación. |
+| D-037 | A | F10 se redefine como **Control, conciliación y cierre integral de caja**: informe X repetible, conciliación de facturación/ingresos/egresos/custodia, arqueo físico solo del efectivo, incidencias y cierre Z único/auditable. No crea una segunda contabilidad ni reemplaza documentos fiscales. |
 
 ## Orden de precedencia y conflictos conocidos
 1. **Modelo simplificado anterior → estándar empresarial vigente (D-001)**.
@@ -48,7 +49,7 @@
 4. Impresión implícita al facturar → **estados separados (D-008)**.
 5. F08 era prioridad de detalle → **aplazado para profundización (D-010)**.
 6. Auditoría antigua sobre Next/shadcn de rama Frappe **no invalida** Vite/PrimeReact aprobado pero no verificado en árbol nuevo.
-7. El documento histórico v0.1 de pos-proofs NO incluye necesariamente las decisiones D-001..D-035; leer siempre primero este registro.
+7. El documento histórico v0.1 de pos-proofs NO incluye necesariamente las decisiones D-001..D-037; leer siempre primero este registro.
 
 ## Qué aún no está resuelto
 - Verificación del frontend real `capa-2-responsive` (rama local aparentemente no publicada) y si `pos-proofs` ya existe allí.

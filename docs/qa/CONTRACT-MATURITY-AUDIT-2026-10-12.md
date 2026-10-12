@@ -7,15 +7,15 @@ contratos y evidencia local disponible. **No acredita producción.**
 
 | Indicador | Resultado | Qué mide |
 |---|---:|---|
-| Definición funcional | **72 %** | Actores, secuencia/estados, reglas/permisos, excepciones y aceptación de 32 flujos. |
+| Definición funcional | **73 %** | Actores, secuencia/estados, reglas/permisos, excepciones y aceptación de 32 flujos. |
 | Preparación frontend | **38 %** | Contrato de datos, mock/adapter, pantalla, responsive/a11y y prueba prevista por flujo. |
 | Implementación verificada | **20 %** | Evidencia estática y reportes previos de código/pruebas; no se ejecutaron suites en este corte documental. |
-| Madurez global | **47 %** | 72 × 40 % + 38 × 35 % + 20 × 25 %, método acordado. |
+| Madurez global | **48 %** | 73 × 40 % + 38 × 35 % + 20 × 25 %, método acordado. |
 
 **Interpretación correcta:** la definición funcional está bastante avanzada; la
 preparación para construir todo el ERP/POS no está en 80 %, porque los contratos UI
 detallados existen solo para Venta rápida y las 18 capacidades financieras aún no
-tienen verticales UI/API cerrados. El 47 % no es preparación para producción: el
+tienen verticales UI/API cerrados. El 48 % no es preparación para producción: el
 backend, DIAN, bancos, periféricos, ERPNext y validación contable/fiscal siguen
 **UNVERIFIED**.
 
@@ -35,9 +35,9 @@ Un control completo suma 1, uno parcial 0.5 y uno ausente/bloqueado 0.
 3. **Implementación:** solo se puntúa evidencia del árbol actual o reportes de pruebas
    identificados. Un mock PASS no equivale a integración PASS.
 
-Los agregados documentados son: POS 48/70 funcional, 35/70 frontend y 25/70 de
+Los agregados documentados son: POS 50/70 funcional, 35/70 frontend y 25/70 de
 implementación; finanzas 67/90 funcional, 25/90 frontend y 7/90 de implementación.
-El total es 115/160, 60/160 y 32/160 respectivamente.
+El total es 117/160, 60/160 y 32/160 respectivamente.
 
 ## Inventario de flujos
 
@@ -54,7 +54,7 @@ El total es 115/160, 60/160 y 32/160 respectivamente.
 | F07 Devoluciones/reembolsos | PARTIAL | PARTIAL — diálogos/UI existente | efectos, límite y autorización completos |
 | F08 Pedidos | BLOCKED — detalle aplazado por decisión | PARTIAL — tablero/conexión existente | ciclo y criterios definitivos |
 | F09 Movimientos de caja | PARTIAL | PARTIAL — movimientos base | gastos, compras y CxP desde caja |
-| F10 Arqueo/cierre | PARTIAL | PARTIAL — conciliación UI existente | arqueo ciego, diferencias y contabilización |
+| F10 Control, conciliación y cierre integral | PASS | PARTIAL — conciliación UI existente | integración contable, X/Z y verificación documental en código |
 | F11 Historial/reportes | PARTIAL | PARTIAL — historial/reportes existentes | búsqueda y correcciones auditables |
 | F12 Autorizaciones | PASS | PARTIAL — mecanismo único y pruebas previas | verificación bancaria diferenciada |
 | F13 Offline/sincronización | PARTIAL | PARTIAL — escenarios y sync locales | persistencia durable y operaciones seguras |

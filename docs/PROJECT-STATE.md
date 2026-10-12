@@ -40,6 +40,7 @@ Frontend objetivo aprobado: React + TypeScript + Vite; PrimeReact como bibliotec
 - **F-FIN estándar empresarial reemplaza el modelo simplificado elegido anteriormente**. 18 flujos: CAJ01–07, TES01–06, CON01–05; responsabilidad de caja configurable por caja/usuario/turno, ejecución/autorizar/conciliar diferenciadas; gastos, compras, abonos y saldos a proveedores pagables desde caja bajo permisos.
 - F13: datos móviles/hotspot o dispositivo autorizado con red como contingencia, no equivalen a offline; una solicitud local sin conectividad no llega automáticamente al móvil del administrador.
 - Inv. conteo: ayudante físico, cajero coordina/registra, supervisor autoriza diferencias; conteo no cambia stock oficial automáticamente.
+- F10: control y cierre integral de caja separa arqueo físico de efectivo de la conciliación documental de facturas, crédito, cartera, proveedores, gastos, electrónicos y custodia; Informe X es provisional e Informe Z es un corte interno único/auditable, no documento fiscal.
 - Trabajo: Flow-first y contract-driven; usuario aprueba flujo/reglas/UX, se derivan 6 contratos técnicos; desarrollo OpenCode paralelo **solo después de límites de archivos y store**, Claude auditoría/QA; mock-first con contratos.
 
 ## Estado objetivo y evidencia

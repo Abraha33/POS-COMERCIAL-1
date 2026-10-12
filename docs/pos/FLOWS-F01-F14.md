@@ -13,7 +13,7 @@
 | F07 | Devoluciones (autorizado) | Buscar venta → validar cantidades → motivo → autorizar → reembolso/cambio → inventario/documento ajuste | Parcial. Detalle de efectos, permisos |
 | F08 | Pedidos (cajero/despachador/admin) | Crear pedido → bandeja semáforo → preparar, incidencia, verificar, despachar → entrega | APLAZADO detalle. Conservar conexiones y acceso |
 | F09 | Movimientos financieros en caja | Gasto/compra/abono proveedor/retiro/reposición → permiso → soporte → registrar | Parcial. Derivado CAJ-05 |
-| F10 | Arqueo y cierre | Conteo por denominación → comparar → diferencias → revisión → cerrar turno | Parcial. Derivado CAJ-07 |
+| F10 | Control, conciliación y cierre integral de caja | Informe X → conciliación de ventas, ingresos, egresos y custodia → arqueo de efectivo → incidencias → Informe Z/cierre | Avanzado. Ver [cierre integral](../finance/CASH-CONTROL-AND-CLOSE.md); integración contable pendiente |
 | F11 | Historial y reportes | Buscar venta/pago/documento/turno → consultar → imprimir/enviar/devolución según permisos | Parcial. Contratos de búsqueda |
 | F12 | Autorizaciones (supervisor/admin) | Solicitud con contexto → permiso y umbral → aprobar/rechazar → evento auditado | Avanzado. Autorización de verificación bancaria diferenciada |
 | F13 | Offline y sincronización | Detectar red → operar sólo acciones seguras → cola local → reconciliar incertidumbres → sincronizar | Parcial. Seguridad y API |
@@ -35,7 +35,7 @@
 1. F04 + F05: búsqueda, ficha, cliente, carrito, suspensión/recuperación.
 2. F06 + F12: pagos, fotos, verificaciones administrativas, confirmación, documentos/impresión mock.
 3. F01 + F02 + F03: acceso, caja y turnos.
-4. F09 + F10: caja, proveedores, custodia, arqueo; pruebas contables.
+4. F09 + F10: caja, proveedores, custodia, control integral, arqueo e informes X/Z; pruebas contables.
 5. F07/F11/F14/F13: postventa, consulta, config, offline.
 6. F08 después de nueva aprobación funcional, luego resto ERP.
 

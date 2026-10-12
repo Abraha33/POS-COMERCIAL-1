@@ -77,11 +77,11 @@ Reglas RBAC + capabilities + límites contextuales; nunca seguridad basada solo 
 **Excepciones:** recepción parcial, diferencia, traslado no recibido, sustitución responsable.
 **Aceptar:** no registrar gasto/ingreso interno ficticio; origen/destino equivalentes, importe e historial de custodios; no doble recepción.
 
-### CAJ-07 — Arqueo y cierre
-**Flujo:** declarar cierre → conteo ciego por denominación cuando se configure → comparar movimientos → marcar diferencia → observación/aprobación → cerrar caja/turno, informe.
+### CAJ-07 — Control, conciliación y cierre integral de caja
+**Flujo:** informe X repetible → conciliación documental de facturación, ingresos, egresos y custodia → conteo ciego por denominación cuando se configure → diferencia/incidencias → observación/aprobación → cierre e informe Z. Detalle: [CASH-CONTROL-AND-CLOSE.md](CASH-CONTROL-AND-CLOSE.md).
 **Roles:** cajero responsable y revisor con permiso.
-**Excepciones:** faltantes, sobrantes, transferencia en verificación, pago pendiente, cierre interrumpido.
-**Aceptar:** efectivo esperado/contado separados; diferencia auditada; pagos digitales no agregados al efectivo; turno cerrado bloquea nuevas transacciones; cierre no genera doble contabilización.
+**Excepciones:** faltantes, sobrantes, transferencia en verificación, pago pendiente, soporte/documento faltante, autorización pendiente y cierre interrumpido.
+**Aceptar:** efectivo esperado/contado separados; documentos y pagos electrónicos conciliados sin contarlos como efectivo; diferencia/incidencia auditada; X no cierra; Z es único/auditable; turno cerrado bloquea nuevas transacciones; cierre no genera doble contabilización.
 
 ## 5. Tesorería — 6 flujos
 

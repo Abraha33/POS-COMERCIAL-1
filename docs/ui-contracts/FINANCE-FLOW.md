@@ -37,6 +37,9 @@ TES-01…06 y CON-01…05. No habilita integración bancaria, fiscal ni contable
 | Conciliación y postventa | TES-02, TES-04, TES-05 | documento de origen | match único, reverso o abono trazable |
 | Contabilidad | CON-01…05 | configuración profesional publicada | vista de estado, nunca asiento manual en POS |
 
+El vertical de cierre consume CAJ-07, TES-01…06 y CON-03…05 sin duplicarlos.
+Su contrato detallado está en [CASH-CONTROL-AND-CLOSE.md](../finance/CASH-CONTROL-AND-CLOSE.md).
+
 ## Permisos de interfaz
 
 La interfaz oculta acciones no disponibles, pero servidor/adapter vuelve a validar:
