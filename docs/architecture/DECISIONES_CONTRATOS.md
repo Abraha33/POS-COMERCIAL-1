@@ -40,27 +40,30 @@ Reglas:
   segundo recurso.
 - Hasta que se resuelva, `/pos/authorizations` queda congelado: sin ampliaciones.
 
-## 3. Pagos — nueve canales explícitos
+## 3. Pagos — canales explícitos por paquete de país
 
-El contrato declara un catálogo cerrado `PaymentChannel` con los nueve canales que usa la UI; ninguno se oculta dentro
-de otro. `PaymentMethod` (aprobado) se conserva como clasificación contable **derivada** del canal.
+> Corrige la primera versión de este ADR («enum cerrado de 9 canales»): con varios países el catálogo no puede ser
+> global. Lo que sigue vigente es la regla del dueño: **ningún medio distinto se esconde dentro de otro**.
 
-| `channel` | Etiqueta | `method` derivado | Exige comprobante |
-|---|---|---|---|
-| `efectivo` | Efectivo | efectivo | no |
-| `nequi` | Nequi | nequi | sí |
-| `daviplata` | DaviPlata | daviplata | sí |
-| `bancolombia` | Bancolombia | transferencia | sí |
-| `otros-bancos` | Otros bancos | transferencia | sí |
-| `bre-b` | Bre-B | transferencia | sí |
-| `datafono` | Tarjeta / datáfono | tarjeta | no (voucher) |
-| `credito` | Crédito | credito | no |
-| `pse` | PSE / pasarela | transferencia | sí |
+- El contrato define tipos genéricos de medio (`cash`, `wallet`, `bank_transfer`, `instant_key`, `card_terminal`,
+  `gateway`, `credit`). `PaymentMethod` (aprobado) se conserva como clasificación contable derivada.
+- `Payment.channel` es un `channelId` que **referencia el catálogo del paquete de país** (conjunto abierto validado
+  contra el catálogo, no un enum global). Cambio `proposed`.
+- Paquete **CO** (los 9 canales de la UI actual), cada uno explícito:
 
-- `Payment.channel` pasa de `string` libre a este enum (cambio **`proposed`**, v0.7.0).
-- Los reportes agrupan por `channel`; `method` queda para la contabilidad.
-- El catálogo configurable (cuentas destino, campos exigidos) es dato de referencia **`proposed`**; mientras no exista,
-  los 9 canales son la lista contractual fija.
+| `channelId` | Etiqueta (es-CO) | Tipo | `method` derivado | Exige comprobante |
+|---|---|---|---|---|
+| `efectivo` | Efectivo | cash | efectivo | no |
+| `nequi` | Nequi | wallet | nequi | sí |
+| `daviplata` | DaviPlata | wallet | daviplata | sí |
+| `bancolombia` | Bancolombia | bank_transfer | transferencia | sí |
+| `otros-bancos` | Otros bancos | bank_transfer | transferencia | sí |
+| `bre-b` | Bre-B | instant_key | transferencia | sí |
+| `datafono` | Tarjeta / datáfono | card_terminal | tarjeta | no (voucher) |
+| `credito` | Crédito | credit | credito | no |
+| `pse` | PSE / pasarela | gateway | transferencia | sí |
+
+- Los reportes agrupan por `channelId`; `method` queda para la contabilidad.
 
 ## 4. Comprobantes — cuatro cosas separadas
 
@@ -86,10 +89,46 @@ Para cada cambio: (1) OpenAPI + Zod + `contract-types` + ejemplo; (2) handler MS
 - Tres gates en `openapi.test.ts`: toda operación declara `x-approval` y `x-status`; ninguna `proposed` es `real`.
 - Sin cambios de UI, mocks ni esquemas.
 
-## 7. Decisiones que siguen abiertas (necesito confirmación antes de tocar contratos)
-1. **Mecanismo de aprobación canónico**: ¿`/auth/supervisor-approvals` extendido (recomendado) o `/pos/authorizations`
-   promovido? En ambos casos se elimina el otro.
-2. **Idioma del vocabulario de máquina**: recomendado conservar el ya aprobado (`open/closed`, `discount`…) y dejar el
-   español para etiquetas de UI; el vocabulario español de `pos-ops` se renombra al aprobado.
-3. **`SaleCreate.documentType`**: ¿opcional con valor por defecto, u obligatorio?
-4. **Caja/terminal**: ¿se aprueba un recurso `register` de solo lectura para que `pos-access` deje de usar escenarios?
+## 7. Decisiones
+
+**Confirmadas por el dueño (2026-10-12)**
+- Caja/terminal: recurso `GET /pos/registers` de solo lectura → `x-approval: approved`.
+- `SaleCreate.documentType`: obligatorio, con valor por defecto del paquete de país o la empresa (nunca bloquea).
+- Principio de pruebas: ningún flujo puede quedar bloqueado por una precondición que la UI no pueda crear
+  (p. ej. cierre de caja sin base). Ver §9.
+- Idiomas objetivo iniciales: **español, inglés, hindi, francés, ruso** (ver §8).
+
+**Propuestas pendientes de OK**
+1. Mecanismo de aprobación canónico `Approval` (modos `pin` y `request`; se elimina `/pos/authorizations`; vocabulario
+   de máquina neutro en inglés técnico): `discount`, `negative_stock`, `below_cost`, `credit_exception`, `price_override`,
+   `void_sale`, `return`, `cash_difference_opening`, `cash_difference_closing`, `shift_handover`, `cash_movement`,
+   `other`; estados `pending|approved|rejected|expired|cancelled|executed`.
+2. Tres capas: código de máquina (sin idioma) · idioma/locale · paquete de país.
+3. Dependencia nueva **FormatJS (`react-intl`)** para ICU MessageFormat.
+
+## 8. Idiomas y personalización por país
+
+| Idioma | Locale inicial | Escritura | Notas que el diseño debe cubrir |
+|---|---|---|---|
+| Español | `es-CO` | LTR, latina | Base actual; mensajes del mock están en español |
+| Inglés | `en` | LTR, latina | Primer idioma de validación de la tubería |
+| Francés | `fr` | LTR, latina | Textos ~20–30 % más largos; espacio antes de `:` `;` `?`; separador decimal coma |
+| Ruso | `ru` | LTR, cirílica | **3 formas de plural**; textos largos; fuente con cirílico |
+| Hindi | `hi-IN` | LTR, devanagari | Fuente con devanagari; agrupación de miles india (lakh/crore); sin mayúsculas |
+
+- **Ninguno de los cinco es RTL.** La infraestructura se diseña igualmente para `dir` (CSS lógico en código nuevo) para no
+  cerrar la puerta a árabe/hebreo, pero no se prueba RTL en esta fase.
+- Idioma ≠ país: `fr` puede ser Francia, Bélgica, Senegal…; `en` es muchos países. La moneda, canales, impuestos y
+  documentos vienen del **paquete de país**, no del idioma.
+- Datos que dependen del país (paquete): canales de pago, moneda y decimales, redondeo, impuestos, documentos de identidad
+  y fiscales, formatos de dirección y teléfono, textos legales, unidades.
+- Contrato: `Session`/`Company` incorporan `countryCode`, `locale`, `currency`, `direction`; los errores devuelven
+  `code` + `params` (el cliente traduce); el dinero se expresa en la unidad menor de la moneda con exponente del país.
+- Infra pendiente (paso 3): catálogos por idioma, `Intl` para formatos, locale de PrimeReact por idioma, `html lang/dir`,
+  fuentes con cobertura cirílico/devanagari, pseudo-locale para detectar texto fijo.
+
+## 9. «Todos los flujos, en todos los estados»
+- Una regla de negocio se valida **y siempre tiene salida desde la UI** (cierre sin base: se permite base 0 con motivo).
+- Panel de escenarios (solo DEV) para precargar estados: caja sin base, con diferencia, ocupada, sin conexión, crédito sin
+  cupo, etc.
+- Matriz flujo × estado en Playwright; cada celda debe poder completarse.
