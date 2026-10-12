@@ -475,6 +475,323 @@
       "expectedOpening": null
     }
   ],
+  "countryPack": {
+    "countryCode": "CO",
+    "currency": {
+      "code": "COP",
+      "minorUnits": 0
+    },
+    "paymentChannels": [
+      {
+        "id": "efectivo",
+        "label": "Efectivo",
+        "type": "cash",
+        "method": "efectivo",
+        "requiresProof": false,
+        "fields": [],
+        "destinations": []
+      },
+      {
+        "id": "nequi",
+        "label": "Nequi",
+        "type": "wallet",
+        "method": "nequi",
+        "requiresProof": true,
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Número de referencia o aprobación",
+            "required": true,
+            "input": "text"
+          },
+          {
+            "key": "phone",
+            "label": "Celular de origen",
+            "required": false,
+            "input": "digits"
+          },
+          {
+            "key": "payer",
+            "label": "Nombre del pagador",
+            "required": false,
+            "input": "text"
+          }
+        ],
+        "destinations": [
+          {
+            "id": "nequi-1",
+            "label": "Nequi del negocio · 300 ••• 4567"
+          }
+        ]
+      },
+      {
+        "id": "daviplata",
+        "label": "DaviPlata",
+        "type": "wallet",
+        "method": "daviplata",
+        "requiresProof": true,
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Número de referencia o aprobación",
+            "required": true,
+            "input": "text"
+          },
+          {
+            "key": "phone",
+            "label": "Celular de origen",
+            "required": false,
+            "input": "digits"
+          },
+          {
+            "key": "payer",
+            "label": "Nombre del pagador",
+            "required": false,
+            "input": "text"
+          }
+        ],
+        "destinations": [
+          {
+            "id": "dp-1",
+            "label": "DaviPlata del negocio · 310 ••• 8821"
+          }
+        ]
+      },
+      {
+        "id": "bancolombia",
+        "label": "Bancolombia",
+        "type": "bank_transfer",
+        "method": "transferencia",
+        "requiresProof": true,
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Número de referencia o aprobación",
+            "required": true,
+            "input": "text"
+          },
+          {
+            "key": "payer",
+            "label": "Nombre del pagador",
+            "required": false,
+            "input": "text"
+          }
+        ],
+        "destinations": [
+          {
+            "id": "bc-ah",
+            "label": "Ahorros Bancolombia ••• 1234"
+          }
+        ]
+      },
+      {
+        "id": "otros-bancos",
+        "label": "Otros bancos",
+        "type": "bank_transfer",
+        "method": "transferencia",
+        "requiresProof": true,
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Número de referencia o aprobación",
+            "required": true,
+            "input": "text"
+          },
+          {
+            "key": "bank",
+            "label": "Banco de origen",
+            "required": true,
+            "input": "text"
+          },
+          {
+            "key": "payer",
+            "label": "Nombre del pagador",
+            "required": false,
+            "input": "text"
+          }
+        ],
+        "destinations": [
+          {
+            "id": "bc-ah",
+            "label": "Ahorros Bancolombia ••• 1234"
+          }
+        ]
+      },
+      {
+        "id": "bre-b",
+        "label": "Bre-B",
+        "type": "instant_key",
+        "method": "transferencia",
+        "requiresProof": true,
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Número de referencia o aprobación",
+            "required": true,
+            "input": "text"
+          },
+          {
+            "key": "key",
+            "label": "Llave usada",
+            "required": false,
+            "input": "text"
+          },
+          {
+            "key": "payer",
+            "label": "Nombre del pagador",
+            "required": false,
+            "input": "text"
+          }
+        ],
+        "destinations": [
+          {
+            "id": "breb-1",
+            "label": "Llave Bre-B del negocio"
+          }
+        ]
+      },
+      {
+        "id": "datafono",
+        "label": "Tarjeta / datáfono",
+        "type": "card_terminal",
+        "method": "tarjeta",
+        "requiresProof": false,
+        "fields": [
+          {
+            "key": "authCode",
+            "label": "Código de aprobación",
+            "required": true,
+            "input": "text"
+          },
+          {
+            "key": "last4",
+            "label": "Últimos 4 dígitos",
+            "required": false,
+            "input": "digits"
+          },
+          {
+            "key": "terminal",
+            "label": "Terminal",
+            "required": false,
+            "input": "text"
+          }
+        ],
+        "destinations": []
+      },
+      {
+        "id": "credito",
+        "label": "Crédito",
+        "type": "credit",
+        "method": "credito",
+        "requiresProof": false,
+        "fields": [],
+        "destinations": []
+      },
+      {
+        "id": "pse",
+        "label": "PSE / pasarela",
+        "type": "gateway",
+        "method": "transferencia",
+        "requiresProof": true,
+        "fields": [
+          {
+            "key": "reference",
+            "label": "Código de transacción (CUS)",
+            "required": true,
+            "input": "text"
+          },
+          {
+            "key": "payer",
+            "label": "Nombre del pagador",
+            "required": false,
+            "input": "text"
+          }
+        ],
+        "destinations": [
+          {
+            "id": "pse-1",
+            "label": "Pasarela de la empresa"
+          }
+        ]
+      }
+    ],
+    "documentTypes": [
+      {
+        "id": "factura-electronica",
+        "label": "Factura electrónica de venta",
+        "hint": "Requiere cliente con datos fiscales validados.",
+        "isDefault": false
+      },
+      {
+        "id": "documento-equivalente-pos",
+        "label": "Documento equivalente electrónico POS",
+        "hint": "Para ventas de mostrador sin factura.",
+        "isDefault": true
+      }
+    ],
+    "cashDenominations": [
+      {
+        "id": "bill-100000",
+        "kind": "bill",
+        "value": 100000
+      },
+      {
+        "id": "bill-50000",
+        "kind": "bill",
+        "value": 50000
+      },
+      {
+        "id": "bill-20000",
+        "kind": "bill",
+        "value": 20000
+      },
+      {
+        "id": "bill-10000",
+        "kind": "bill",
+        "value": 10000
+      },
+      {
+        "id": "bill-5000",
+        "kind": "bill",
+        "value": 5000
+      },
+      {
+        "id": "bill-2000",
+        "kind": "bill",
+        "value": 2000
+      },
+      {
+        "id": "bill-1000",
+        "kind": "bill",
+        "value": 1000
+      },
+      {
+        "id": "coin-1000",
+        "kind": "coin",
+        "value": 1000
+      },
+      {
+        "id": "coin-500",
+        "kind": "coin",
+        "value": 500
+      },
+      {
+        "id": "coin-200",
+        "kind": "coin",
+        "value": 200
+      },
+      {
+        "id": "coin-100",
+        "kind": "coin",
+        "value": 100
+      },
+      {
+        "id": "coin-50",
+        "kind": "coin",
+        "value": 50
+      }
+    ]
+  },
   "company": {
     "id": "co-001",
     "name": "Comercial Demo S.A.S.",

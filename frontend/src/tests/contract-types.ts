@@ -13,7 +13,7 @@ import type {
   StockAdjustmentResult, InventoryCountCreate, InventoryCount, SalesSummary, AgingReport, InventoryValuation, BranchInput,
   Company, CompanyInput, TaxResponsibility, LedgerStatus, ShiftHandoverRequest, CustodyEntry, AuthorizationCreate,
   AuthorizationRequest, AuthorizationDecision, SyncOperation, SyncBatch, SyncOperationResult, SyncBatchResult,
-  PosOrderLine, PosOrderCreate, PosOrder, PosOrderTransition, SavePosOrderRequest, Register,
+  PosOrderLine, PosOrderCreate, PosOrder, PosOrderTransition, SavePosOrderRequest, Register, Regional, PaymentChannel, ChannelField, DocumentTypeOption, CashDenomination, CountryPack,
 } from '@/shared/contracts';
 
 type Schemas = components['schemas'];
@@ -24,6 +24,12 @@ type Assert<T extends true> = T;
 /** Exportado para que ni tsc ni eslint lo traten como código muerto; `Assert` falla si algún par diverge. */
 export type ContractTypeChecks = [
   Assert<Same<Register, Schemas['Register']>>,
+  Assert<Same<Regional, Schemas['Regional']>>,
+  Assert<Same<PaymentChannel, Schemas['PaymentChannel']>>,
+  Assert<Same<ChannelField, Schemas['ChannelField']>>,
+  Assert<Same<DocumentTypeOption, Schemas['DocumentTypeOption']>>,
+  Assert<Same<CashDenomination, Schemas['CashDenomination']>>,
+  Assert<Same<CountryPack, Schemas['CountryPack']>>,
   Assert<Same<ShiftHandoverRequest, Schemas['ShiftHandoverRequest']>>,
   Assert<Same<CustodyEntry, Schemas['CustodyEntry']>>,
   Assert<Same<AuthorizationCreate, Schemas['AuthorizationCreate']>>,

@@ -28,6 +28,8 @@ export const saleCreateSchema = z.object({
     .array(z.object({ productId: z.string(), quantity: z.number().positive(), discount: money }))
     .min(1),
   payments: z.array(paymentSchema).min(1),
+  /** v0.7.0 (PROPUESTA): tipo de documento a emitir, del paquete de país. Obligatorio; el POS preselecciona el valor por defecto. */
+  documentType: z.string().min(1),
   /** Instante real de la venta si se hizo sin conexión (BR-VEN-13). */
   occurredAt: isoDate.optional(),
   /** true si se encoló offline: el servidor acepta aunque no haya stock (BR-VEN-13). */
@@ -49,6 +51,7 @@ export const saleCreateContract: Contract<typeof saleCreateSchema> = {
     customerId: 'cus-001',
     lines: [{ productId: 'prd-001', quantity: 2, discount: 0 }],
     payments: [{ method: 'efectivo', amount: 10000 }],
+    documentType: 'documento-equivalente-pos',
   },
 };
 

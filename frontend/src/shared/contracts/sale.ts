@@ -40,6 +40,8 @@ export const saleSchema = z.object({
   roundingAdjustment: z.number().int(),
   total: money,
   status: z.enum(['pagada', 'credito', 'anulada']),
+  /** v0.7.0 (PROPUESTA): tipo de documento elegido en la venta (selección, no emisión). Ausente en datos previos. */
+  documentType: z.string().optional(),
 });
 export type Sale = z.infer<typeof saleSchema>;
 

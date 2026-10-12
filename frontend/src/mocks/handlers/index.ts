@@ -1,5 +1,6 @@
 import { adminHandlers } from './admin';
 import { authHandlers } from './auth';
+import { countryPackHandlers } from './countryPack';
 import { inventoryHandlers } from './inventory';
 import { ledgerHandlers } from './ledger';
 import { posOpsHandlers } from './posops';
@@ -17,6 +18,7 @@ export const handlers = [
   ...saleHandlers,
   ...shiftHandlers,
   ...registerHandlers,
+  ...countryPackHandlers,
   ...posOpsHandlers,
   ...inventoryHandlers,
   ...purchaseHandlers,

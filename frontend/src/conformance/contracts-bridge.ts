@@ -6,6 +6,6 @@ export {
   agingReportSchema, companySchema, customerPaymentResultSchema, customerSchema, inventoryCountSchema,
   inventoryValuationSchema, purchaseOrderReceiptSchema, receivablePaymentSchema, salesSummarySchema,
   stockAdjustmentResultSchema, stockMovementSchema, authorizationRequestSchema, custodyEntrySchema, posOrderSchema,
-  syncBatchResultSchema, registerSchema,
+  syncBatchResultSchema, registerSchema, countryPackSchema,
 } from '@/shared/contracts';
 export type { SaleCreate, Shift } from '@/shared/contracts';

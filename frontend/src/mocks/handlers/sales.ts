@@ -55,6 +55,15 @@ export const saleHandlers = [
       return validationError('Idempotency-Key debe ser igual a clientOperationId');
     }
 
+    // v0.7.0 (PROPUESTA): canal y documento deben existir en el paquete de país.
+    if (!db.countryPack.documentTypes.some((d) => d.id === body.documentType)) {
+      return failure(422, 'DOCUMENT_TYPE_UNKNOWN', 'El tipo de documento no está en el paquete de país', { documentType: body.documentType });
+    }
+    const unknownChannel = body.payments.find((p) => p.channel !== undefined && !db.countryPack.paymentChannels.some((c) => c.id === p.channel));
+    if (unknownChannel) {
+      return failure(422, 'CHANNEL_UNKNOWN', 'El canal de pago no está en el paquete de país', { channel: unknownChannel.channel });
+    }
+
     // BR-VEN-11: repetir la misma operación devuelve la misma venta.
     const previous = state.idempotency.get(key);
     if (previous) {
@@ -216,6 +225,7 @@ export const saleHandlers = [
       roundingAdjustment: totals.roundingAdjustment,
       total: totals.total,
       status: creditAmount > 0 ? 'credito' : 'pagada',
+      documentType: body.documentType,
     };
     db.sales.push(sale);
 

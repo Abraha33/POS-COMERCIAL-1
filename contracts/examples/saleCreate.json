@@ -14,5 +14,6 @@
       "method": "efectivo",
       "amount": 10000
     }
-  ]
+  ],
+  "documentType": "documento-equivalente-pos"
 }

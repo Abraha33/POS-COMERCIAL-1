@@ -15,6 +15,7 @@ export const sessionFor = (employeeId: string): Session | null => {
     branch: { id: employee.branchId, name: branchName(employee.branchId) },
     // Una caja por sede en el seed: reg-00N para br-00N.
     register: { id: `reg-${employee.branchId.slice(-3)}`, name: 'Caja 1' },
+    regional: { countryCode: 'CO', locale: 'es-CO', currency: 'COP', direction: 'ltr' },
   };
 };
 

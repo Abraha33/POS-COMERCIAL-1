@@ -862,6 +862,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pos/country-pack": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description PROPUESTA v0.7.0. Paquete de país: lo que cambia por mercado (canales de pago, tipos de documento con su valor por
+         *     defecto, denominaciones de efectivo y moneda). Es el catálogo contra el que se validan `Payment.channel` y
+         *     `SaleCreate.documentType`. Solo lectura.
+         */
+        get: operations["getCountryPack"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/pos/orders": {
         parameters: {
             query?: never;
@@ -951,6 +972,7 @@ export interface components {
             company: components["schemas"]["IdName"];
             branch: components["schemas"]["IdName"];
             register: components["schemas"]["IdName"];
+            regional?: components["schemas"]["Regional"];
         };
         IdName: {
             id: string;
@@ -1055,7 +1077,7 @@ export interface components {
         Payment: {
             method: components["schemas"]["PaymentMethod"];
             amount: number;
-            /** @description PROPUESTA v0.6.0. Canal de cobro del catálogo de la empresa (p. ej. `nequi`, `bancolombia`, `bre-b`). */
+            /** @description PROPUESTA v0.6.0. Canal de cobro del paquete de país (`GET /pos/country-pack`, p. ej. `nequi`, `bancolombia`, `bre-b`). `CHANNEL_UNKNOWN` (422) si no existe. */
             channel?: string;
             /** @description PROPUESTA v0.6.0. Referencia/aprobación del pago. El servidor rechaza duplicados con REFERENCE_DUPLICATED. */
             reference?: string;
@@ -1087,6 +1109,8 @@ export interface components {
             total: number;
             /** @enum {string} */
             status: "pagada" | "credito" | "anulada";
+            /** @description PROPUESTA v0.7.0. Tipo de documento elegido en la venta (selección, no emisión). Ausente en datos previos. */
+            documentType?: string;
         };
         SaleCreate: {
             /** Format: uuid */
@@ -1118,6 +1142,12 @@ export interface components {
              * @enum {integer}
              */
             creditTermDays?: 7 | 15 | 30 | 45 | 60;
+            /**
+             * @description PROPUESTA v0.7.0. Tipo de documento a emitir (id del paquete de país, `GET /pos/country-pack`). Obligatorio:
+             *     el POS preselecciona el valor por defecto de la empresa, así que nunca bloquea. Es una selección; la emisión
+             *     fiscal real depende del backend. `DOCUMENT_TYPE_UNKNOWN` (422) si no está en el paquete.
+             */
+            documentType: string;
         };
         SaleReceipt: components["schemas"]["Sale"] & {
             /** Format: uuid */
@@ -1493,6 +1523,57 @@ export interface components {
                 /** @description max(onHand, 0) × unitCost. */
                 value: number;
             }[];
+        };
+        Regional: {
+            countryCode: string;
+            locale: string;
+            currency: string;
+            /** @enum {string} */
+            direction: "ltr" | "rtl";
+        };
+        ChannelField: {
+            /** @enum {string} */
+            key: "reference" | "payer" | "bank" | "authCode" | "terminal" | "last4" | "phone" | "key";
+            label: string;
+            required: boolean;
+            /** @enum {string} */
+            input: "text" | "digits";
+        };
+        PaymentChannel: {
+            id: string;
+            label: string;
+            /** @enum {string} */
+            type: "cash" | "wallet" | "bank_transfer" | "instant_key" | "qr" | "card_terminal" | "gateway" | "credit";
+            method: components["schemas"]["PaymentMethod"];
+            requiresProof: boolean;
+            fields: components["schemas"]["ChannelField"][];
+            destinations: components["schemas"]["IdLabel"][];
+        };
+        IdLabel: {
+            id: string;
+            label: string;
+        };
+        DocumentTypeOption: {
+            id: string;
+            label: string;
+            hint?: string;
+            isDefault: boolean;
+        };
+        CashDenomination: {
+            id: string;
+            /** @enum {string} */
+            kind: "coin" | "bill";
+            value: number;
+        };
+        CountryPack: {
+            countryCode: string;
+            currency: {
+                code: string;
+                minorUnits: number;
+            };
+            paymentChannels: components["schemas"]["PaymentChannel"][];
+            documentTypes: components["schemas"]["DocumentTypeOption"][];
+            cashDenominations: components["schemas"]["CashDenomination"][];
         };
         Register: {
             id: string;
@@ -3171,6 +3252,31 @@ export interface operations {
             };
             401: components["responses"]["Unauthorized"];
             403: components["responses"]["Forbidden"];
+        };
+    };
+    getCountryPack: {
+        parameters: {
+            query?: {
+                countryCode?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paquete de país */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CountryPack"];
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
         };
     };
     listPosOrders: {

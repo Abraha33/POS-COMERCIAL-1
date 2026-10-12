@@ -1,5 +1,5 @@
 import type {
-  Branch, Register, Company, CustomerRecord, Employee, InventoryAlert, InventoryCount, PayableRecord, Product, PurchaseOrder,
+  Branch, CountryPack, Register, Company, CustomerRecord, Employee, InventoryAlert, InventoryCount, PayableRecord, Product, PurchaseOrder,
   ReceivablePayment, ReceivableRecord, Sale, Shift, StockLevel, SaleReturn, StockMovement, Supplier, Transfer,
 } from '@/shared/contracts';
 
@@ -66,6 +66,66 @@ export const branches: Branch[] = [
   { id: 'br-001', name: 'Sede Principal', active: true },
   { id: 'br-002', name: 'Sede Norte', active: true },
 ];
+/**
+ * Paquete de país CO (v0.7.0, PROPUESTA): nueve canales explícitos; ninguno se oculta dentro de otro. Los textos son
+ * es-CO; la traducción por idioma llega con la infraestructura de i18n.
+ */
+const reference = { key: 'reference', label: 'Número de referencia o aprobación', required: true, input: 'text' } as const;
+const payer = { key: 'payer', label: 'Nombre del pagador', required: false, input: 'text' } as const;
+const phone = { key: 'phone', label: 'Celular de origen', required: false, input: 'digits' } as const;
+export const countryPack: CountryPack = {
+  countryCode: 'CO',
+  currency: { code: 'COP', minorUnits: 0 },
+  paymentChannels: [
+    { id: 'efectivo', label: 'Efectivo', type: 'cash', method: 'efectivo', requiresProof: false, fields: [], destinations: [] },
+    {
+      id: 'nequi', label: 'Nequi', type: 'wallet', method: 'nequi', requiresProof: true, fields: [reference, phone, payer],
+      destinations: [{ id: 'nequi-1', label: 'Nequi del negocio · 300 ••• 4567' }],
+    },
+    {
+      id: 'daviplata', label: 'DaviPlata', type: 'wallet', method: 'daviplata', requiresProof: true, fields: [reference, phone, payer],
+      destinations: [{ id: 'dp-1', label: 'DaviPlata del negocio · 310 ••• 8821' }],
+    },
+    {
+      id: 'bancolombia', label: 'Bancolombia', type: 'bank_transfer', method: 'transferencia', requiresProof: true,
+      fields: [reference, payer], destinations: [{ id: 'bc-ah', label: 'Ahorros Bancolombia ••• 1234' }],
+    },
+    {
+      id: 'otros-bancos', label: 'Otros bancos', type: 'bank_transfer', method: 'transferencia', requiresProof: true,
+      fields: [reference, { key: 'bank', label: 'Banco de origen', required: true, input: 'text' }, payer],
+      destinations: [{ id: 'bc-ah', label: 'Ahorros Bancolombia ••• 1234' }],
+    },
+    {
+      id: 'bre-b', label: 'Bre-B', type: 'instant_key', method: 'transferencia', requiresProof: true,
+      fields: [reference, { key: 'key', label: 'Llave usada', required: false, input: 'text' }, payer],
+      destinations: [{ id: 'breb-1', label: 'Llave Bre-B del negocio' }],
+    },
+    {
+      id: 'datafono', label: 'Tarjeta / datáfono', type: 'card_terminal', method: 'tarjeta', requiresProof: false,
+      fields: [
+        { key: 'authCode', label: 'Código de aprobación', required: true, input: 'text' },
+        { key: 'last4', label: 'Últimos 4 dígitos', required: false, input: 'digits' },
+        { key: 'terminal', label: 'Terminal', required: false, input: 'text' },
+      ],
+      destinations: [],
+    },
+    { id: 'credito', label: 'Crédito', type: 'credit', method: 'credito', requiresProof: false, fields: [], destinations: [] },
+    {
+      id: 'pse', label: 'PSE / pasarela', type: 'gateway', method: 'transferencia', requiresProof: true,
+      fields: [{ key: 'reference', label: 'Código de transacción (CUS)', required: true, input: 'text' }, payer],
+      destinations: [{ id: 'pse-1', label: 'Pasarela de la empresa' }],
+    },
+  ],
+  documentTypes: [
+    { id: 'factura-electronica', label: 'Factura electrónica de venta', hint: 'Requiere cliente con datos fiscales validados.', isDefault: false },
+    { id: 'documento-equivalente-pos', label: 'Documento equivalente electrónico POS', hint: 'Para ventas de mostrador sin factura.', isDefault: true },
+  ],
+  cashDenominations: [
+    ...[100000, 50000, 20000, 10000, 5000, 2000, 1000].map((v) => ({ id: `bill-${v}`, kind: 'bill' as const, value: v })),
+    ...[1000, 500, 200, 100, 50].map((v) => ({ id: `coin-${v}`, kind: 'coin' as const, value: v })),
+  ],
+};
+
 /** Una caja por sede (reg-00N para br-00N, ver `sessionFor`). La base esperada de reg-002 queda sin configurar a propósito. */
 export const registers: Omit<Register, 'status' | 'occupiedBy'>[] = [
   { id: 'reg-001', name: 'Caja 1', branchId: 'br-001', terminal: { id: 'ter-001', name: 'Terminal 1' }, expectedOpening: 100000 },
@@ -111,6 +171,6 @@ export const inventoryCounts: InventoryCount[] = [];
 
 export const createSeed = () => structuredClone({
   products, customers, suppliers, employees, sales, stockLevels, stockMovements, purchaseOrders, receivables, payables,
-  shifts, transfers, alerts, branches, saleReturns, registers, company, receivablePayments, inventoryCounts,
+  shifts, transfers, alerts, branches, saleReturns, registers, countryPack, company, receivablePayments, inventoryCounts,
 });
 export type MockDb = ReturnType<typeof createSeed>;

@@ -16,7 +16,7 @@ import {
   payableSchema, purchaseOrderSchema, saleReturnSchema, saleSchema, shiftSchema, stockLevelSchema, transferSchema, z,
   agingReportSchema, companySchema, customerPaymentResultSchema, customerSchema, inventoryCountSchema,
   inventoryValuationSchema, purchaseOrderReceiptSchema, receivablePaymentSchema, salesSummarySchema,
-  stockAdjustmentResultSchema, stockMovementSchema, registerSchema,
+  stockAdjustmentResultSchema, stockMovementSchema, registerSchema, countryPackSchema,
   type SaleCreate, type Shift,
 } from './contracts-bridge';
 import { createSchemaValidator } from './spec';
@@ -83,6 +83,7 @@ export const registerConformance = (target: string | (() => string)) => {
     customerId: null,
     lines: [{ productId: 'prd-001', quantity: 2, discount: 0 }],
     payments: [{ method: 'efectivo', amount: 10000 }],
+    documentType: 'documento-equivalente-pos',
     ...overrides,
   });
 
@@ -1082,6 +1083,33 @@ export const registerConformance = (target: string | (() => string)) => {
       const occupied = afterOpen.find((r) => r.id === shift.registerId);
       expect(occupied?.status).toBe('occupied');
       expect(occupied?.occupiedBy?.id).toBe(shift.cashierId);
+    });
+
+    it('v0.7.0 (PROPUESTA) · paquete de país: canales explícitos, documento por defecto y validación en la venta', async () => {
+      const token = await login('laura.gomez');
+      expectError(await call('GET', '/pos/country-pack'), 401, 'UNAUTHORIZED');
+      const pack = await call('GET', '/pos/country-pack', { token });
+      expect(pack.status, JSON.stringify(pack.body)).toBe(200);
+      expectSchema('CountryPack', pack.body);
+      const parsed = countryPackSchema.parse(pack.body);
+      expect(parsed.paymentChannels.map((c) => c.id).sort()).toEqual(
+        ['bancolombia', 'bre-b', 'credito', 'datafono', 'efectivo', 'nequi', 'otros-bancos', 'pse', 'daviplata'].sort(),
+      );
+      // Ningún canal distinto se oculta: cuatro transferencias son cuatro canales con el mismo método contable.
+      const transfers = parsed.paymentChannels.filter((c) => c.method === 'transferencia').map((c) => c.id).sort();
+      expect(transfers).toEqual(['bancolombia', 'bre-b', 'otros-bancos', 'pse']);
+      expect(parsed.documentTypes.filter((d) => d.isDefault)).toHaveLength(1);
+      expectError(await call('GET', '/pos/country-pack?countryCode=ZZ', { token }), 404, 'NOT_FOUND');
+
+      const shift = await ensureOpenShift(token);
+      expectError(await sell(token, sellRequest(shift.id, { documentType: 'factura-inventada' })), 422, 'DOCUMENT_TYPE_UNKNOWN');
+      expectError(
+        await sell(token, sellRequest(shift.id, { payments: [{ method: 'efectivo', amount: 10000, channel: 'canal-inexistente' }] })),
+        422, 'CHANNEL_UNKNOWN',
+      );
+      const ok = await sell(token, sellRequest(shift.id, { documentType: 'factura-electronica' }));
+      expect(ok.status, JSON.stringify(ok.body)).toBe(201);
+      expect(saleReceiptSchema.parse(ok.body).documentType).toBe('factura-electronica');
     });
 
     it('la sesión trae la sede real del empleado (Session.branch)', async () => {

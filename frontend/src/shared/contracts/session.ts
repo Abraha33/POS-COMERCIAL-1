@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { regionalSchema } from './platform';
 
 export const permissionSchema = z.enum([
   'pos.sell', 'pos.refund',
@@ -46,5 +47,7 @@ export const sessionSchema = z.object({
   company: z.object({ id: z.string(), name: z.string() }),
   branch: z.object({ id: z.string(), name: z.string() }),
   register: z.object({ id: z.string(), name: z.string() }),
+  /** v0.7.0 (PROPUESTA): país, idioma y moneda. Sin él la interfaz usa es-CO / COP / ltr. */
+  regional: regionalSchema.optional(),
 });
 export type Session = z.infer<typeof sessionSchema>;
