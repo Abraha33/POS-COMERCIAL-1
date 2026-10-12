@@ -1,0 +1,11 @@
+.pa-panel { background: var(--app-surface); border: 1px solid var(--app-border); border-radius: var(--app-radius-lg); padding: 1rem; margin-bottom: 1rem; }
+.pa-panel h2 { margin: 0 0 0.75rem; font-size: 1.1rem; }
+.pa-facts { margin: 0; display: grid; gap: 0.5rem; }
+.pa-facts dt { color: var(--app-text-muted); font-size: 0.875rem; }
+.pa-facts dd { margin: 0; font-weight: 600; }
+.pa-table { width: 100%; border-collapse: collapse; }
+.pa-table th, .pa-table td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--app-border); }
+.pa-num { text-align: right; font-variant-numeric: tabular-nums; }
+.pa-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+.pa-hint { color: var(--app-text-muted); margin: 0.5rem 0; }
+.pa-error { color: var(--app-danger-fg); display: block; }

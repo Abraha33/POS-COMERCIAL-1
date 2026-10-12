@@ -33,6 +33,20 @@ const rootRoute = createRootRoute({ component: AppShell, notFoundComponent: NotF
 const homeRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', component: HomePage });
 const loginRoute = createRoute({ getParentRoute: () => rootRoute, path: '/login', component: LoginPage });
 
+const PosAccessPage = lazy(() => import('@/features/pos-access').then((m) => ({ default: m.PosAccessPage })));
+/** POS-F01/F02 (escenarios simulados). Convive con /pos: no lo sustituye ni cambia su flujo. */
+const posAccessRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/pos/acceso',
+  component: () => (
+    <RouteGuard permission="pos.sell">
+      <Suspense fallback={<LoadingState />}>
+        <PosAccessPage />
+      </Suspense>
+    </RouteGuard>
+  ),
+});
+
 const moduleRoutes = modules.map((m) => {
   const Page = pages[m.id];
   return createRoute({
@@ -48,7 +62,7 @@ const moduleRoutes = modules.map((m) => {
   });
 });
 
-const routeTree = rootRoute.addChildren([homeRoute, loginRoute, ...moduleRoutes]);
+const routeTree = rootRoute.addChildren([homeRoute, loginRoute, ...moduleRoutes, posAccessRoute]);
 
 export const createAppRouter = (history?: Parameters<typeof createRouter>[0]['history']) =>
   createRouter({ routeTree, history });

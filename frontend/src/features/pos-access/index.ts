@@ -1,0 +1,1 @@
+export { PosAccessPage } from './PosAccessPage';
