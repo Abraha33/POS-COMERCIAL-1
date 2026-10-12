@@ -1,7 +1,9 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
 import type { ApprovalRequest, Payment, PaymentMethod, Product, SaleReceipt, Shift } from '@/shared/contracts';
+import { useSession } from '@/app/providers/SessionProvider';
+import { useNotify } from '@/app/providers/ToastProvider';
 import { useCreateSale } from '@/shared/api/pos';
 import { useCustomers, useProducts } from '@/shared/api/queries';
 import { useHotkey } from '@/shared/keyboard/useHotkey';
@@ -18,6 +20,9 @@ import { PaymentDialog } from './PaymentDialog';
 import { SalePanel } from './SalePanel';
 import { SupervisorPinDialog } from './SupervisorPinDialog';
 import { estimateIncludedVat, paymentsTotal, type CartLine, type DigitalChannel, type PayMode } from './cart';
+import { CreateOrderDialog } from './orders/CreateOrderDialog';
+import { markCharged } from './orders/orders';
+import { useOrders } from './orders/useOrders';
 import { describeCheckoutError, type CheckoutMessage } from './saleText';
 import { useHeldSales, type HeldSale } from './useHeldSales';
 import './pos.css';
@@ -25,6 +30,18 @@ import './pos.css';
 type PinRequest = { action: ApprovalRequest['action']; reason: string };
 type Confirm = 'clear' | 'cancel' | null;
 type Pane = 'catalog' | 'cart';
+
+/** Pedido que se pasa a cobro en caja: sus líneas llenan el carrito sin reconstruirlo a mano. */
+export type PreloadOrder = { orderId: string; customerId: string | null; lines: { productId: string; quantity: number }[] };
+
+type QuickSaleProps = {
+  shift: Shift;
+  active?: boolean;
+  preload?: PreloadOrder | null;
+  onPreloadUsed?: () => void;
+  /** Cambia para pedir que se abra el diálogo de suspendidas desde la barra de navegación. */
+  openHeldToken?: number;
+};
 
 const approvalActions: ApprovalRequest['action'][] = ['discount', 'negative_stock', 'below_cost'];
 const asApprovalAction = (value: unknown): ApprovalRequest['action'] | null =>
@@ -41,7 +58,7 @@ const matches = (product: Product, query: string): boolean => {
  * Teclado y lector primero; en móvil dos paneles (catálogo / carrito) con barra "Ver carrito". Reglas BR-VEN-01..14.
  * Los cambios de cantidad son relativos (seguros ante clics rápidos); cantidad ≤ 0 quita la línea.
  */
-export const QuickSale = ({ shift, active = true }: { shift: Shift; active?: boolean }) => {
+export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed, openHeldToken = 0 }: QuickSaleProps) => {
   const products = useProducts();
   const customers = useCustomers();
   const createSale = useCreateSale();
@@ -69,6 +86,15 @@ export const QuickSale = ({ shift, active = true }: { shift: Shift; active?: boo
   const [noteDraft, setNoteDraft] = useState('');
   const [confirm, setConfirm] = useState<Confirm>(null);
   const [pane, setPane] = useState<Pane>('catalog');
+  const { session } = useSession();
+  const notify = useNotify();
+  const actor = { id: session.user.id, name: session.user.name };
+  const orderStore = useOrders(session.branch.id);
+  const [orderLink, setOrderLink] = useState<string | null>(null);
+  const [orderDialog, setOrderDialog] = useState<'new' | 'deliver' | null>(null);
+  const [deliverLines, setDeliverLines] = useState<{ productId: string; name: string; sku: string; quantity: number; unitPrice: number }[]>([]);
+  const [deliverSale, setDeliverSale] = useState<string | null>(null);
+
   const heldSales = useHeldSales(shift.registerId);
   const searchRef = useRef<HTMLInputElement>(null);
   const customerRef = useRef<HTMLSelectElement>(null);
@@ -208,6 +234,13 @@ export const QuickSale = ({ shift, active = true }: { shift: Shift; active?: boo
         onSuccess: (result) => {
           setPayOpen(false);
           setReceipt(result);
+          // Pedido cobrado en caja: se vincula la venta y se registra lo cobrado, sin cobrar de nuevo.
+          const linked = orderLink ? orderStore.orders.find((o) => o.id === orderLink) : undefined;
+          if (linked) {
+            const charged = markCharged(linked, result.number, Math.min(result.total, linked.total), actor, new Date());
+            if (charged.ok) orderStore.replace(charged.value);
+            setOrderLink(null);
+          }
         },
         onError: (error) => {
           const detailAction = asApprovalAction(error.details?.action);
@@ -258,6 +291,22 @@ export const QuickSale = ({ shift, active = true }: { shift: Shift; active?: boo
     setDiscountOpen(false);
   };
 
+  // Pasar un pedido a cobro: si hay un carrito en curso se suspende (no se pierde) y se cargan las líneas del pedido.
+  useEffect(() => {
+    if (!preload || products.isLoading) return;
+    if (lines.length > 0) heldSales.hold(lines, customerId);
+    setLines(preload.lines.map((l) => ({ productId: l.productId, quantity: l.quantity, discount: 0 })));
+    setCustomerId(preload.customerId);
+    setOrderLink(preload.orderId);
+    setReceivedState(null);
+    setPane('cart');
+    onPreloadUsed?.();
+  }, [preload?.orderId, products.isLoading]);
+
+  useEffect(() => {
+    if (openHeldToken > 0) setHeldOpen(true);
+  }, [openHeldToken]);
+
   // Con la vista "Historial" activa la venta sigue montada pero sin atajos (evita cobrar un carrito oculto).
   const idle = active && !anyOverlay;
   useHotkey('F2', focusSearch, idle);
@@ -280,11 +329,6 @@ export const QuickSale = ({ shift, active = true }: { shift: Shift; active?: boo
       subtitle={`Venta rápida · Turno ${shift.id} · Efectivo esperado ${formatMoney(shift.expectedCash)}`}
       actions={
         <span className="pos__actions">
-          <Button
-            type="button" icon="pi pi-clock" outlined
-            label={`Suspendidas (${heldSales.held.length})`} aria-label={`Suspendidas, ${heldSales.held.length} (F6)`}
-            onClick={() => setHeldOpen(true)}
-          />
           <Button type="button" label="Caja (F10)" icon="pi pi-wallet" outlined onClick={() => setCashOpen(true)} />
         </span>
       }
@@ -344,6 +388,16 @@ export const QuickSale = ({ shift, active = true }: { shift: Shift; active?: boo
                       }}
                     />
                     <Button type="button" label="Guardar como pendiente" icon="pi pi-save" outlined onClick={holdCurrent} />
+                    <Button
+                      type="button" label="Crear pedido" icon="pi pi-truck" outlined
+                      onClick={() => {
+                        setDeliverSale(null);
+                        setDeliverLines(priced.map(({ line, product }) => ({
+                          productId: product.id, name: product.name, sku: product.sku, quantity: line.quantity, unitPrice: product.price,
+                        })));
+                        setOrderDialog('new');
+                      }}
+                    />
                   </div>
                   {note ? <p className="pos__hint">Nota: {note}</p> : null}
                 </>
@@ -517,11 +571,38 @@ export const QuickSale = ({ shift, active = true }: { shift: Shift; active?: boo
             {note ? <p className="pos__hint">Nota: {note}</p> : null}
             <div className="pos__print-hide pos-done__actions">
               <Button type="button" label="Nueva venta" icon="pi pi-plus" autoFocus onClick={closeReceipt} />
+              <Button
+                type="button" label="Programar entrega" icon="pi pi-truck" outlined
+                onClick={() => {
+                  setDeliverSale(receipt.number);
+                  setDeliverLines(priced.map(({ line, product }) => ({
+                    productId: product.id, name: product.name, sku: product.sku, quantity: line.quantity, unitPrice: product.price,
+                  })));
+                  setOrderDialog('deliver');
+                }}
+              />
               <Button type="button" label="Imprimir" icon="pi pi-print" outlined onClick={() => window.print()} />
             </div>
           </div>
         ) : null}
       </Dialog>
+
+      <CreateOrderDialog
+        visible={orderDialog !== null}
+        branchId={session.branch.id}
+        actor={actor}
+        lines={deliverLines}
+        saleId={deliverSale}
+        customer={customer ? { id: customer.id, name: customer.name, creditLimit: customer.creditLimit, outstandingBalance: customer.outstandingBalance } : null}
+        onHide={() => setOrderDialog(null)}
+        onCreated={(order) => {
+          const fromReceipt = orderDialog === 'deliver';
+          setOrderDialog(null);
+          notify({ severity: 'success', summary: `Pedido ${order.number} creado`, detail: fromReceipt ? 'La entrega quedó programada.' : 'Cóbralo después desde Pedidos.' });
+          if (fromReceipt) closeReceipt();
+          else reset();
+        }}
+      />
     </ScreenTemplate>
   );
 };

@@ -131,13 +131,17 @@ describe('Pedidos · pago, despacho y cancelación', () => {
   });
 
   it('pasar a cobro sin reconstruir carrito: markCharged liquida y vincula la venta', () => {
-    const o = must(markCharged(make(), 'sale-77', actor, t));
+    const o = must(markCharged(make(), 'sale-77', make().total, actor, t));
     expect(o).toMatchObject({ paymentState: 'pagado', saleId: 'sale-77', paidAmount: o.total });
-    expect(must(markCharged(ready(), 'sale-1', actor, t)).paymentState).toBe('pagado');
+    const noShipping = make();
+    const partial = must(markCharged(noShipping, 'sale-78', noShipping.total - 5000, actor, t));
+    expect(partial).toMatchObject({ paymentState: 'abono', paidAmount: noShipping.total - 5000, saleId: 'sale-78' });
+    expect(balanceOf(partial)).toBe(5000);
+    expect(must(markCharged(ready(), 'sale-1', ready().total, actor, t)).paymentState).toBe('pagado');
   });
 
   it('flujo completo hasta entregado', () => {
-    let o = must(markCharged(ready(), 'sale-1', actor, t));
+    let o = must(markCharged(ready(), 'sale-1', ready().total, actor, t));
     o = must(dispatch(o, actor, t));
     expect(deliver(make(), actor, t)).toMatchObject({ ok: false });
     o = must(deliver(o, actor, t));
@@ -151,7 +155,7 @@ describe('Pedidos · pago, despacho y cancelación', () => {
     expect(must(cancelOrder(make(), 'Cliente desistió', actor, t)).status).toBe('cancelado');
     const paid = make({ paymentState: 'pagado', saleId: 's' });
     expect(cancelOrder(paid, 'x', actor, t)).toMatchObject({ ok: false, error: 'TIENE_PAGOS' });
-    const sent = must(dispatch(must(markCharged(ready(), 's', actor, t)), actor, t));
+    const sent = must(dispatch(must(markCharged(ready(), 's', ready().total, actor, t)), actor, t));
     expect(cancelOrder(sent, 'x', actor, t)).toMatchObject({ ok: false, error: 'ESTADO_INVALIDO' });
   });
 

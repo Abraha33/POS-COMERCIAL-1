@@ -245,11 +245,15 @@ export const registerPayment = (o: Order, amount: number, actor: Actor, now: Dat
   });
 };
 
-/** Vincula el cobro hecho en caja con el pedido (sin cobrar dos veces). */
-export const markCharged = (o: Order, saleId: string, actor: Actor, now: Date): Res<Order> => {
+/**
+ * Vincula el cobro hecho en caja con el pedido (sin cobrar dos veces). `amount` es lo realmente cobrado:
+ * puede ser menos que el total si el pedido incluye un envío que se cobra aparte.
+ */
+export const markCharged = (o: Order, saleId: string, amount: number, actor: Actor, now: Date): Res<Order> => {
   if (!isOpen(o)) return fail('ESTADO_INVALIDO', 'El pedido ya no admite pagos.');
+  const paid = Math.min(o.total, o.paidAmount + Math.max(0, amount));
   return ok({
-    ...o, saleId, paidAmount: o.total, paymentState: 'pagado',
+    ...o, saleId, paidAmount: paid, paymentState: paid >= o.total ? 'pagado' : 'abono',
     history: log(o, actor, 'cobrado', `Venta ${saleId}`, now),
   });
 };

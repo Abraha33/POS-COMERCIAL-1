@@ -23,7 +23,8 @@ const renderPos = async (role: Role) => {
 };
 
 const goToHistory = async (user: User) => {
-  await user.click(await screen.findByRole('button', { name: /historial/i }, { timeout: 5000 }));
+  await user.click(await screen.findByRole('button', { name: 'Más opciones del punto de venta' }, { timeout: 5000 }));
+  await user.click(await screen.findByRole('button', { name: 'Historial de ventas' }));
   await screen.findByTestId('sales-history', undefined, { timeout: 5000 });
 };
 

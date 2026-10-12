@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { uuid } from '@/shared/utils/uuid';
 
 export type HeldLine = { productId: string; quantity: number; discount: number };
@@ -10,47 +10,67 @@ export type HeldSale = {
 };
 
 const storageKey = (registerId: string) => `pos.held.${registerId}`;
+const listeners = new Set<() => void>();
+const memory = new Map<string, string>();
 
-const read = (registerId: string): HeldSale[] => {
+const readRaw = (registerId: string): string => {
   try {
-    const raw = window.localStorage.getItem(storageKey(registerId));
-    const parsed: unknown = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? (parsed as HeldSale[]) : [];
+    return window.localStorage.getItem(storageKey(registerId)) ?? memory.get(registerId) ?? '[]';
+  } catch {
+    return memory.get(registerId) ?? '[]';
+  }
+};
+
+const writeRaw = (registerId: string, raw: string) => {
+  memory.set(registerId, raw);
+  try {
+    window.localStorage.setItem(storageKey(registerId), raw);
+  } catch {
+    /* sin almacenamiento: las suspendidas viven solo en memoria durante la sesión */
+  }
+  listeners.forEach((l) => l());
+};
+
+const parse = (raw: string): HeldSale[] => {
+  try {
+    const value: unknown = JSON.parse(raw);
+    return Array.isArray(value) ? (value as HeldSale[]) : [];
   } catch {
     return [];
   }
 };
 
-const write = (registerId: string, sales: HeldSale[]) => {
-  try {
-    window.localStorage.setItem(storageKey(registerId), JSON.stringify(sales));
-  } catch {
-    /* sin almacenamiento: las suspendidas viven solo en memoria durante la sesión */
-  }
+const subscribe = (notify: () => void) => {
+  listeners.add(notify);
+  window.addEventListener('storage', notify);
+  return () => {
+    listeners.delete(notify);
+    window.removeEventListener('storage', notify);
+  };
 };
 
 /**
  * Ventas suspendidas (PROPUESTA, docs/business-rules/06-suspendidas.md): son carritos locales por caja.
  * No reservan stock ni mueven caja; el servidor no las conoce hasta que se cobran.
+ * El estado es compartido: la barra de navegación y la venta rápida ven el mismo contador.
  */
 export const useHeldSales = (registerId: string) => {
-  const [held, setHeld] = useState<HeldSale[]>(() => read(registerId));
-
-  const persist = useCallback(
-    (next: HeldSale[]) => {
-      setHeld(next);
-      write(registerId, next);
-    },
-    [registerId],
-  );
+  const raw = useSyncExternalStore(subscribe, () => readRaw(registerId), () => '[]');
+  const held = useMemo(() => parse(raw), [raw]);
 
   const hold = useCallback(
     (lines: HeldLine[], customerId: string | null) =>
-      persist([...held, { id: uuid(), heldAt: new Date().toISOString(), customerId, lines }]),
-    [held, persist],
+      writeRaw(
+        registerId,
+        JSON.stringify([...parse(readRaw(registerId)), { id: uuid(), heldAt: new Date().toISOString(), customerId, lines }]),
+      ),
+    [registerId],
   );
 
-  const remove = useCallback((id: string) => persist(held.filter((sale) => sale.id !== id)), [held, persist]);
+  const remove = useCallback(
+    (id: string) => writeRaw(registerId, JSON.stringify(parse(readRaw(registerId)).filter((sale) => sale.id !== id))),
+    [registerId],
+  );
 
   return { held, hold, remove };
 };
