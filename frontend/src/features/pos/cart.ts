@@ -7,6 +7,10 @@ export type PayMode = 'efectivo' | 'tarjeta' | 'transferencia' | 'mixto' | 'cred
 /** Canales digitales que se agrupan bajo "Transferencia" en el selector. */
 export type DigitalChannel = Extract<PaymentMethod, 'transferencia' | 'nequi' | 'daviplata'>;
 
+/** Plazos de crédito. PROPUESTA: BR-CLI-06 aprobada es "30+3 días"; el resto espera aprobación del dueño. */
+export const CREDIT_TERMS = [7, 15, 30, 45, 60] as const;
+export type CreditTerm = (typeof CREDIT_TERMS)[number];
+
 export const payModeOptions: { value: PayMode; label: string; icon: string }[] = [
   { value: 'efectivo', label: 'Efectivo', icon: 'pi pi-money-bill' },
   { value: 'tarjeta', label: 'Tarjeta', icon: 'pi pi-credit-card' },

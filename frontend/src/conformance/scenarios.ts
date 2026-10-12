@@ -327,6 +327,29 @@ export const registerConformance = (target: string | (() => string)) => {
       expect(receivables.some((r) => r.saleId === receipt.id && r.amount === 5600)).toBe(true);
     });
 
+    it('PROPUESTA v0.6.0: plazo de crédito elegido define el vencimiento; referencia de pago repetida -> REFERENCE_DUPLICATED', async () => {
+      const token = await login('laura.gomez');
+      const shift = await ensureOpenShift(token);
+
+      const term = await sell(token, sellRequest(shift.id, {
+        customerId: 'cus-001',
+        payments: [{ method: 'credito', amount: 5600 }],
+        creditTermDays: 60,
+      }));
+      expect(term.status, JSON.stringify(term.body)).toBe(201);
+      const termSale = saleReceiptSchema.parse(term.body);
+      const receivables = z.array(receivableSchema).parse((await call('GET', '/receivables', { token })).body);
+      const created = receivables.find((r) => r.saleId === termSale.id);
+      const days = Math.round((Date.parse(created?.due ?? '') - Date.parse(created?.issued ?? '')) / 86_400_000);
+      expect(days).toBe(60);
+
+      const pay = { method: 'transferencia' as const, amount: 5600, channel: 'bancolombia', reference: 'CONF-REF-1', destination: 'Ahorros ••• 1234' };
+      const first = await sell(token, sellRequest(shift.id, { payments: [pay] }));
+      expect(first.status, JSON.stringify(first.body)).toBe(201);
+      const again = await sell(token, sellRequest(shift.id, { payments: [pay] }));
+      expectError(again, 409, 'REFERENCE_DUPLICATED');
+    });
+
     it('anulación: devuelve stock, exige motivo y no se repite', async () => {
       const token = await login('laura.gomez');
       const shift = await ensureOpenShift(token);

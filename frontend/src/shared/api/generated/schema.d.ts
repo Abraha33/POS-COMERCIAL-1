@@ -836,6 +836,14 @@ export interface components {
         Payment: {
             method: components["schemas"]["PaymentMethod"];
             amount: number;
+            /** @description PROPUESTA v0.6.0. Canal de cobro del catálogo de la empresa (p. ej. `nequi`, `bancolombia`, `bre-b`). */
+            channel?: string;
+            /** @description PROPUESTA v0.6.0. Referencia/aprobación del pago. El servidor rechaza duplicados con REFERENCE_DUPLICATED. */
+            reference?: string;
+            /** @description PROPUESTA v0.6.0. Cuenta, llave o terminal de destino. */
+            destination?: string;
+            /** @description PROPUESTA v0.6.0. Comprobante verificado que respalda el pago. */
+            proofId?: string;
         };
         SaleLine: {
             productId: string;
@@ -875,6 +883,12 @@ export interface components {
             occurredAt?: string;
             offline?: boolean;
             approvalToken?: string;
+            /**
+             * @description PROPUESTA v0.6.0. Plazo del saldo a crédito en días; por defecto 30. BR-CLI-06 aprobada fija "30+3 días":
+             *     cualquier otro plazo está pendiente de aprobación del dueño.
+             * @enum {integer}
+             */
+            creditTermDays?: 7 | 15 | 30 | 45 | 60;
         };
         SaleReceipt: components["schemas"]["Sale"] & {
             /** Format: uuid */
@@ -1751,7 +1765,7 @@ export interface operations {
             /**
              * @description Conflicto de negocio. `code` ∈ SHIFT_NOT_OPEN, STOCK_INSUFFICIENT, CREDIT_LIMIT_EXCEEDED,
              *     CUSTOMER_BLOCKED_OVERDUE, PRODUCT_INACTIVE, PAYMENT_INSUFFICIENT, DISCOUNT_NOT_ALLOWED,
-             *     PRICE_BELOW_COST, APPROVAL_REQUIRED, APPROVAL_INVALID, IDEMPOTENCY_KEY_REUSED.
+             *     PRICE_BELOW_COST, APPROVAL_REQUIRED, APPROVAL_INVALID, IDEMPOTENCY_KEY_REUSED, REFERENCE_DUPLICATED (PROPUESTA).
              */
             409: {
                 headers: {

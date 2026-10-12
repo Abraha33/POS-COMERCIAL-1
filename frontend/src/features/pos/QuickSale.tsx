@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
 import type { ApprovalRequest, Payment, PaymentMethod, Product, SaleReceipt, Shift } from '@/shared/contracts';
@@ -19,9 +19,11 @@ import { CashDialog } from './CashDialog';
 import { DiscountDialog } from './DiscountDialog';
 import { HeldSalesDialog } from './HeldSalesDialog';
 import { PaymentDialog } from './PaymentDialog';
+import { MixedPayments } from './mixed/MixedPayments';
+import { componentReady, type MixedComponent } from './mixed/mixed';
 import { SalePanel } from './SalePanel';
 import { SupervisorPinDialog } from './SupervisorPinDialog';
-import { estimateIncludedVat, paymentsTotal, type CartLine, type PayMode } from './cart';
+import { estimateIncludedVat, paymentsTotal, type CartLine, type CreditTerm, type PayMode } from './cart';
 import {
   canCloseSale, channelById, ChannelSection, defaultChannels, documentOptions, isDuplicateReference, loadDocumentType,
   loadReferences, missingFields, rememberReference, saveDocumentType, type ChannelState, type DocumentType, type ProofRequest,
@@ -81,9 +83,15 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   const [receivedState, setReceivedState] = useState<{ total: number; amount: number } | null>(null);
   const [chan, setChan] = useState<ChannelState>({ channelId: 'nequi', destinationId: '', values: {}, proofId: null });
   const [proof, setProof] = useState<ProofRequest | null>(null);
+  const [creditTerm, setCreditTerm] = useState<CreditTerm>(30);
+  const [creditInitial, setCreditInitial] = useState(0);
   const [docType, setDocType] = useState<DocumentType>(loadDocumentType);
   const [usedRefs, setUsedRefs] = useState<string[]>(loadReferences);
-  const [mixedRows, setMixedRows] = useState<Payment[]>([]);
+  const [mixed, setMixed] = useState<MixedComponent[]>([]);
+  const [mixedProofs, setMixedProofs] = useState<Record<string, ProofRequest | null>>({});
+  const onMixedProof = useCallback((id: string, p: ProofRequest | null) => {
+    setMixedProofs((prev) => (prev[id] === p ? prev : { ...prev, [id]: p }));
+  }, []);
   const [note, setNote] = useState('');
   const [operationId, setOperationId] = useState(() => uuid());
   const [approvalToken, setApprovalToken] = useState<string | undefined>();
@@ -160,8 +168,10 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   const units = lines.reduce((sum, l) => sum + l.quantity, 0);
   const vat = estimateIncludedVat(priced.map(({ line, product }) => ({ product, quantity: line.quantity, discount: line.discount })));
 
-  const mixedHasCash = mixedRows.some((p) => p.method === 'efectivo');
-  const hasCash = mode === 'mixto' ? mixedHasCash : mode === 'efectivo';
+  const mixedActive = mixed.filter((c) => c.reversed === null);
+  const mixedHasCash = mixedActive.some((c) => channelById(defaultChannels, c.state.channelId)?.method === 'efectivo');
+  const initialPayment = mode === 'credito' ? creditInitial : 0;
+  const hasCash = mode === 'mixto' ? mixedHasCash : mode === 'efectivo' || initialPayment > 0;
   const totals = computeTotals(pricedForTotals, hasCash);
 
   const received = receivedState && receivedState.total === totals.total ? receivedState.amount : null;
@@ -173,21 +183,55 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
     : undefined;
   const digitalFieldsMissing = activeChannel ? missingFields(activeChannel, chan.values) : [];
   const digitalDuplicate = activeChannel ? isDuplicateReference(usedRefs, chan.values.reference ?? '') : false;
+  const mixedOk = mode !== 'mixto' || (mixedActive.length > 0 && mixedActive.every((c) => {
+    const ch = channelById(defaultChannels, c.state.channelId);
+    if (!ch) return false;
+    const dup = isDuplicateReference(usedRefs, c.state.values.reference ?? '');
+    return componentReady(ch, c.state.values, mixedProofs[c.id] ?? null, dup) && (ch.kind !== 'credito' || customerId !== null);
+  }));
   const proofMatches = proof !== null && proof.operationId === operationId && proof.amount === totals.total;
-  const digitalOk = !activeChannel || (
+  const digitalOk = mixedOk && (!activeChannel || (
     digitalFieldsMissing.length === 0 &&
     (!digitalDuplicate || (proofMatches && proof.exception !== null)) &&
     (!activeChannel.requiresProof || (proofMatches && canCloseSale(proof)))
-  );
+  ));
   const payments: Payment[] = (() => {
     const amount = totals.total;
     const single = (method: PaymentMethod): Payment[] => [{ method, amount }];
     switch (mode) {
       case 'efectivo': return [{ method: 'efectivo', amount: received ?? amount }];
-      case 'tarjeta': return single(activeChannel?.method ?? 'tarjeta');
-      case 'transferencia': return single(activeChannel?.method ?? 'transferencia');
-      case 'credito': return single('credito');
-      case 'mixto': return mixedRows.length > 0 ? mixedRows : single('efectivo');
+      case 'tarjeta':
+      case 'transferencia': {
+        const fallback: PaymentMethod = mode === 'tarjeta' ? 'tarjeta' : 'transferencia';
+        const destination = activeChannel?.destinations.find((d) => d.id === chan.destinationId) ?? activeChannel?.destinations[0];
+        return [{
+          method: activeChannel?.method ?? fallback, amount,
+          ...(activeChannel ? { channel: activeChannel.id } : {}),
+          ...(chan.values.reference ? { reference: chan.values.reference.trim() } : chan.values.authCode ? { reference: chan.values.authCode.trim() } : {}),
+          ...(destination ? { destination: destination.label } : {}),
+          ...(proofMatches && proof ? { proofId: proof.id } : {}),
+        }];
+      }
+      case 'credito': {
+        const initial = Math.min(Math.max(0, creditInitial), amount);
+        return initial > 0
+          ? [{ method: 'efectivo', amount: initial }, { method: 'credito', amount: amount - initial }]
+          : single('credito');
+      }
+      case 'mixto':
+        return mixedActive.map((c): Payment => {
+          const ch = channelById(defaultChannels, c.state.channelId) ?? defaultChannels[0]!;
+          const dest = ch.destinations.find((d) => d.id === c.state.destinationId) ?? ch.destinations[0];
+          const ref = c.state.values.reference ?? c.state.values.authCode;
+          const prf = mixedProofs[c.id];
+          return {
+            method: ch.method, amount: c.amount,
+            ...(ch.kind === 'efectivo' || ch.kind === 'credito' ? {} : { channel: ch.id }),
+            ...(ref ? { reference: ref.trim() } : {}),
+            ...(dest ? { destination: dest.label } : {}),
+            ...(prf && canCloseSale(prf) ? { proofId: prf.id } : {}),
+          };
+        });
     }
   })();
   const paid = paymentsTotal(payments);
@@ -255,8 +299,11 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   const reset = () => {
     setLines([]);
     setReceivedState(null);
-    setMixedRows([]);
+    setMixed([]);
+    setMixedProofs({});
     setMode('efectivo');
+    setCreditTerm(30);
+    setCreditInitial(0);
     setCustomerId(null);
     setApprovalToken(undefined);
     setCheckoutError(null);
@@ -273,7 +320,9 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   const chooseMode = (next: PayMode) => {
     setMode(next);
     setCheckoutError(null);
-    if (next === 'mixto' && mixedRows.length === 0) setMixedRows([{ method: 'efectivo', amount: totals.total }]);
+    if (next === 'mixto' && mixedActive.length === 0) {
+      setMixed((cur) => [...cur, { id: uuid().slice(0, 8), state: { channelId: 'efectivo', destinationId: '', values: {}, proofId: null }, amount: totals.total, reversed: null }]);
+    }
   };
 
   const chooseCustomer = (id: string | null) => {
@@ -291,6 +340,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
         customerId,
         lines,
         payments,
+        ...(mode === 'credito' && creditTerm !== 30 ? { creditTermDays: creditTerm } : {}),
         ...((token ?? approvalToken) ? { approvalToken: token ?? approvalToken } : {}),
       },
       {
@@ -575,8 +625,24 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
             />
           ) : null
         }
-        rows={mixedRows}
-        onRows={setMixedRows}
+        creditTerm={creditTerm}
+        onCreditTerm={setCreditTerm}
+        creditInitial={creditInitial}
+        onCreditInitial={setCreditInitial}
+        mixedSlot={
+          <MixedPayments
+            components={mixed}
+            onChange={setMixed}
+            proofs={mixedProofs}
+            onProof={onMixedProof}
+            operationId={operationId}
+            actor={session.user.name}
+            canAuthorizeException={can('admin.manage')}
+            usedReferences={usedRefs}
+            missing={missing}
+            paid={paid}
+          />
+        }
         paid={paid}
         missing={missing}
         change={change}

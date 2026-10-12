@@ -154,6 +154,15 @@ export const saleHandlers = [
       return validationError('El excedente solo puede devolverse en efectivo', { change, cashAmount });
     }
 
+    // PROPUESTA v0.6.0: una referencia de pago no se reutiliza en otra venta vigente.
+    for (const p of body.payments) {
+      if (!p.reference) continue;
+      const clash = db.sales.some(
+        (s) => s.status !== 'anulada' && s.payments.some((q) => q.reference === p.reference && q.channel === p.channel),
+      );
+      if (clash) return failure(409, 'REFERENCE_DUPLICATED', 'La referencia de pago ya fue usada', { reference: p.reference });
+    }
+
     // BR-VEN-07 / BR-CLI-02..06: crédito.
     if (creditAmount > 0) {
       const customer = body.customerId ? db.customers.find((c) => c.id === body.customerId) : undefined;
@@ -207,7 +216,7 @@ export const saleHandlers = [
     if (creditAmount > 0 && body.customerId) {
       db.receivables.push({
         id: nextId('rec'), customerId: body.customerId, saleId: sale.id, branchId: shift.branchId, issued: date,
-        due: addDays(date, CREDIT_TERM_DAYS), amount: creditAmount, paid: 0,
+        due: addDays(date, body.creditTermDays ?? CREDIT_TERM_DAYS), amount: creditAmount, paid: 0,
       });
     }
 

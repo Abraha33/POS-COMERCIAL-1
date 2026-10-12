@@ -6,6 +6,7 @@ import {
   startVerification, submitEvidence, toPublic, type ProofRequest,
 } from '@/features/pos/proofs/proofs';
 import { resetRelay } from '@/features/pos/proofs/relay';
+import { componentReady, componentStatus, reverseComponent, type MixedComponent } from '@/features/pos/mixed/mixed';
 
 const T0 = new Date('2026-10-11T10:00:00Z');
 const IMG = 'data:image/jpeg;base64,/9j/4AAQSkZJRg==';
@@ -162,5 +163,37 @@ describe('relay: flujo teléfono ↔ computador', () => {
     await gw.submitPublic(p.token, IMG);
     await gw.confirm(p.id, 'Ana');
     await expect(gw.submitPublic(p.token, IMG)).rejects.toMatchObject({ status: 409, code: 'INVALID_STATE' });
+  });
+});
+
+describe('pago mixto: componentes independientes', () => {
+  const ch = (id: string) => defaultChannels.find((c) => c.id === id)!;
+  const confirmed = ok(confirmPayment(ok(submitEvidence(fresh(), IMG, 'x', T0)), 'Ana', T0));
+  const withException = ok(authorizeException(fresh(), 'Dueño', 'Banco caído hoy', T0));
+
+  it('estados por componente', () => {
+    expect(componentStatus(ch('efectivo'), {}, null)).toBe('recibido');
+    expect(componentStatus(ch('datafono'), {}, null)).toBe('por-verificar');
+    expect(componentStatus(ch('datafono'), { authCode: '99' }, null)).toBe('recibido');
+    expect(componentStatus(ch('nequi'), { reference: 'r' }, fresh())).toBe('por-verificar');
+    expect(componentStatus(ch('nequi'), { reference: 'r' }, confirmed)).toBe('confirmado');
+    expect(componentStatus(ch('nequi'), { reference: 'r' }, withException)).toBe('sujeto-a-autorizacion');
+    expect(componentStatus(ch('credito'), {}, null)).toBe('sujeto-a-autorizacion');
+  });
+
+  it('un componente digital solo está listo con pago confirmado o excepción, y sin referencia repetida', () => {
+    expect(componentReady(ch('nequi'), { reference: 'r' }, null, false)).toBe(false);
+    expect(componentReady(ch('nequi'), { reference: 'r' }, confirmed, false)).toBe(true);
+    expect(componentReady(ch('nequi'), { reference: 'r' }, confirmed, true)).toBe(false);
+    expect(componentReady(ch('nequi'), {}, confirmed, false)).toBe(false);
+    expect(componentReady(ch('efectivo'), {}, null, false)).toBe(true);
+  });
+
+  it('reversar exige motivo y responsable y conserva el rastro', () => {
+    const c: MixedComponent = { id: 'a', state: { channelId: 'nequi', destinationId: '', values: {}, proofId: null }, amount: 1000, reversed: null };
+    expect(reverseComponent(c, 'Ana', '', T0).ok).toBe(false);
+    const r = reverseComponent(c, 'Ana', 'Cliente se arrepintió', T0);
+    expect(r.ok && r.value.reversed?.reason).toBe('Cliente se arrepintió');
+    if (r.ok) expect(reverseComponent(r.value, 'Ana', 'otra vez', T0).ok).toBe(false);
   });
 });

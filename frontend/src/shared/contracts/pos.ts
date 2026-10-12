@@ -34,6 +34,8 @@ export const saleCreateSchema = z.object({
   offline: z.boolean().optional(),
   /** Token de `POST /auth/supervisor-approvals` para descuento, stock negativo o bajo costo. */
   approvalToken: z.string().optional(),
+  /** PROPUESTA v0.6.0: plazo del crédito en días (por defecto 30; BR-CLI-06 aprobada es "30+3"). */
+  creditTermDays: z.union([z.literal(7), z.literal(15), z.literal(30), z.literal(45), z.literal(60)]).optional(),
 });
 export type SaleCreate = z.infer<typeof saleCreateSchema>;
 export const saleCreateContract: Contract<typeof saleCreateSchema> = {

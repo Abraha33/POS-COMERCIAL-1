@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
-import type { Customer, Payment, PaymentMethod } from '@/shared/contracts';
-import { MoneyInput, MoneyText } from '@/shared/ui';
+import type { Customer } from '@/shared/contracts';
+import { MoneyInput } from '@/shared/ui';
 import { formatMoney } from '@/shared/utils/format';
-import { allMethods, suggestCashAmounts, type PayMode } from './cart';
+import { CREDIT_TERMS, suggestCashAmounts, type CreditTerm, type PayMode } from './cart';
 import type { CheckoutMessage } from './saleText';
 
 type Props = {
@@ -19,8 +19,11 @@ type Props = {
   /** Formulario dinámico del canal (transferencia o datáfono) y selector de documento. */
   digital: ReactNode;
   documentSlot: ReactNode;
-  rows: Payment[];
-  onRows: (rows: Payment[]) => void;
+  creditTerm: CreditTerm;
+  onCreditTerm: (value: CreditTerm) => void;
+  creditInitial: number;
+  onCreditInitial: (value: number) => void;
+  mixedSlot: ReactNode;
   paid: number;
   missing: number;
   change: number;
@@ -35,12 +38,9 @@ type Props = {
 /** Cobro: importes sugeridos y cambio con ajuste al peso (BR-GEN-05, BR-VEN-06/08). El servidor confirma el total. */
 export const PaymentDialog = (props: Props) => {
   const {
-    visible, mode, total, roundingAdjustment, customer, received, onReceived, digital, documentSlot, rows, onRows,
-    paid, missing, change, canConfirm, pending, error, onDismissError, onConfirm, onHide,
+    visible, mode, total, roundingAdjustment, customer, received, onReceived, digital, documentSlot, creditTerm, onCreditTerm, creditInitial, onCreditInitial, mixedSlot,
+    missing, change, canConfirm, pending, error, onDismissError, onConfirm, onHide,
   } = props;
-
-  const updateRow = (index: number, patch: Partial<Payment>) =>
-    onRows(rows.map((r, i) => (i === index ? { ...r, ...patch } : r)));
 
   return (
     <Dialog
@@ -110,48 +110,46 @@ export const PaymentDialog = (props: Props) => {
 
         {mode === 'tarjeta' || mode === 'transferencia' ? digital : null}
 
-        {mode === 'credito' ? (
-          <p className="pos-pay__instruction">
-            Se registra a crédito por {formatMoney(total)} a nombre de <strong>{customer?.name ?? 'cliente'}</strong>
-            {customer ? <> (cupo aprobado {formatMoney(customer.creditLimit)})</> : null}. El servidor valida cupo y
-            facturas vencidas.
-          </p>
-        ) : null}
+        {mode === 'credito' ? (() => {
+          const limit = customer?.creditLimit ?? 0;
+          const used = customer?.outstandingBalance ?? 0;
+          const initial = Math.min(Math.max(0, creditInitial), total);
+          const financed = total - initial;
+          const available = limit - used;
+          const excess = Math.max(0, financed - available);
+          const due = new Date();
+          due.setDate(due.getDate() + creditTerm);
+          return (
+            <section aria-label="Crédito" className="pos-credit">
+              <p className="pos-pay__instruction">
+                A nombre de <strong>{customer?.name ?? 'cliente'}</strong>. El servidor valida cupo y facturas vencidas.
+              </p>
+              <dl className="pos-credit__facts">
+                <div><dt>Cupo aprobado</dt><dd>{formatMoney(limit)}</dd></div>
+                <div><dt>Utilizado</dt><dd>{formatMoney(used)}</dd></div>
+                <div><dt>Disponible</dt><dd data-testid="credit-available">{formatMoney(available)}</dd></div>
+                <div><dt>A financiar</dt><dd data-testid="credit-financed">{formatMoney(financed)}</dd></div>
+              </dl>
+              {excess > 0 ? (
+                <p className="proof__note" role="alert" data-testid="credit-excess">
+                  Excede el cupo en {formatMoney(excess)}. Reduce el saldo con un abono inicial o pide autorización.
+                </p>
+              ) : null}
+              <label htmlFor="credit-initial" className="pos-pay__label">Abono inicial en efectivo (opcional)</label>
+              <MoneyInput id="credit-initial" value={initial} onChange={(v) => onCreditInitial(v ?? 0)} />
+              <label htmlFor="credit-term" className="pos-pay__label">Plazo</label>
+              <select
+                id="credit-term" className="p-inputtext w-full" value={creditTerm}
+                onChange={(e) => onCreditTerm(Number(e.target.value) as CreditTerm)}
+              >
+                {CREDIT_TERMS.map((d) => <option key={d} value={d}>{d} días{d === 30 ? ' (aprobado)' : ' (propuesta)'}</option>)}
+              </select>
+              <p className="pos__hint">Vence el {due.toLocaleDateString('es-CO')}. El saldo pasa a Cuentas por cobrar.</p>
+            </section>
+          );
+        })() : null}
 
-        {mode === 'mixto' ? (
-          <section aria-label="Pago mixto">
-            {rows.map((payment, index) => (
-              <div className="pos__payment" key={`${payment.method}-${index}`}>
-                <select
-                  className="p-inputtext"
-                  aria-label={`Medio de pago ${index + 1}`}
-                  value={payment.method}
-                  onChange={(e) => updateRow(index, { method: e.target.value as PaymentMethod })}
-                >
-                  {allMethods.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-                </select>
-                <MoneyInput
-                  aria-label={`Monto ${index + 1}`}
-                  value={payment.amount}
-                  onChange={(v) => updateRow(index, { amount: v ?? 0 })}
-                  onEnter={onConfirm}
-                />
-                {rows.length > 1 ? (
-                  <Button
-                    type="button" icon="pi pi-times" rounded text severity="secondary"
-                    aria-label={`Quitar pago ${index + 1}`}
-                    onClick={() => onRows(rows.filter((_, i) => i !== index))}
-                  />
-                ) : <span />}
-              </div>
-            ))}
-            <Button
-              type="button" label="Agregar medio de pago" icon="pi pi-plus" text
-              onClick={() => onRows([...rows, { method: 'tarjeta', amount: missing }])}
-            />
-            <p className="pos__hint">Pagado: <MoneyText value={paid} /></p>
-          </section>
-        ) : null}
+        {mode === 'mixto' ? mixedSlot : null}
 
         <div className="pos-pay__result" aria-live="polite">
           {missing > 0 ? (

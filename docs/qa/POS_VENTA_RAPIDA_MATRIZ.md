@@ -65,10 +65,10 @@ pasarela. Un banco nuevo es una fila de configuración, no un formulario. El cat
 | Efectivo con sugeridos y cambio | ✔ | |
 | Canales Nequi, DaviPlata, Bancolombia, otros bancos, Bre-B, PSE | ✔ | campos por tipo de canal; referencia, cuenta destino |
 | Datáfono | ✔ | código de aprobación obligatorio, últimos 4 y terminal opcionales |
-| Referencia duplicada | ◐ | solo contra este dispositivo; la validación real es del servidor (**B**) |
+| Referencia duplicada | ✔ (mocks) | aviso local + `REFERENCE_DUPLICATED` 409 en el mock; la validación real es del backend (**B**) |
 | Comprobante por QR/archivo, estados y verificación | ✔ | ver `POS_COMPROBANTES_MOVILES.md` |
 | Confirmar venta bloqueado hasta verificar / excepción autorizada | ✔ | |
-| Persistir canal, referencia y cuenta en la venta | ✘ **C** | `Payment` = `{method, amount}`; hoy se registra solo `method` |
+| Persistir canal, referencia, cuenta y comprobante en la venta | ✔ (mocks) | `Payment` v0.6.0 PROPUESTA: `channel`, `reference`, `destination`, `proofId`; conformidad 37/37 |
 | Conciliar cuentas receptoras; "reportado vs recibido" | ✘ **B** | |
 | Ingreso en efectivo vs banco en el cierre de turno | ◐ | `expectedCash` ya cuenta solo efectivo neto; falta el desglose por canal |
 | Cobros en el turno correcto | ✔ | la venta lleva `shiftId` |
@@ -76,9 +76,10 @@ pasarela. Un banco nuevo es una fila de configuración, no un formulario. El cat
 ## 09 Crédito y cartera
 | Subflujo | Estado | Nota |
 |---|---|---|
-| Cliente obligatorio, cupo disponible, bloqueo si excede | ✔ | |
-| Plazo 7/15/30/45/60 configurable, abono inicial, cuotas | ✘ **C** | plazo fijo de 30 días en el mock (BR-CLI-06 "30+3"); cualquier otro plazo es PROPUESTA |
-| Vencimiento ajustable con autorización | ✘ | |
+| Cliente obligatorio, cupo disponible/utilizado/excedente | ✔ | el excedente se muestra y el servidor bloquea; falta flujo de autorización de excedente |
+| Plazo 7/15/30/45/60, abono inicial | ✔ (mocks) | `creditTermDays` PROPUESTA; 30 es el aprobado (BR-CLI-06 "30+3"), el resto se marca "propuesta" |
+| Cuotas / plan de pagos | ✘ **C** | solo un vencimiento por venta |
+| Vencimiento ajustable con autorización | ✘ | el plazo se elige entre los 5; no hay vencimiento libre ni autorización |
 | Saldo a CxC, historial, alertas | ◐ | la venta crea CxC; sin alertas ni historial en la venta |
 | Cobro posterior de un crédito | ◐ | existe en Cartera (abonos), no desde el POS |
 | Aviso "se factura aunque no se haya recibido el dinero" | ✔ | texto en el cobro a crédito |
@@ -94,12 +95,14 @@ pasarela. Un banco nuevo es una fila de configuración, no un formulario. El cat
 | Subflujo | Estado | Nota |
 |---|---|---|
 | Varias filas con medio y monto | ✔ | |
-| Cada componente con su propio formulario, estado y comprobante | ✘ | **pendiente**: hoy una fila mixta solo tiene medio y monto |
-| Estados Recibido / Por verificar / Confirmado / Sujeto a autorización por componente | ✘ | |
-| Reversar un componente sin borrado silencioso | ✘ | hoy "Quitar" borra la fila |
+| Cada componente con su propio formulario, monto y comprobante | ✔ | `features/pos/mixed`; probado en unidad y UI |
+| Estados Recibido / Por verificar / Confirmado / Sujeto a autorización por componente | ✔ | |
+| Reversar un componente confirmado sin borrado silencioso | ✔ | motivo y responsable; queda en "Reversados". Un componente no confirmado sí se quita |
 
 ## Resumen
-Este corte cierra: canales dinámicos, documento a emitir, comprobante móvil con verificación y excepción trazable.
-**No** cierra: pagos mixtos independientes, ciclo completo de crédito (plazos, cuotas, abono inicial), persistencia del
-canal/referencia en la venta (necesita contrato) ni reimpresión. Es el orden recomendado: (1) ampliar `Payment` con
-`channel`, `reference`, `proofId`; (2) crédito con plazo/abono; (3) mixtos como componentes.
+Cerrado en esta rama: canales dinámicos, documento a emitir, comprobante móvil con verificación y excepción trazable,
+canal/referencia/cuenta/comprobante en la venta (contrato v0.6.0 PROPUESTA), plazo y abono inicial de crédito, y pagos
+mixtos como componentes independientes con reversa trazable.
+Sigue **sin** cerrar: cuotas/plan de pagos, autorización de excedente de cupo y de vencimiento libre, reimpresión sin
+duplicar, revalidar precios al reanudar, resumen del semáforo en el header, búsqueda de cliente por NIT, marca y
+presentaciones (contrato de producto), conciliación y backend real. Todo lo ✔ corre sobre mocks.

@@ -67,6 +67,9 @@ export const defaultChannels: PaymentChannel[] = [
     destinations: [],
   },
   {
+    id: 'credito', label: 'Crédito', kind: 'credito', method: 'credito', fields: [], requiresProof: false, destinations: [],
+  },
+  {
     id: 'pse', label: 'PSE / pasarela', kind: 'pasarela', method: 'transferencia', requiresProof: true,
     fields: [{ key: 'reference', label: 'Código de transacción (CUS)', required: true, input: 'text' }, payer],
     destinations: [{ id: 'pse-1', label: 'Pasarela de la empresa' }],

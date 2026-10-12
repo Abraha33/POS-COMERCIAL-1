@@ -5,7 +5,15 @@ import { isoDate, money, type Contract } from './common';
 export const paymentMethodSchema = z.enum(['efectivo', 'tarjeta', 'transferencia', 'nequi', 'daviplata', 'credito']);
 export type PaymentMethod = z.infer<typeof paymentMethodSchema>;
 
-export const paymentSchema = z.object({ method: paymentMethodSchema, amount: money });
+export const paymentSchema = z.object({
+  method: paymentMethodSchema,
+  amount: money,
+  /** PROPUESTA v0.6.0: canal del catálogo, referencia, cuenta destino y comprobante verificado. */
+  channel: z.string().optional(),
+  reference: z.string().optional(),
+  destination: z.string().optional(),
+  proofId: z.string().optional(),
+});
 export type Payment = z.infer<typeof paymentSchema>;
 
 export const saleLineSchema = z.object({

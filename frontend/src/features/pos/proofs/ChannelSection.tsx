@@ -20,11 +20,16 @@ type Props = {
   canAuthorizeException: boolean;
   usedReferences: readonly string[];
   onProof: (proof: ProofRequest | null) => void;
+  /** Mixto: cada componente usa sus propios ids y etiqueta. */
+  idPrefix?: string;
+  channelLabel?: string;
+  /** Componente confirmado: canal y campos quedan de solo lectura. */
+  locked?: boolean;
 };
 
 /** Formulario dinámico por TIPO de canal: los campos salen del catálogo, no de un componente por banco. */
 export const ChannelSection = (props: Props) => {
-  const { channels, state, onState, amount, operationId, actor, canAuthorizeException, usedReferences, onProof } = props;
+  const { channels, state, onState, amount, operationId, actor, canAuthorizeException, usedReferences, onProof, idPrefix = 'pay', channelLabel = 'Canal', locked = false } = props;
   const channel = channels.find((c) => c.id === state.channelId) ?? channels[0];
   const [touched, setTouched] = useState(false);
   if (!channel) return null;
@@ -35,9 +40,9 @@ export const ChannelSection = (props: Props) => {
 
   return (
     <section aria-label="Pago digital" className="proof-channel">
-      <label htmlFor="pay-channel" className="pos-pay__label">Canal</label>
+      <label htmlFor={`${idPrefix}-channel`} className="pos-pay__label">{channelLabel}</label>
       <select
-        id="pay-channel" className="p-inputtext w-full" value={channel.id}
+        id={`${idPrefix}-channel`} className="p-inputtext w-full" value={channel.id} disabled={locked}
         onChange={(e) => onState({ channelId: e.target.value, destinationId: '', values: {}, proofId: null })}
       >
         {channels.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
@@ -45,9 +50,9 @@ export const ChannelSection = (props: Props) => {
 
       {channel.destinations.length > 0 ? (
         <>
-          <label htmlFor="pay-destination" className="pos-pay__label">Cuenta destino</label>
+          <label htmlFor={`${idPrefix}-destination`} className="pos-pay__label">Cuenta destino</label>
           <select
-            id="pay-destination" className="p-inputtext w-full" value={destination?.id ?? ''}
+            id={`${idPrefix}-destination`} className="p-inputtext w-full" value={destination?.id ?? ''} disabled={locked}
             onChange={(e) => set({ destinationId: e.target.value })}
           >
             {channel.destinations.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
@@ -58,14 +63,14 @@ export const ChannelSection = (props: Props) => {
       {channel.fields.map((field) => {
         const value = state.values[field.key] ?? '';
         const empty = field.required && value.trim() === '';
-        const id = `pay-field-${field.key}`;
+        const id = `${idPrefix}-field-${field.key}`;
         return (
           <div key={field.key}>
             <label htmlFor={id} className="pos-pay__label">
               {field.label}{field.required ? '' : ' (opcional)'}
             </label>
             <input
-              id={id} className="p-inputtext w-full" value={value}
+              id={id} className="p-inputtext w-full" value={value} readOnly={locked}
               inputMode={field.input === 'digits' ? 'numeric' : undefined}
               aria-invalid={touched && empty ? true : undefined}
               onBlur={() => setTouched(true)}
@@ -99,7 +104,13 @@ export const ChannelSection = (props: Props) => {
           onProof={onProof}
         />
       ) : (
-        <p className="pos-pay__instruction">Cobra en el datáfono y registra el código de aprobación antes de confirmar.</p>
+        <p className="pos-pay__instruction">
+          {channel.kind === 'datafono'
+            ? 'Cobra en el datáfono y registra el código de aprobación antes de confirmar.'
+            : channel.kind === 'credito'
+              ? 'Se registra a crédito; el servidor valida cupo y facturas vencidas.'
+              : 'Efectivo recibido en caja.'}
+        </p>
       )}
     </section>
   );

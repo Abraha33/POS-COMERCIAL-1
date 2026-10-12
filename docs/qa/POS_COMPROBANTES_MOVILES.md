@@ -25,7 +25,9 @@ porque MSW vive por pestaña. Con `pnpm dev` el teléfono y el computador compar
 Probar: `DEV_PORT=5192 pnpm dev` → en el POS, Transferencia → Cobrar → escanear el QR con el teléfono
 (`http://<IP-LAN>:5192/captura/<token>`).
 
-## Contrato propuesto (v0.6.0, **no** añadido a `openapi.yaml`)
+## Contrato propuesto
+**Ya añadido a `openapi.yaml` v0.6.0 (PROPUESTA):** `Payment.channel/reference/destination/proofId`, `SaleCreate.creditTermDays`
+y el error `REFERENCE_DUPLICATED`. **Aún no añadido:** los endpoints de comprobantes de abajo (viven en el simulador).
 | Operación | Notas |
 |---|---|
 | `POST /pos/payment-proofs` | crea la solicitud; devuelve `id`, `token`, `expiresAt` |
@@ -44,5 +46,3 @@ El servidor debe: validar el token, firmar la URL de la imagen, guardar la evide
 - Notificaciones Web Push (etapa 2) y registro de teléfonos de empleados.
 - Verificación contra el banco (hoy es humana); conciliación de cuentas.
 - La excepción usa el rol, no un PIN de supervisor.
-- Pagos mixtos con comprobante por componente.
-- Persistir canal/referencia/comprobante en la venta (el contrato aún no los tiene).

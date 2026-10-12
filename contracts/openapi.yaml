@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: ERP/POS API
-  version: 0.5.0
+  version: 0.6.0
   description: |
     Contrato compartido entre frontend (React) y backend (Frappe/ERPNext).
 
@@ -410,7 +410,7 @@ paths:
           description: |
             Conflicto de negocio. `code` ∈ SHIFT_NOT_OPEN, STOCK_INSUFFICIENT, CREDIT_LIMIT_EXCEEDED,
             CUSTOMER_BLOCKED_OVERDUE, PRODUCT_INACTIVE, PAYMENT_INSUFFICIENT, DISCOUNT_NOT_ALLOWED,
-            PRICE_BELOW_COST, APPROVAL_REQUIRED, APPROVAL_INVALID, IDEMPOTENCY_KEY_REUSED.
+            PRICE_BELOW_COST, APPROVAL_REQUIRED, APPROVAL_INVALID, IDEMPOTENCY_KEY_REUSED, REFERENCE_DUPLICATED (PROPUESTA).
           content:
             application/json:
               schema:
@@ -1568,6 +1568,18 @@ components:
         amount:
           type: integer
           minimum: 0
+        channel:
+          type: string
+          description: PROPUESTA v0.6.0. Canal de cobro del catálogo de la empresa (p. ej. `nequi`, `bancolombia`, `bre-b`).
+        reference:
+          type: string
+          description: PROPUESTA v0.6.0. Referencia/aprobación del pago. El servidor rechaza duplicados con REFERENCE_DUPLICATED.
+        destination:
+          type: string
+          description: PROPUESTA v0.6.0. Cuenta, llave o terminal de destino.
+        proofId:
+          type: string
+          description: PROPUESTA v0.6.0. Comprobante verificado que respalda el pago.
     SaleLine:
       type: object
       required:
@@ -1699,6 +1711,17 @@ components:
           type: boolean
         approvalToken:
           type: string
+        creditTermDays:
+          type: integer
+          enum:
+            - 7
+            - 15
+            - 30
+            - 45
+            - 60
+          description: |
+            PROPUESTA v0.6.0. Plazo del saldo a crédito en días; por defecto 30. BR-CLI-06 aprobada fija "30+3 días":
+            cualquier otro plazo está pendiente de aprobación del dueño.
     SaleReceipt:
       allOf:
         - $ref: "#/components/schemas/Sale"
