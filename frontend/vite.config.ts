@@ -76,6 +76,25 @@ const proofRelay = (): Plugin => ({
         res.end(JSON.stringify(out.body));
       })();
     });
+    // Almacén compartido de comprobantes (estado): computador y teléfono leen el mismo registro en desarrollo.
+    server.middlewares.use('/dev-relay/payment-proofs', (req, res) => {
+      void (async () => {
+        const { handleProofStore } = (await server.ssrLoadModule('/src/mocks/proofStoreServer.ts')) as {
+          handleProofStore: (m: string, p: string, q: URLSearchParams, b: Record<string, unknown>) => { status: number; body: unknown };
+        };
+        const raw = await readBody(req);
+        let body: Record<string, unknown> = {};
+        try {
+          body = raw.length > 0 ? (JSON.parse(raw.toString('utf8')) as Record<string, unknown>) : {};
+        } catch {
+          /* cuerpo inválido: se trata como vacío y el dominio lo rechaza */
+        }
+        const [pathPart = '/', search = ''] = (req.url ?? '/').split('?');
+        const out = handleProofStore(req.method ?? 'GET', pathPart, new URLSearchParams(search), body);
+        res.writeHead(out.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify(out.body));
+      })();
+    });
   },
 });
 

@@ -16,10 +16,9 @@ const axeBlocking = async (page: Page, scope: string) => {
   expect(blocking.map((v) => `${v.id}: ${v.nodes[0]?.target.join(' ')}`), `${scope}: axe`).toEqual([]);
 };
 
-// BLOQUEADO (no es un fallo de UI): el contrato de comprobantes es un mock en la memoria de cada navegador, así que el
-// teléfono (otro contexto) no ve el comprobante creado por el computador. Antes lo compartía el relay de Vite; ahora solo
-// se comparte la imagen. Se reactiva cuando haya un servicio compartido (backend real o mock de servidor).
-test.fixme('transferencia: QR → teléfono envía foto → cajero verifica → venta confirmada', async ({ page, browser }) => {
+// El estado del comprobante y la foto viven en el servidor de desarrollo (/dev-relay): el teléfono y el computador
+// ven el mismo registro. Las pruebas unitarias usan memoria.
+test('transferencia: QR → teléfono envía foto → cajero verifica → venta confirmada', async ({ page, browser }) => {
   await startAs(page, 'cajero', '/pos');
   await openShift(page, 100000);
   await addToCart(page, 'Arroz 500 g');
