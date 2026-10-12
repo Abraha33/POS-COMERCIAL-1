@@ -1,7 +1,9 @@
 # Traspaso del proyecto (2026-10-12)
 
 Para cualquier herramienta o persona que retome el trabajo (Claude, ChatGPT/Codex, OpenCode). Léelo junto con
-`AGENTS.md` (reglas) y `docs/architecture/ENTORNO_OFICIAL.md` (carpetas y puertos).
+`AGENTS.md` (reglas), `docs/PROJECT-STATE.md` (decisiones funcionales vigentes),
+`docs/qa/CONTRACT-MATURITY-AUDIT-2026-10-12.md` (medición y brechas) y
+`docs/architecture/ENTORNO_OFICIAL.md` (carpetas y puertos).
 
 ## 1. Dónde estamos
 
@@ -9,7 +11,7 @@ Para cualquier herramienta o persona que retome el trabajo (Claude, ChatGPT/Code
 |---|---|
 | Carpeta oficial | `D:\POS-COMERCIAL-WORKTREES\pos-proofs` |
 | Rama | `feat/pos-proofs` |
-| Último commit | `3797967` (infraestructura i18n) |
+| Último commit al corte documental | `1ee25ac` (persistencia de borrador POS por caja) |
 | Puerto de desarrollo | `8082` |
 | Estado de `main` | **Sin fusionar.** No hacer merge ni push sin orden explícita del dueño. |
 
@@ -40,7 +42,9 @@ Contraseña de prueba unificada: `1234` (mocks, fixtures, contrato de ejemplo, c
 
 ## 3. Decisiones vigentes (no reabrir sin el dueño)
 
-Están en `docs/architecture/DECISIONES_CONTRATOS.md`. Resumen:
+Las decisiones más recientes y su estado están en
+`docs/decisions/2026-10-12-DECISION-REGISTER.md`; las decisiones de integración
+ya congeladas continúan en `docs/architecture/DECISIONES_CONTRATOS.md`. Resumen:
 - **Un solo modelo de turno:** `Shift` del contrato; `ShiftRecord` es adapter temporal.
 - **Un solo mecanismo de aprobación**, con un solo vocabulario de máquina en inglés técnico.
 - **Canales de pago:** explícitos por paquete de país (CO: 9). Ninguno oculto dentro de otro.

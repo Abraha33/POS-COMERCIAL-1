@@ -4,6 +4,25 @@ Especificación compartida frontend/backend: `contracts/openapi.yaml` + `contrac
 Implementación en el frontend: `frontend/src/shared/contracts/*.ts` (Zod + tipos inferidos + `example`). Registro completo: `registry.ts`.
 Toda respuesta HTTP se valida contra su schema en `frontend/src/shared/api/client.ts`.
 
+## Contratos de interfaz
+
+Los contratos de dominio no prescriben la composición visual. La fuente de las regiones, cardinalidad visual,
+comportamiento de pantalla, responsive y accesibilidad vive en `docs/ui-contracts/`; el paquete inicial de Venta rápida
+empieza en `docs/ui-contracts/UI-CONTRACTS-INDEX.md`. La regla es: contrato de dominio → adapter API → contrato UI →
+componente → plantilla → pantalla → flow → pruebas.
+
+## Consolidación funcional vigente
+
+El contrato de dominio no se interpreta aislado. La fuente de requisitos de producto
+es [PROJECT-STATE.md](../PROJECT-STATE.md), que remite al
+[registro de decisiones](../decisions/2026-10-12-DECISION-REGISTER.md), los
+flujos POS `F01--F14` y los 18 flujos financieros `CAJ/TES/CON`.
+
+La documentación funcional define intención y criterios de aceptación; este archivo,
+OpenAPI, Zod, MSW y las pruebas solo acreditan lo que esté contrastado con el árbol
+actual. Una regla contable, fiscal, bancaria o de hardware marcada `PROPUESTA` o
+`VALIDACIÓN` no se convierte en integración real por aparecer aquí.
+
 | Contrato | Archivo | DocType Frappe/ERPNext |
 |----------|---------|------------------------|
 | Product | `product.ts` | Item |
