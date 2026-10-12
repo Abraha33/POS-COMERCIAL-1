@@ -821,6 +821,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pos/sync/operations/{idempotencyKey}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description PROPUESTA v0.6.0. Consulta si una operación ya fue aplicada (respuesta perdida): el cliente NO reenvía a ciegas,
+         *     pregunta primero. 404 = nunca llegó (se puede reenviar).
+         */
+        get: operations["lookupSyncOperation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/pos/orders": {
         parameters: {
             query?: never;
@@ -836,6 +856,28 @@ export interface paths {
         put?: never;
         /** @description PROPUESTA v0.6.0. Crea un pedido sin cobrar, o vinculado a una venta ya cobrada (`saleId`). */
         post: operations["createPosOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pos/orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * @description PROPUESTA v0.6.0. Guarda el pedido completo (el cliente aplica las reglas de dominio y envía el resultado) con
+         *     concurrencia optimista: `expectedVersion` debe ser la versión vigente (0 si es nuevo). Errores:
+         *     `VERSION_CONFLICT` 409 (alguien lo cambió; devuelve `currentVersion`), `ESTADO_INVALIDO` 409 (salto de estado
+         *     ilegal), `NUMBER_REASSIGNED` no es error: si el número ya existe el servidor asigna el siguiente y lo devuelve.
+         */
+        put: operations["savePosOrder"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1512,6 +1554,8 @@ export interface components {
             packed: number;
             missing: number;
             missingNote?: string;
+            name?: string;
+            sku?: string;
         };
         PosOrderCreate: {
             customerId: string | null;
@@ -1535,6 +1579,29 @@ export interface components {
             paymentState: "sin-pago" | "abono" | "pagado" | "credito";
             paidAmount: number;
             qualityChecked?: boolean;
+            branchId?: string;
+            /** @description Versión guardada por el servidor; base de la concurrencia optimista de `savePosOrder`. */
+            version?: number;
+            customerName?: string;
+            createdAt?: string;
+            createdById?: string;
+            createdByName?: string;
+            assigneeId?: string | null;
+            assigneeName?: string;
+            /** @enum {string} */
+            priority?: "normal" | "alta";
+            history?: {
+                at: string;
+                actorId: string;
+                actorName: string;
+                event: string;
+                detail?: string;
+            }[];
+        };
+        SavePosOrderRequest: {
+            order: components["schemas"]["PosOrder"];
+            /** @description Versión que el cliente vio por última vez; 0 para un pedido nuevo. */
+            expectedVersion: number;
         };
         PosOrderTransition: {
             /** @enum {string} */
@@ -3020,10 +3087,34 @@ export interface operations {
             };
         };
     };
+    lookupSyncOperation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                idempotencyKey: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Operación aplicada o resuelta */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncOperationResult"];
+                };
+            };
+            404: components["responses"]["NotFound"];
+        };
+    };
     listPosOrders: {
         parameters: {
             query?: {
                 status?: components["schemas"]["PosOrderStatus"];
+                branchId?: string;
             };
             header?: never;
             path?: never;
@@ -3064,6 +3155,33 @@ export interface operations {
                     "application/json": components["schemas"]["PosOrder"];
                 };
             };
+        };
+    };
+    savePosOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavePosOrderRequest"];
+            };
+        };
+        responses: {
+            /** @description Pedido guardado (con `version` y `number` definitivos) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosOrder"];
+                };
+            };
+            409: components["responses"]["Conflict"];
         };
     };
     transitionPosOrder: {

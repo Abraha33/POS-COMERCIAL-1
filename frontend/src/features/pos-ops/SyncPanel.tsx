@@ -103,8 +103,15 @@ export const SyncPanel = ({ ops }: { ops: Ops }) => {
           <label htmlFor="po-offcash">Habilitar venta en efectivo offline (política y fiscal validados)</label>
         </div>
         <div className="po-field">
+          <label htmlFor="po-server" className="po-label">Servidor al sincronizar</label>
+          <select id="po-server" className="p-inputtext w-full" value={ops.serverMode} onChange={(e) => ops.setServerMode(e.target.value as 'api' | 'local')}>
+            <option value="api">API de capa 5 (mock, idempotente)</option>
+            <option value="local">Simulador local con respuestas guionadas</option>
+          </select>
+        </div>
+        <div className="po-field">
           <label htmlFor="po-outcome" className="po-label">Próxima respuesta del servidor</label>
-          <select id="po-outcome" className="p-inputtext w-full" value={ops.nextOutcome} onChange={(e) => ops.setNextOutcome(e.target.value as SimulatedOutcome)}>
+          <select id="po-outcome" className="p-inputtext w-full" value={ops.nextOutcome} disabled={ops.serverMode === 'api'} onChange={(e) => ops.setNextOutcome(e.target.value as SimulatedOutcome)}>
             {(Object.keys(outcomeLabels) as SimulatedOutcome[]).map((k) => <option key={k} value={k}>{outcomeLabels[k]}</option>)}
           </select>
         </div>

@@ -448,6 +448,11 @@ export const registerConformance = (target: string | (() => string)) => {
 
       const again = syncBatchResultSchema.parse((await call('POST', '/pos/sync/batches', { token, body: batch })).body).results;
       expect(again[0]?.remoteRef).toBe(r1[0]?.remoteRef); // mismo resultado, sin duplicar
+
+      const found = await call('GET', '/pos/sync/operations/op-a', { token });
+      expect(found.status, JSON.stringify(found.body)).toBe(200);
+      expectSchema('SyncOperationResult', found.body);
+      expectError(await call('GET', '/pos/sync/operations/nunca-llego', { token }), 404, 'NOT_FOUND');
       expect(again.map((r) => r.status)).toEqual(r1.map((r) => r.status));
     });
 
@@ -477,6 +482,35 @@ export const registerConformance = (target: string | (() => string)) => {
       const second = posOrderSchema.parse((await call('POST', '/pos/orders', { token, body: newOrder })).body);
       expectError(await step(second.id, { action: 'cancelar' }), 422, 'VALIDATION_ERROR');
       expect(posOrderSchema.parse((await step(second.id, { action: 'cancelar', reason: 'Cliente desistió' })).body).status).toBe('cancelado');
+    });
+
+    it('PROPUESTA v0.6.0 · pedidos: guardado con versión (concurrencia optimista), salto de estado ilegal y número reasignado', async () => {
+      const token = await login('laura.gomez');
+      const base = {
+        id: 'ord-conf-1', number: 'PED-0001', status: 'pendiente', total: 5600, paymentState: 'sin-pago', paidAmount: 0,
+        customerId: null, fulfillment: 'recogida', branchId: 'br-001', history: [],
+        lines: [{ productId: 'prd-001', quantity: 2, unitPrice: 2800, packed: 0, missing: 0 }],
+      };
+      const save = (order: Record<string, unknown>, expectedVersion: number) =>
+        call('PUT', `/pos/orders/${String(order.id)}`, { token, body: { order, expectedVersion } });
+
+      const created = await save(base, 0);
+      expect(created.status, JSON.stringify(created.body)).toBe(200);
+      expectSchema('PosOrder', created.body);
+      expect(posOrderSchema.parse(created.body).version).toBe(1);
+
+      // Misma versión vista por dos terminales: la segunda pierde.
+      const first = await save({ ...base, status: 'en-proceso', version: 1 }, 1);
+      expect(posOrderSchema.parse(first.body).version).toBe(2);
+      expectError(await save({ ...base, notes: 'otra caja', version: 1 }, 1), 409, 'VERSION_CONFLICT');
+
+      // Salto ilegal: en-proceso -> entregado.
+      expectError(await save({ ...base, status: 'entregado', version: 2 }, 2), 409, 'ESTADO_INVALIDO');
+
+      // Número repetido en otro pedido nuevo: el servidor asigna el siguiente.
+      const other = await save({ ...base, id: 'ord-conf-2' }, 0);
+      expect(other.status, JSON.stringify(other.body)).toBe(200);
+      expect(posOrderSchema.parse(other.body).number).not.toBe('PED-0001');
     });
 
     it('anulación: devuelve stock, exige motivo y no se repite', async () => {

@@ -105,6 +105,8 @@ export const posOrderLineSchema = z.object({
   packed: z.number().nonnegative(),
   missing: z.number().nonnegative(),
   missingNote: z.string().optional(),
+  name: z.string().optional(),
+  sku: z.string().optional(),
 });
 export type PosOrderLine = z.infer<typeof posOrderLineSchema>;
 
@@ -129,8 +131,26 @@ export const posOrderSchema = posOrderCreateSchema.extend({
   paymentState: z.enum(['sin-pago', 'abono', 'pagado', 'credito']),
   paidAmount: money,
   qualityChecked: z.boolean().optional(),
+  branchId: z.string().optional(),
+  version: z.number().int().nonnegative().optional(),
+  customerName: z.string().optional(),
+  createdAt: z.string().optional(),
+  createdById: z.string().optional(),
+  createdByName: z.string().optional(),
+  assigneeId: z.string().nullable().optional(),
+  assigneeName: z.string().optional(),
+  priority: z.enum(['normal', 'alta']).optional(),
+  history: z
+    .array(z.object({ at: z.string(), actorId: z.string(), actorName: z.string(), event: z.string(), detail: z.string().optional() }))
+    .optional(),
 });
 export type PosOrder = z.infer<typeof posOrderSchema>;
+
+export const savePosOrderRequestSchema = z.object({
+  order: posOrderSchema,
+  expectedVersion: z.number().int().nonnegative(),
+});
+export type SavePosOrderRequest = z.infer<typeof savePosOrderRequestSchema>;
 
 export const posOrderTransitionSchema = z.object({
   action: z.enum([

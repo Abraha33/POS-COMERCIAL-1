@@ -4,7 +4,14 @@ import { useOnlineStatus } from '@/app/layouts/useOnlineStatus';
 import * as auth from './authorization';
 import * as offline from './offline';
 import * as shifts from './shift';
+import { useCurrentShift } from '@/shared/api/pos';
+import { posSyncApi } from '@/shared/api/sync';
+import { createHttpTransport } from './httpTransport';
 import { createSimulatedRemote, type SimulatedOutcome } from './simulator';
+
+
+/** `api`: API de capa 5 (mock); `local`: simulador con respuestas guionadas, solo para pruebas de la interfaz. */
+export type ServerMode = 'api' | 'local';
 import { StorageUnavailableError, createOpsStore, type KeyValueStorage } from './store';
 import type { AuthRequest, AuthType, ConnectivityState, IncidentKind, OperationKind, QueuedOperation, Scope, ShiftRecord } from './types';
 
@@ -39,7 +46,12 @@ export const useOps = (options: OpsOptions = {}) => {
   const queue = useMemo(() => store.read<QueuedOperation>('queue'), [store, snapQueue]);
 
   const remote = useRef(createSimulatedRemote());
+  const serverShift = useCurrentShift();
+  const serverShiftRef = useRef<string | undefined>(undefined);
+  serverShiftRef.current = serverShift.data?.id;
+  const httpTransport = useMemo(() => createHttpTransport(posSyncApi, () => serverShiftRef.current), []);
   const [simulatedOffline, setSimulatedOffline] = useState(false);
+  const [serverMode, setServerMode] = useState<ServerMode>('api');
   const [syncing, setSyncing] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
   const [policyCtx, setPolicyCtx] = useState(offline.defaultPolicyContext);
@@ -83,7 +95,7 @@ export const useOps = (options: OpsOptions = {}) => {
 
   const connectivity: ConnectivityState = offline.connectivityOf({
     browserOnline,
-    backendReachable: simulatedOffline ? false : remote.current.isReachable() ? true : false,
+    backendReachable: simulatedOffline ? false : serverMode === 'api' ? true : remote.current.isReachable(),
     syncing,
     reconnecting,
     queue,
@@ -179,8 +191,9 @@ export const useOps = (options: OpsOptions = {}) => {
       syncingRef.current = true;
       setSyncing(true);
       try {
-        remote.current.script(nextOutcome);
-        const next = await offline.syncQueue(store.read<QueuedOperation>('queue'), remote.current.transport, new Date());
+        if (serverMode === 'local') remote.current.script(nextOutcome);
+        const transport = serverMode === 'api' ? httpTransport : remote.current.transport;
+        const next = await offline.syncQueue(store.read<QueuedOperation>('queue'), transport, new Date());
         guard(() => store.write('queue', next));
         setNextOutcome('ok');
       } finally {
@@ -204,7 +217,7 @@ export const useOps = (options: OpsOptions = {}) => {
   };
 
   return {
-    scope, session, online, browserOnline, simulatedOffline, connectivity, syncing,
+    scope, session, online, browserOnline, simulatedOffline, serverMode, setServerMode, connectivity, syncing,
     shifts: shiftList, current, mine, isSupervisor, authList, queue, heldCarts,
     policyCtx, setPolicyCtx, nextOutcome, setNextOutcome, error, remote: remote.current, actions,
   };

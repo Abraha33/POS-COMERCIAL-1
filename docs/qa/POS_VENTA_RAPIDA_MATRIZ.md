@@ -106,4 +106,6 @@ pasarela. Un banco nuevo es una fila de configuración, no un formulario. El cat
 Cerrado en esta rama: canales dinámicos, documento a emitir, comprobante móvil con verificación y excepción trazable,
 canal/referencia/cuenta/comprobante en la venta (contrato v0.6.0 PROPUESTA), plazo y abono inicial de crédito, y pagos
 mixtos como componentes independientes con reversa trazable.
-Sigue **sin** cerrar: conexión bancaria real para la conciliación, que `pos-ops` y pedidos consuman los endpoints de capa 5 (hoy `localStorage`) y backend real. Todo lo ✔ corre sobre mocks.
+Capa 5: pedidos y la cola offline de `pos-ops` **ya consumen** la API simulada (ver `docs/architecture/CONTRATO_CAPA_5.md`);
+turnos y autorizaciones de `pos-ops` siguen locales en pantalla.
+Sigue **sin** cerrar: conexión bancaria real para la conciliación y backend real. Todo lo ✔ corre sobre mocks.

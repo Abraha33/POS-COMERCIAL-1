@@ -1,7 +1,7 @@
 import { http, HttpResponse } from 'msw';
 import {
   authorizationCreateSchema, authorizationDecisionSchema, posOrderCreateSchema, posOrderTransitionSchema,
-  shiftHandoverRequestSchema, syncBatchSchema,
+  savePosOrderRequestSchema, shiftHandoverRequestSchema, syncBatchSchema,
   type AuthorizationRequest, type CustodyEntry, type PosOrder, type SyncOperationResult,
 } from '@/shared/contracts';
 import { db, mockNow, nextId, state } from '../db';
@@ -16,6 +16,16 @@ const KNOWN_KINDS = [
   'credito-nuevo', 'documento-fiscal', 'movimiento-efectivo', 'autorizacion', 'apertura-relevo',
 ];
 const SENSITIVE = ['pin', 'password', 'cardnumber', 'cvv', 'pan'];
+
+const TRANSITIONS: Record<string, string[]> = {
+  pendiente: ['en-proceso', 'cancelado'],
+  'en-proceso': ['problema', 'listo', 'cancelado'],
+  problema: ['en-proceso', 'cancelado'],
+  listo: ['despachado', 'cancelado'],
+  despachado: ['entregado'],
+  entregado: [],
+  cancelado: [],
+};
 
 const expireIfNeeded = (a: AuthorizationRequest): AuthorizationRequest => {
   if (a.status === 'pendiente' && Date.parse(a.expiresAt) < mockNow().getTime()) a.status = 'vencida';
@@ -162,13 +172,25 @@ export const posOpsHandlers = [
     return HttpResponse.json({ results });
   }),
 
+  http.get('/api/v1/pos/sync/operations/:idempotencyKey', ({ request, params }) => {
+    const user = authenticate(request);
+    if (!user) return unauthorized();
+    if (!canSell(user.role)) return forbidden();
+    const found = state.syncLedger.get(String(params.idempotencyKey));
+    return found ? HttpResponse.json(found) : notFound('Operación');
+  }),
+
   // ---------- Pedidos ----------
   http.get('/api/v1/pos/orders', ({ request }) => {
     const user = authenticate(request);
     if (!user) return unauthorized();
     if (!canSell(user.role)) return forbidden();
-    const status = new URL(request.url).searchParams.get('status');
-    return HttpResponse.json([...state.orders.values()].filter((o) => !status || o.status === status));
+    const query = new URL(request.url).searchParams;
+    const status = query.get('status');
+    const branchId = query.get('branchId');
+    return HttpResponse.json(
+      [...state.orders.values()].filter((o) => (!status || o.status === status) && (!branchId || o.branchId === branchId)),
+    );
   }),
 
   http.post('/api/v1/pos/orders', async ({ request }) => {
@@ -194,10 +216,53 @@ export const posOpsHandlers = [
     const order: PosOrder = {
       ...parsed.data, id: nextId('ord'), number: `PED-${String(index).padStart(4, '0')}`, status: 'pendiente', total,
       paymentState: paidAmount >= total && total > 0 ? 'pagado' : paidAmount > 0 ? 'abono' : 'sin-pago',
-      paidAmount, qualityChecked: false,
+      paidAmount, qualityChecked: false, branchId: 'br-001', version: 1,
     };
     state.orders.set(order.id, order);
     return HttpResponse.json(order, { status: 201 });
+  }),
+
+  // Guardado del pedido completo con concurrencia optimista (PROPUESTA v0.6.0).
+  http.put('/api/v1/pos/orders/:id', async ({ request, params }) => {
+    const user = authenticate(request);
+    if (!user) return unauthorized();
+    if (!canSell(user.role)) return forbidden();
+    const parsed = savePosOrderRequestSchema.safeParse(await request.json());
+    if (!parsed.success) return validationError('Pedido inválido');
+    const { order, expectedVersion } = parsed.data;
+    if (order.id !== params.id) return validationError('El id del pedido no coincide con la ruta');
+
+    const current = state.orders.get(order.id);
+    if (current) {
+      const have = current.version ?? 0;
+      if (have !== expectedVersion) {
+        return failure(409, 'VERSION_CONFLICT', 'El pedido cambió en otra terminal', { currentVersion: have });
+      }
+      const allowed = TRANSITIONS[current.status] ?? [];
+      if (order.status !== current.status && !allowed.includes(order.status)) {
+        return failure(409, 'ESTADO_INVALIDO', `Un pedido ${current.status} no puede pasar a ${order.status}`);
+      }
+      if (order.paidAmount < current.paidAmount) {
+        return failure(409, 'ESTADO_INVALIDO', 'Un pago registrado no se reduce: requiere devolución');
+      }
+    } else {
+      if (expectedVersion !== 0) {
+        return failure(409, 'VERSION_CONFLICT', 'El pedido no existe en el servidor', { currentVersion: 0 });
+      }
+      if (order.status !== 'pendiente') return failure(409, 'ESTADO_INVALIDO', 'Un pedido nuevo nace pendiente');
+    }
+    if (order.paidAmount > order.total) return validationError('El pago supera el total del pedido');
+
+    // El número es del servidor: si el cliente (sin conexión) eligió uno repetido, se asigna el siguiente.
+    let number = order.number;
+    const taken = [...state.orders.values()].some((o) => o.id !== order.id && o.number === number);
+    if (taken) {
+      const max = [...state.orders.values()].reduce((m, o) => Math.max(m, Number(o.number.replace(/\D/g, '')) || 0), 0);
+      number = `PED-${String(max + 1).padStart(4, '0')}`;
+    }
+    const saved = { ...order, number, branchId: order.branchId ?? 'br-001', version: (current?.version ?? 0) + 1 };
+    state.orders.set(saved.id, saved);
+    return HttpResponse.json(saved);
   }),
 
   http.post('/api/v1/pos/orders/:id/transitions', async ({ request, params }) => {
@@ -260,6 +325,7 @@ export const posOpsHandlers = [
         order.status = 'cancelado';
         break;
     }
+    order.version = (order.version ?? 0) + 1;
     return HttpResponse.json(order);
   }),
 ];

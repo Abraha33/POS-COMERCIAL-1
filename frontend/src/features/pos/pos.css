@@ -426,3 +426,7 @@
 .recon__table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .recon__table th, .recon__table td { padding: 0.5rem; border-bottom: 1px solid var(--app-border); text-align: left; vertical-align: top; }
 .recon__table .pos-detail__num { text-align: right; }
+
+.ord-sync { margin: 0 0 0.5rem; font-size: 0.875rem; color: var(--app-text-muted); }
+.ord-sync--sin-conexion, .ord-sync--conflicto { color: var(--app-danger-fg); font-weight: 600; }
+.ord-sync--pendiente { color: var(--app-warning-fg); font-weight: 600; }

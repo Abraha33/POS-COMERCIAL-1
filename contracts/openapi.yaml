@@ -1336,6 +1336,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SyncBatchResult"
+  /pos/sync/operations/{idempotencyKey}:
+    get:
+      tags:
+        - pos
+      operationId: lookupSyncOperation
+      x-status: simulated
+      x-approval: proposed
+      description: |
+        PROPUESTA v0.6.0. Consulta si una operación ya fue aplicada (respuesta perdida): el cliente NO reenvía a ciegas,
+        pregunta primero. 404 = nunca llegó (se puede reenviar).
+      parameters:
+        - name: idempotencyKey
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Operación aplicada o resuelta
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncOperationResult"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /pos/orders:
     get:
       tags:
@@ -1352,6 +1377,11 @@ paths:
           required: false
           schema:
             $ref: "#/components/schemas/PosOrderStatus"
+        - name: branchId
+          in: query
+          required: false
+          schema:
+            type: string
       responses:
         "200":
           description: OK
@@ -1381,6 +1411,39 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PosOrder"
+  /pos/orders/{id}:
+    put:
+      tags:
+        - pos
+      operationId: savePosOrder
+      x-status: simulated
+      x-approval: proposed
+      description: |
+        PROPUESTA v0.6.0. Guarda el pedido completo (el cliente aplica las reglas de dominio y envía el resultado) con
+        concurrencia optimista: `expectedVersion` debe ser la versión vigente (0 si es nuevo). Errores:
+        `VERSION_CONFLICT` 409 (alguien lo cambió; devuelve `currentVersion`), `ESTADO_INVALIDO` 409 (salto de estado
+        ilegal), `NUMBER_REASSIGNED` no es error: si el número ya existe el servidor asigna el siguiente y lo devuelve.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SavePosOrderRequest"
+      responses:
+        "200":
+          description: Pedido guardado (con `version` y `number` definitivos)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PosOrder"
+        "409":
+          $ref: "#/components/responses/Conflict"
   /pos/orders/{id}/transitions:
     post:
       tags:
@@ -3443,6 +3506,10 @@ components:
           minimum: 0
         missingNote:
           type: string
+        name:
+          type: string
+        sku:
+          type: string
     PosOrderCreate:
       type: object
       required:
@@ -3517,6 +3584,63 @@ components:
               minimum: 0
             qualityChecked:
               type: boolean
+            branchId:
+              type: string
+            version:
+              type: integer
+              minimum: 0
+              description: Versión guardada por el servidor; base de la concurrencia optimista de `savePosOrder`.
+            customerName:
+              type: string
+            createdAt:
+              type: string
+            createdById:
+              type: string
+            createdByName:
+              type: string
+            assigneeId:
+              type:
+                - string
+                - "null"
+            assigneeName:
+              type: string
+            priority:
+              type: string
+              enum:
+                - normal
+                - alta
+            history:
+              type: array
+              items:
+                type: object
+                required:
+                  - at
+                  - actorId
+                  - actorName
+                  - event
+                properties:
+                  at:
+                    type: string
+                  actorId:
+                    type: string
+                  actorName:
+                    type: string
+                  event:
+                    type: string
+                  detail:
+                    type: string
+    SavePosOrderRequest:
+      type: object
+      required:
+        - order
+        - expectedVersion
+      properties:
+        order:
+          $ref: "#/components/schemas/PosOrder"
+        expectedVersion:
+          type: integer
+          minimum: 0
+          description: Versión que el cliente vio por última vez; 0 para un pedido nuevo.
     PosOrderTransition:
       type: object
       required:

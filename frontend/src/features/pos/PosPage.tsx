@@ -5,7 +5,8 @@ import { ErrorState, LoadingState, ScreenTemplate } from '@/shared/ui';
 import { OpenShiftCard } from './OpenShiftCard';
 import { OrdersBoard } from './orders/OrdersBoard';
 import { counts, withBalance, type Order } from './orders/orders';
-import { useOrders } from './orders/useOrders';
+import { useOrders, useOrdersSync } from './orders/useOrders';
+import { posOrdersApi } from '@/shared/api/posOrders';
 import { PosNav, type PosView } from './PosNav';
 import { QuickSale, type PreloadOrder } from './QuickSale';
 import { ReconciliationView } from './ReconciliationView';
@@ -28,6 +29,7 @@ export const PosPage = () => {
   const registerId = shift.data?.registerId ?? session.register.id;
   const held = useHeldSales(registerId);
   const { orders } = useOrders(session.branch.id);
+  const sync = useOrdersSync(session.branch.id, posOrdersApi);
   const c = counts(orders);
   const openOrders = c.pendiente + c.proceso + c.problema + c.listo;
   const actor = { id: session.user.id, name: session.user.name };
@@ -74,7 +76,7 @@ export const PosPage = () => {
       />
       <div hidden={view !== 'sell'}>{sellContent}</div>
       {view === 'orders' ? (
-        <OrdersBoard key={boardFilter} branchId={session.branch.id} actor={actor} initialFilter={boardFilter} onCollect={collect} />
+        <OrdersBoard key={boardFilter} branchId={session.branch.id} actor={actor} initialFilter={boardFilter} onCollect={collect} sync={sync} />
       ) : null}
       {view === 'history' ? <SalesHistory onNewSale={() => setView('sell')} /> : null}
       {view === 'reconcile' ? (

@@ -13,7 +13,7 @@ import type {
   StockAdjustmentResult, InventoryCountCreate, InventoryCount, SalesSummary, AgingReport, InventoryValuation, BranchInput,
   Company, CompanyInput, TaxResponsibility, LedgerStatus, ShiftHandoverRequest, CustodyEntry, AuthorizationCreate,
   AuthorizationRequest, AuthorizationDecision, SyncOperation, SyncBatch, SyncOperationResult, SyncBatchResult,
-  PosOrderLine, PosOrderCreate, PosOrder, PosOrderTransition,
+  PosOrderLine, PosOrderCreate, PosOrder, PosOrderTransition, SavePosOrderRequest,
 } from '@/shared/contracts';
 
 type Schemas = components['schemas'];
@@ -36,6 +36,7 @@ export type ContractTypeChecks = [
   Assert<Same<PosOrderCreate, Schemas['PosOrderCreate']>>,
   Assert<Same<PosOrder, Schemas['PosOrder']>>,
   Assert<Same<PosOrderTransition, Schemas['PosOrderTransition']>>,
+  Assert<Same<SavePosOrderRequest, Schemas['SavePosOrderRequest']>>,
   Assert<Same<Product, Schemas['Product']>>,
   Assert<Same<ProductInput, Schemas['ProductInput']>>,
   Assert<Same<Customer, Schemas['Customer']>>,

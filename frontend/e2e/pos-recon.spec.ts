@@ -68,3 +68,22 @@ test('cierre de turno: desglose por canal y aviso de cobro digital sin comproban
   await expect(page.getByTestId('close-cash')).toContainText('0');
   await expect(page.getByTestId('close-unbacked')).toContainText('sin comprobante confirmado');
 });
+
+test('pedidos: el pedido creado se sincroniza con el servidor (capa 5) y la bandeja lo indica', async ({ page }) => {
+  await startAs(page, 'cajero', '/pos');
+  await openShift(page, 100000);
+  await addToCart(page, 'Arroz 500 g');
+  await page.getByRole('button', { name: 'Crear pedido' }).click();
+  await page.getByRole('dialog', { name: 'Crear pedido' }).getByRole('button', { name: 'Crear pedido' }).click();
+  await page.getByRole('button', { name: /Pedidos, 1 abiertos/ }).click();
+  await expect(page.getByTestId('orders-sync')).toContainText('Sincronizado con el servidor', { timeout: 10_000 });
+  // Está guardado en el servidor, no solo en el equipo.
+  const saved = await page.evaluate(async () => {
+    const res = await fetch('/api/v1/pos/orders?branchId=br-001', {
+      headers: { Authorization: `Bearer mock-token-emp-001` },
+    });
+    return (await res.json()) as { number: string; version: number }[];
+  });
+  expect(saved.map((o) => o.number)).toContain('PED-0001');
+  expect(saved[0]?.version).toBeGreaterThan(0);
+});

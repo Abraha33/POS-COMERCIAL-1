@@ -6,7 +6,7 @@ import {
   counts, fulfillmentLabels, isOpen, paymentLabels, semaphoreOf, slotLabels, withBalance,
   type Actor, type Order, type Semaphore,
 } from './orders';
-import { useOrders } from './useOrders';
+import { useOrders, type OrdersSyncState } from './useOrders';
 
 type Filter = 'todos' | Semaphore | 'cobros' | 'cerrados';
 
@@ -23,10 +23,22 @@ type Props = {
   /** Filtro inicial (p. ej. "cobros" desde Cobros pendientes). */
   initialFilter?: Filter;
   onCollect: (order: Order) => void;
+  /** Estado de sincronización con el servidor (PROPUESTA v0.6.0). */
+  sync?: OrdersSyncState;
+};
+
+const syncText = (s: OrdersSyncState): string => {
+  switch (s.status) {
+    case 'sincronizado': return 'Sincronizado con el servidor.';
+    case 'sincronizando': return 'Sincronizando…';
+    case 'pendiente': return `${s.pending} cambio(s) por enviar al servidor.`;
+    case 'sin-conexion': return `Sin conexión: ${s.pending} cambio(s) guardados en este equipo; se enviarán al reconectar.`;
+    case 'conflicto': return `${s.report.conflicts} pedido(s) cambiaron en otra terminal; se muestra la versión del servidor.`;
+  }
 };
 
 /** Bandeja de pedidos: semáforo por estado, búsqueda y "mis pedidos". Detalle en diálogo. */
-export const OrdersBoard = ({ branchId, actor, initialFilter = 'todos', onCollect }: Props) => {
+export const OrdersBoard = ({ branchId, actor, initialFilter = 'todos', onCollect, sync }: Props) => {
   const { orders, replace } = useOrders(branchId);
   const [filter, setFilter] = useState<Filter>(initialFilter);
   const [query, setQuery] = useState('');
@@ -53,6 +65,11 @@ export const OrdersBoard = ({ branchId, actor, initialFilter = 'todos', onCollec
   return (
     <section className="ord" aria-labelledby="ord-title">
       <h2 id="ord-title" className="ord-heading">Gestión de pedidos</h2>
+      {sync ? (
+        <p className={`ord-sync ord-sync--${sync.status}`} role="status" data-testid="orders-sync">
+          {syncText(sync)}
+        </p>
+      ) : null}
 
       <div className="ord-lights" role="group" aria-label="Estado de los pedidos">
         {lights.map((l) => (

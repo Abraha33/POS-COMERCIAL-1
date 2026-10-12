@@ -57,6 +57,8 @@ export type Order = {
   status: OrderStatus;
   qualityChecked: boolean;
   history: OrderEvent[];
+  /** Versión guardada por el servidor (concurrencia optimista); ausente si nunca se sincronizó. */
+  version?: number;
 };
 
 export type Actor = { id: string; name: string };

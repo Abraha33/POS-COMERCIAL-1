@@ -139,6 +139,7 @@ describe('POS-F13 · sincronización en la interfaz', () => {
     expect(await screen.findByText('Venta en efectivo', { selector: 'td' })).toBeInTheDocument();
     expect(screen.getByTestId('connectivity')).toHaveAttribute('data-state', 'sin-conexion');
 
+    await user.selectOptions(screen.getByLabelText('Servidor al sincronizar'), 'local');
     await user.click(screen.getByLabelText('Simular que no hay conexión'));
     await waitFor(() => expect(screen.getByTestId('connectivity')).toHaveAttribute('data-state', 'pendientes'));
     await user.click(screen.getByRole('button', { name: 'Sincronizar ahora' }));
@@ -153,6 +154,7 @@ describe('POS-F13 · sincronización en la interfaz', () => {
     await tab(user, /Sincronización/);
     await user.click(await screen.findByLabelText(/Habilitar venta en efectivo offline/));
     await user.click(screen.getByRole('button', { name: 'Venta en efectivo' }));
+    await user.selectOptions(screen.getByLabelText('Servidor al sincronizar'), 'local');
     await user.selectOptions(screen.getByLabelText('Próxima respuesta del servidor'), 'lost');
     await user.click(screen.getByRole('button', { name: 'Sincronizar ahora' }));
     await waitFor(() => expect(screen.getByTestId('connectivity')).toHaveAttribute('data-state', 'incierto'));
