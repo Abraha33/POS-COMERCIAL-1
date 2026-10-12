@@ -1,7 +1,9 @@
 # Capa 5: contratos de backend (PROPUESTA v0.6.0)
 
-Especificados en `contracts/openapi.yaml` con `x-status: planned` + `x-approval: proposed`: **sin mock ni backend**.
-Reflejan los dominios que hoy el cliente simula en `localStorage`. Ninguno está aprobado por el dueño.
+Estado: **`x-status: simulated` + `x-approval: proposed`**. Tienen Zod (`shared/contracts/pos-ops.ts`), igualdad con el
+OpenAPI verificada por `tsc`, handlers MSW (`mocks/handlers/posops.ts`) y escenarios de conformidad (41/41 contra el mock).
+**No** tienen backend real ni reglas aprobadas por el dueño, y el cliente de `features/pos-ops` y `pos/orders` sigue
+guardando en `localStorage`: aún no consume estos endpoints.
 
 | Dominio | Operaciones | Dominio simulado en el cliente |
 |---|---|---|
@@ -10,17 +12,15 @@ Reflejan los dominios que hoy el cliente simula en `localStorage`. Ninguno está
 | Sincronización (F13) | `POST /pos/sync/batches` | `offline.ts`, `simulator.ts` |
 | Pedidos | `GET/POST /pos/orders`, `POST /pos/orders/{id}/transitions` | `features/pos/orders/orders.ts` |
 
-## Reglas que el servidor debe imponer (hoy solo las impone el cliente)
-- **Autorizaciones:** quien solicita no aprueba; aprobación de un solo uso con `validUntil`; la `fingerprint` detecta cambios.
-- **Sync:** `idempotencyKey` por operación; reenvío = mismo resultado; un rechazo no bloquea las demás; `dependsOn` en orden;
-  sin PIN ni datos de tarjeta en `payload`.
-- **Pedidos:** máquina de estados del cliente (`pendiente → en-proceso → listo → despachado → entregado`, `problema`
-  reversible, `cancelado` solo sin pagos); despacho con saldo solo a crédito (`SALDO_PENDIENTE`).
-- **Turnos:** el responsable no cambia sin `CustodyEntry` con arqueo de entrega.
+## Reglas que impone el mock (y debe imponer el backend)
+- **Autorizaciones:** solo un supervisor decide; quien solicita no aprueba (`SELF_APPROVAL` 403); aprobación de un solo
+  uso con `validUntil`; vencida → 410.
+- **Relevo:** la diferencia del arqueo exige una autorización `relevo` aprobada y se consume (`AUTHORIZATION_REQUIRED` 409).
+- **Sync:** `idempotencyKey` por operación (reenvío = mismo resultado); `dependsOn` pendiente → `reintentable`; PIN o
+  datos de tarjeta en `payload` → `rechazada`; turno cerrado → `revision`.
+- **Pedidos:** `ESTADO_INVALIDO`, `SALDO_PENDIENTE` al despachar con saldo (salvo crédito), `TIENE_PAGOS` al cancelar,
+  motivo obligatorio.
 
-## Para pasar de `planned` a `simulated`
-1. Zod en `shared/contracts` + `Assert<Same<>>` en `contract-types.ts`.
-2. Ejemplos en `contracts/examples` y fixtures.
-3. Handlers MSW + escenarios de conformidad.
-4. Aprobación del dueño de las reglas (`docs/business-rules`).
-Pendiente: nada de esto está hecho; el cliente sigue usando `localStorage`.
+## Pendiente
+- Que `pos-ops` y `pos/orders` consuman estos endpoints (hoy no) y fusionar su simulación local con la del servidor.
+- Concurrencia real entre cajas, caducidad con reloj real, reglas del dueño y backend Frappe.

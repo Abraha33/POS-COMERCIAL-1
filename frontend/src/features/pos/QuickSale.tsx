@@ -60,7 +60,7 @@ const asApprovalAction = (value: unknown): ApprovalRequest['action'] | null =>
 const matches = (product: Product, query: string): boolean => {
   const q = query.trim().toLowerCase();
   if (!q) return true;
-  return [product.name, product.sku, product.barcode ?? ''].some((field) => field.toLowerCase().includes(q));
+  return [product.name, product.sku, product.barcode ?? '', product.brand ?? ''].some((field) => field.toLowerCase().includes(q));
 };
 
 /**

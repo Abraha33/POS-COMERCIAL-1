@@ -11,7 +11,8 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
-  approvalSchema, apiErrorSchema, authSessionSchema, inventoryAlertSchema, receivableSchema, saleReceiptSchema,
+  approvalSchema, apiErrorSchema, authorizationRequestSchema, custodyEntrySchema, posOrderSchema,
+  syncBatchResultSchema, authSessionSchema, inventoryAlertSchema, receivableSchema, saleReceiptSchema,
   payableSchema, purchaseOrderSchema, saleReturnSchema, saleSchema, shiftSchema, stockLevelSchema, transferSchema, z,
   agingReportSchema, companySchema, customerPaymentResultSchema, customerSchema, inventoryCountSchema,
   inventoryValuationSchema, purchaseOrderReceiptSchema, receivablePaymentSchema, salesSummarySchema,
@@ -375,6 +376,107 @@ export const registerConformance = (target: string | (() => string)) => {
         customerId: 'cus-001', payments: [{ method: 'credito', amount: 5600 }], creditDueDate: '2099-01-01',
       });
       expectError(await sell(token, free), 422, 'VALIDATION_ERROR');
+    });
+
+    it('PROPUESTA v0.6.0 · autorizaciones y relevo: sin auto-aprobación, diferencia exige autorización aprobada', async () => {
+      const cashier = await login('laura.gomez');
+      const admin = await login('maria.perez');
+      const shift = await ensureOpenShift(cashier);
+
+      const created = await call('POST', '/pos/authorizations', {
+        token: cashier,
+        body: { type: 'relevo', resource: { kind: 'shift', id: shift.id }, amount: 1000, reason: 'Sobrante en el arqueo', fingerprint: 'fp-1' },
+      });
+      expect(created.status, JSON.stringify(created.body)).toBe(201);
+      expectSchema('AuthorizationRequest', created.body);
+      const auth = authorizationRequestSchema.parse(created.body);
+      expect(auth.status).toBe('pendiente');
+
+      expectError(await call('POST', `/pos/authorizations/${auth.id}/decision`, { token: cashier, body: { decision: 'aprobar' } }), 403, 'FORBIDDEN');
+      const approved = await call('POST', `/pos/authorizations/${auth.id}/decision`, { token: admin, body: { decision: 'aprobar' } });
+      expect(approved.status, JSON.stringify(approved.body)).toBe(200);
+      expect(authorizationRequestSchema.parse(approved.body).status).toBe('aprobada');
+      expectError(await call('POST', `/pos/authorizations/${auth.id}/decision`, { token: admin, body: { decision: 'rechazar' } }), 409, 'INVALID_STATE');
+
+      const own = authorizationRequestSchema.parse((await call('POST', '/pos/authorizations', {
+        token: admin,
+        body: { type: 'otra', resource: { kind: 'x', id: '1' }, amount: 0, reason: 'Prueba propia', fingerprint: 'fp-2' },
+      })).body);
+      expectError(await call('POST', `/pos/authorizations/${own.id}/decision`, { token: admin, body: { decision: 'aprobar' } }), 403, 'SELF_APPROVAL');
+
+      // Relevo con diferencia: sin autorización -> 409; con la autorización aprobada -> 200 y se consume.
+      const counted = shift.expectedCash + 1000;
+      expectError(await call('POST', `/pos/shifts/${shift.id}/handover`, { token: cashier, body: { toEmployeeId: 'emp-003', countedCash: counted } }), 409, 'AUTHORIZATION_REQUIRED');
+      const handed = await call('POST', `/pos/shifts/${shift.id}/handover`, {
+        token: cashier, body: { toEmployeeId: 'emp-003', countedCash: counted, authorizationId: auth.id },
+      });
+      expect(handed.status, JSON.stringify(handed.body)).toBe(200);
+      expectSchema('CustodyEntry', handed.body);
+      expect(custodyEntrySchema.parse(handed.body).difference).toBe(1000);
+      const reused = await call('POST', `/pos/shifts/${shift.id}/handover`, {
+        token: admin, body: { toEmployeeId: 'emp-001', countedCash: counted, authorizationId: auth.id },
+      });
+      expectError(reused, 409, 'AUTHORIZATION_REQUIRED'); // la autorización era de un solo uso
+
+      // Devolver la caja a la cajera para no alterar los escenarios siguientes (arqueo exacto).
+      const back = await call('POST', `/pos/shifts/${shift.id}/handover`, { token: admin, body: { toEmployeeId: 'emp-001', countedCash: shift.expectedCash } });
+      expect(back.status, JSON.stringify(back.body)).toBe(200);
+    });
+
+    it('PROPUESTA v0.6.0 · sincronización: idempotente, respeta dependencias y rechaza datos sensibles', async () => {
+      const token = await login('laura.gomez');
+      const shift = await ensureOpenShift(token);
+      const base = { shiftId: shift.id, createdAt: '2026-10-11T14:00:00Z' };
+      const batch = {
+        deviceId: 'dev-1',
+        operations: [
+          { ...base, idempotencyKey: 'op-a', kind: 'movimiento-efectivo', payload: { amount: 5000 } },
+          { ...base, idempotencyKey: 'op-b', kind: 'documento-fiscal', payload: { sale: 'x' }, dependsOn: ['op-a'] },
+          { ...base, idempotencyKey: 'op-c', kind: 'cobro-tarjeta', payload: { pin: '1234' } },
+          { ...base, idempotencyKey: 'op-d', kind: 'inventada', payload: {} },
+          { ...base, idempotencyKey: 'op-e', kind: 'autorizacion', payload: {}, dependsOn: ['op-nunca'] },
+        ],
+      };
+      const first = await call('POST', '/pos/sync/batches', { token, body: batch });
+      expect(first.status, JSON.stringify(first.body)).toBe(200);
+      expectSchema('SyncBatchResult', first.body);
+      const r1 = syncBatchResultSchema.parse(first.body).results;
+      expect(r1.map((r) => `${r.idempotencyKey}:${r.status}`)).toEqual([
+        'op-a:confirmada', 'op-b:confirmada', 'op-c:rechazada', 'op-d:rechazada', 'op-e:reintentable',
+      ]);
+      expect(r1[2]?.code).toBe('SENSITIVE_DATA');
+
+      const again = syncBatchResultSchema.parse((await call('POST', '/pos/sync/batches', { token, body: batch })).body).results;
+      expect(again[0]?.remoteRef).toBe(r1[0]?.remoteRef); // mismo resultado, sin duplicar
+      expect(again.map((r) => r.status)).toEqual(r1.map((r) => r.status));
+    });
+
+    it('PROPUESTA v0.6.0 · pedidos: máquina de estados, despacho con saldo y cancelación', async () => {
+      const token = await login('laura.gomez');
+      const newOrder = {
+        customerId: null, fulfillment: 'recogida', shippingCost: 0,
+        lines: [{ productId: 'prd-001', quantity: 2, unitPrice: 2800, packed: 0, missing: 0 }],
+      };
+      const created = await call('POST', '/pos/orders', { token, body: newOrder });
+      expect(created.status, JSON.stringify(created.body)).toBe(201);
+      expectSchema('PosOrder', created.body);
+      const order = posOrderSchema.parse(created.body);
+      expect([order.status, order.paymentState, order.total]).toEqual(['pendiente', 'sin-pago', 5600]);
+
+      const step = (id: string, body: Record<string, unknown>) => call('POST', `/pos/orders/${id}/transitions`, { token, body });
+      expectError(await step(order.id, { action: 'despachar' }), 409, 'ESTADO_INVALIDO');
+      expect((await step(order.id, { action: 'tomar' })).status).toBe(200);
+      expect((await step(order.id, { action: 'verificar' })).status).toBe(200);
+      expectError(await step(order.id, { action: 'despachar' }), 409, 'SALDO_PENDIENTE');
+      const paid = posOrderSchema.parse((await step(order.id, { action: 'registrar-pago', amount: 5600 })).body);
+      expect(paid.paymentState).toBe('pagado');
+      expect(posOrderSchema.parse((await step(order.id, { action: 'despachar' })).body).status).toBe('despachado');
+      expect(posOrderSchema.parse((await step(order.id, { action: 'entregar' })).body).status).toBe('entregado');
+      expectError(await step(order.id, { action: 'cancelar', reason: 'tarde' }), 409, 'ESTADO_INVALIDO');
+
+      const second = posOrderSchema.parse((await call('POST', '/pos/orders', { token, body: newOrder })).body);
+      expectError(await step(second.id, { action: 'cancelar' }), 422, 'VALIDATION_ERROR');
+      expect(posOrderSchema.parse((await step(second.id, { action: 'cancelar', reason: 'Cliente desistió' })).body).status).toBe('cancelado');
     });
 
     it('anulación: devuelve stock, exige motivo y no se repite', async () => {

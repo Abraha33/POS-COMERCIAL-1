@@ -747,7 +747,7 @@ export interface paths {
         /**
          * @description PROPUESTA v0.6.0 (capa 5, POS-F03). Entrega de custodia entre cajeros: arqueo de entrega con diferencia y
          *     autorización cuando existe. Nunca cambia el responsable sin dejar huella (`CustodyEntry`).
-         *     Aún sin mock ni backend; el cliente lo simula en `features/pos-ops`.
+         *     Simulada por mock; el cliente conserva su simulación local en `features/pos-ops`.
          */
         post: operations["handoverShift"];
         delete?: never;
@@ -911,6 +911,17 @@ export interface components {
             taxCategory: "gravado" | "exento" | "excluido" | "impoconsumo";
             taxRate: number;
             active: boolean;
+            /** @description PROPUESTA v0.6.0. Marca comercial. */
+            brand?: string;
+            /**
+             * @description PROPUESTA v0.6.0. Presentaciones vendibles del producto (caja, paca). `factor` = unidades base por
+             *     presentación; el precio de la presentación es informativo, el servidor decide el cobrado.
+             */
+            presentations?: {
+                name: string;
+                factor: number;
+                price?: number;
+            }[];
         };
         ProductInput: {
             sku: string;
@@ -924,6 +935,17 @@ export interface components {
             taxCategory: "gravado" | "exento" | "excluido" | "impoconsumo";
             taxRate: number;
             active: boolean;
+            /** @description PROPUESTA v0.6.0. Marca comercial. */
+            brand?: string;
+            /**
+             * @description PROPUESTA v0.6.0. Presentaciones vendibles del producto (caja, paca). `factor` = unidades base por
+             *     presentación; el precio de la presentación es informativo, el servidor decide el cobrado.
+             */
+            presentations?: {
+                name: string;
+                factor: number;
+                price?: number;
+            }[];
         };
         Customer: {
             id: string;
@@ -934,6 +956,12 @@ export interface components {
             taxResponsibility: components["schemas"]["TaxResponsibility"];
             phone?: string;
             email?: string;
+            /** @description PROPUESTA v0.6.0. Direcciones del cliente (entrega, facturación). */
+            addresses?: {
+                label: string;
+                line: string;
+                city?: string;
+            }[];
             active: boolean;
             creditLimit: number;
             /** @description Derivado (servidor). Saldo pendiente de todas las facturas abiertas. */
@@ -1184,6 +1212,12 @@ export interface components {
             taxResponsibility: components["schemas"]["TaxResponsibility"];
             phone?: string;
             email?: string;
+            /** @description PROPUESTA v0.6.0. Direcciones del cliente (entrega, facturación). */
+            addresses?: {
+                label: string;
+                line: string;
+                city?: string;
+            }[];
             active: boolean;
             creditLimit: number;
         };

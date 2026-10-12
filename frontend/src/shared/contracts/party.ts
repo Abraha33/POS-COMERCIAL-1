@@ -28,6 +28,8 @@ export const customerRecordSchema = z.object({
   documentType: documentTypeSchema,
   taxResponsibility: taxResponsibilitySchema,
   creditLimit: z.number().int().nonnegative(),
+  /** PROPUESTA v0.6.0: direcciones de entrega y facturación. */
+  addresses: z.array(z.object({ label: z.string().min(1), line: z.string().min(1), city: z.string().optional() })).optional(),
 });
 export type CustomerRecord = z.infer<typeof customerRecordSchema>;
 

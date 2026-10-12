@@ -28,8 +28,9 @@ pasarela. Un banco nuevo es una fila de configuración, no un formulario. El cat
 | Subflujo | Estado | Nota |
 |---|---|---|
 | Texto, código de barras, SKU, categoría, disponibilidad, frecuentes, lista/cuadrícula | ✔ | |
-| Marca, presentación, historial reciente | ✘ **C** | el contrato de producto no tiene marca ni presentaciones |
-| Conversión de unidades / presentaciones | ✘ **C** | |
+| Marca y presentaciones | ✔ (mocks) | `brand` y `presentations` PROPUESTA v0.6.0; búsqueda por marca; agregar una presentación suma sus unidades base |
+| Historial reciente | ◐ | "Frecuentes" cubre lo más vendido; no hay historial por cliente |
+| Conversión de unidades | ◐ | `factor` por presentación; el cobro siempre es por unidad base |
 
 ## 04 Detalle de producto
 | Subflujo | Estado | Nota |
@@ -43,7 +44,7 @@ pasarela. Un banco nuevo es una fila de configuración, no un formulario. El cat
 | Selección, alta rápida, cupo y saldo | ✔ | |
 | Buscar por nombre, NIT o teléfono | ✔ | Enter selecciona si hay una sola coincidencia |
 | Editar cliente | ✔ | solo con permiso `customers.edit` (el cajero crea pero no edita) |
-| Direcciones de cliente | ✘ **C** | el contrato de cliente no tiene direcciones |
+| Direcciones de cliente | ✔ (mocks) | `addresses` PROPUESTA v0.6.0; alta y edición con una dirección principal |
 | Elegir documento a emitir (factura electrónica / documento equivalente POS) | ✔ | **selección**, recuerda el último; la emisión no existe (**B**, DIAN) |
 | No eliminar clientes con historial fiscal | ✘ **C** | no hay operación de borrado; falta la regla explícita |
 
@@ -105,6 +106,5 @@ pasarela. Un banco nuevo es una fila de configuración, no un formulario. El cat
 Cerrado en esta rama: canales dinámicos, documento a emitir, comprobante móvil con verificación y excepción trazable,
 canal/referencia/cuenta/comprobante en la venta (contrato v0.6.0 PROPUESTA), plazo y abono inicial de crédito, y pagos
 mixtos como componentes independientes con reversa trazable.
-Sigue **sin** cerrar: direcciones de cliente y marca/presentaciones (contrato de cliente y de producto), conciliación
-de cuentas, backend real. Capa 5 (turnos, autorizaciones, sync, pedidos): contratos solo **especificados**
-(`x-status: planned`, ver `docs/architecture/CONTRATO_CAPA_5.md`), sin mock ni backend. Todo lo ✔ corre sobre mocks.
+Sigue **sin** cerrar: conciliación de cuentas receptoras ("reportado vs recibido"), edición de marca/presentaciones
+desde Productos (el módulo no se tocó), historial por cliente y backend real. Todo lo ✔ corre sobre mocks.

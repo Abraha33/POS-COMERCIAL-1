@@ -159,3 +159,18 @@ describe('Venta rápida · editar cliente sin permiso', () => {
     expect(screen.queryByRole('button', { name: 'Editar cliente' })).not.toBeInTheDocument();
   });
 });
+
+describe('Venta rápida · marca y presentaciones', () => {
+  it('busca por marca y agrega una presentación como unidades base', async () => {
+    const user = userEvent.setup();
+    await renderPos();
+    await openShift(user);
+    await user.type(screen.getByLabelText(/Buscar producto o escanear código/), 'Oleosol');
+    await user.click(await screen.findByRole('button', { name: 'Ver detalle de Aceite 1 L' }));
+    const panel = await screen.findByRole('dialog', { name: 'Aceite 1 L' });
+    expect(within(panel).getByText('Oleosol')).toBeInTheDocument();
+    expect(within(panel).getByText(/Caja x12 · 12 und/)).toBeInTheDocument();
+    await user.click(within(panel).getByRole('button', { name: 'Agregar Caja x12' }));
+    await waitFor(() => expect(screen.getByLabelText('Cantidad Aceite 1 L')).toHaveValue(12));
+  });
+});

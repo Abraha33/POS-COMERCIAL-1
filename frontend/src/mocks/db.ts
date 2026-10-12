@@ -1,4 +1,6 @@
-import type { Approval, Role, SaleReceipt } from '@/shared/contracts';
+import type {
+  Approval, AuthorizationRequest, CustodyEntry, PosOrder, Role, SaleReceipt, SyncOperationResult,
+} from '@/shared/contracts';
 import { setClock } from '@/shared/utils/clock';
 import { createSeed, type MockDb } from './seed';
 
@@ -15,6 +17,11 @@ type RuntimeState = {
   approvals: Map<string, Approval & { used: boolean; supervisorRole: Role }>;
   /** saleId -> shiftId y efectivo neto cobrado, para anulaciones. */
   saleMeta: Map<string, { shiftId: string; cashNet: number; branchId: string }>;
+  /** Capa 5 (PROPUESTA v0.6.0). */
+  authorizations: Map<string, AuthorizationRequest>;
+  custody: CustodyEntry[];
+  syncLedger: Map<string, SyncOperationResult>;
+  orders: Map<string, PosOrder>;
   counter: number;
 };
 
@@ -22,6 +29,10 @@ const createState = (): RuntimeState => ({
   idempotency: new Map(),
   approvals: new Map(),
   saleMeta: new Map(),
+  authorizations: new Map(),
+  custody: [],
+  syncLedger: new Map(),
+  orders: new Map(),
   counter: 0,
 });
 

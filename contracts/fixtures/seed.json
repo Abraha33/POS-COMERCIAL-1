@@ -5,6 +5,7 @@
       "sku": "SKU-001",
       "barcode": "7701234567890",
       "name": "Arroz 500 g",
+      "brand": "Diana",
       "category": "Granos",
       "unit": "und",
       "price": 2800,
@@ -24,7 +25,20 @@
       "cost": 9800,
       "taxCategory": "gravado",
       "taxRate": 0.19,
-      "active": true
+      "active": true,
+      "brand": "Oleosol",
+      "presentations": [
+        {
+          "name": "Caja x12",
+          "factor": 12,
+          "price": 142500
+        },
+        {
+          "name": "Paca x6",
+          "factor": 6,
+          "price": 72000
+        }
+      ]
     },
     {
       "id": "prd-003",
@@ -88,7 +102,14 @@
       "phone": "3001112233",
       "email": "compras@laesquina.example",
       "active": true,
-      "creditLimit": 1500000
+      "creditLimit": 1500000,
+      "addresses": [
+        {
+          "label": "Principal",
+          "line": "Cra 7 # 45-10",
+          "city": "Bogotá"
+        }
+      ]
     },
     {
       "id": "cus-002",

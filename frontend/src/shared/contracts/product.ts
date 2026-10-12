@@ -14,6 +14,12 @@ export const productSchema = z.object({
   taxCategory: z.enum(['gravado', 'exento', 'excluido', 'impoconsumo']),
   taxRate: z.number().min(0).max(1),
   active: z.boolean(),
+  /** PROPUESTA v0.6.0. */
+  brand: z.string().optional(),
+  /** PROPUESTA v0.6.0: `factor` = unidades base por presentación; el precio es informativo. */
+  presentations: z
+    .array(z.object({ name: z.string().min(1), factor: z.number().positive(), price: money.optional() }))
+    .optional(),
 });
 export type Product = z.infer<typeof productSchema>;
 export const productInputSchema = productSchema.omit({ id: true });

@@ -30,6 +30,7 @@ export const ProductDetailPanel = ({ product, stock, branchNames, currentBranchI
       <dl className="pos__facts">
         <div><dt>SKU</dt><dd>{product.sku}</dd></div>
         <div><dt>Código de barras</dt><dd>{product.barcode ?? '—'}</dd></div>
+        <div><dt>Marca</dt><dd>{product.brand ?? '—'}</dd></div>
         <div><dt>Categoría</dt><dd>{product.category}</dd></div>
         <div><dt>Unidad</dt><dd>{product.unit}</dd></div>
         <div><dt>Precio</dt><dd><MoneyText value={product.price} strong /></dd></div>
@@ -42,6 +43,27 @@ export const ProductDetailPanel = ({ product, stock, branchNames, currentBranchI
           <ul className="pos__hint pos-detail__list">
             {stock.map((s) => <li key={s.branchId}>{branchNames[s.branchId] ?? s.branchId}: {s.onHand}</li>)}
           </ul>
+        </>
+      ) : null}
+
+      {product.presentations && product.presentations.length > 0 ? (
+        <>
+          <h3 className="pos-detail__title">Presentaciones</h3>
+          <ul className="pos-detail__presentations" aria-label="Presentaciones">
+            {product.presentations.map((pr) => (
+              <li key={pr.name}>
+                <span>
+                  {pr.name} · {pr.factor} {product.unit}
+                  {pr.price !== undefined ? <> · <MoneyText value={pr.price} /></> : null}
+                </span>
+                <Button
+                  type="button" size="small" outlined label="Agregar" aria-label={`Agregar ${pr.name}`}
+                  onClick={() => onAdd(product, pr.factor)}
+                />
+              </li>
+            ))}
+          </ul>
+          <p className="pos__hint" role="note">El cobro se calcula por unidad base; el precio de la presentación es informativo.</p>
         </>
       ) : null}
 

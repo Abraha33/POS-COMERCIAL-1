@@ -21,6 +21,7 @@ export const NewCustomerDialog = ({ visible, onHide, onCreated, editing = null }
   const [taxId, setTaxId] = useState(editing?.taxId ?? '');
   const [phone, setPhone] = useState(editing?.phone ?? '');
   const [email, setEmail] = useState(editing?.email ?? '');
+  const [address, setAddress] = useState(editing?.addresses?.[0]?.line ?? '');
   const [error, setError] = useState<string | null>(null);
 
   const submit = () => {
@@ -35,6 +36,7 @@ export const NewCustomerDialog = ({ visible, onHide, onCreated, editing = null }
           name: name.trim(), documentType, taxId: taxId.trim(),
           taxResponsibility: editing?.taxResponsibility ?? 'R-99-PN', active: editing?.active ?? true,
           creditLimit: editing?.creditLimit ?? 0,
+          ...(address.trim() ? { addresses: [{ label: editing?.addresses?.[0]?.label ?? 'Principal', line: address.trim() }, ...(editing?.addresses?.slice(1) ?? [])] } : {}),
           ...(phone.trim() ? { phone: phone.trim() } : {}), ...(email.trim() ? { email: email.trim() } : {}),
         },
       },
@@ -45,6 +47,7 @@ export const NewCustomerDialog = ({ visible, onHide, onCreated, editing = null }
             setTaxId('');
             setPhone('');
             setEmail('');
+            setAddress('');
           }
           setError(null);
           onCreated(customer);
@@ -70,6 +73,8 @@ export const NewCustomerDialog = ({ visible, onHide, onCreated, editing = null }
       <input id="nc-id" className="p-inputtext w-full" value={taxId} onChange={(e) => setTaxId(e.target.value)} />
       <label htmlFor="nc-phone" className="pos-detail__title">Teléfono (opcional)</label>
       <input id="nc-phone" className="p-inputtext w-full" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+      <label htmlFor="nc-address" className="pos-detail__title">Dirección (opcional)</label>
+      <input id="nc-address" className="p-inputtext w-full" autoComplete="street-address" value={address} onChange={(e) => setAddress(e.target.value)} />
       <label htmlFor="nc-mail" className="pos-detail__title">Correo (opcional)</label>
       <input id="nc-mail" className="p-inputtext w-full" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
     </FormDialog>

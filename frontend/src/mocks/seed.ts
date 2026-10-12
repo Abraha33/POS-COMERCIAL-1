@@ -6,8 +6,8 @@ import type {
 const BRANCH = 'br-001';
 
 export const products: Product[] = [
-  { id: 'prd-001', sku: 'SKU-001', barcode: '7701234567890', name: 'Arroz 500 g', category: 'Granos', unit: 'und', price: 2800, cost: 2100, taxCategory: 'excluido', taxRate: 0, active: true },
-  { id: 'prd-002', sku: 'SKU-002', barcode: '7701234567891', name: 'Aceite 1 L', category: 'Aceites', unit: 'und', price: 12500, cost: 9800, taxCategory: 'gravado', taxRate: 0.19, active: true },
+  { id: 'prd-001', sku: 'SKU-001', barcode: '7701234567890', name: 'Arroz 500 g', brand: 'Diana', category: 'Granos', unit: 'und', price: 2800, cost: 2100, taxCategory: 'excluido', taxRate: 0, active: true },
+  { id: 'prd-002', sku: 'SKU-002', barcode: '7701234567891', name: 'Aceite 1 L', category: 'Aceites', unit: 'und', price: 12500, cost: 9800, taxCategory: 'gravado', taxRate: 0.19, active: true, brand: 'Oleosol', presentations: [{ name: 'Caja x12', factor: 12, price: 142500 }, { name: 'Paca x6', factor: 6, price: 72000 }] },
   { id: 'prd-003', sku: 'SKU-003', barcode: '7701234567892', name: 'Azúcar 1 kg', category: 'Granos', unit: 'und', price: 4200, cost: 3300, taxCategory: 'excluido', taxRate: 0, active: true },
   { id: 'prd-004', sku: 'SKU-004', barcode: '7701234567893', name: 'Leche entera 1 L', category: 'Lácteos', unit: 'und', price: 4600, cost: 3700, taxCategory: 'excluido', taxRate: 0, active: true },
   { id: 'prd-005', sku: 'SKU-005', barcode: '7701234567894', name: 'Detergente 1 kg', category: 'Aseo', unit: 'und', price: 9800, cost: 7400, taxCategory: 'gravado', taxRate: 0.19, active: true },
@@ -16,7 +16,7 @@ export const products: Product[] = [
 
 /** Clientes tal como se persisten; la API añade `outstandingBalance` y `overdueBalance` (mocks/derive.ts). */
 export const customers: CustomerRecord[] = [
-  { id: 'cus-001', name: 'Tienda La Esquina', documentType: 'NIT', taxId: '900123456-1', taxResponsibility: 'R-99-PN', phone: '3001112233', email: 'compras@laesquina.example', active: true, creditLimit: 1_500_000 },
+  { id: 'cus-001', name: 'Tienda La Esquina', documentType: 'NIT', taxId: '900123456-1', taxResponsibility: 'R-99-PN', phone: '3001112233', email: 'compras@laesquina.example', active: true, creditLimit: 1_500_000, addresses: [{ label: 'Principal', line: 'Cra 7 # 45-10', city: 'Bogotá' }] },
   { id: 'cus-002', name: 'Restaurante El Sazón', documentType: 'NIT', taxId: '901234567-2', taxResponsibility: 'R-99-PN', email: 'admin@elsazon.example', active: true, creditLimit: 800_000 },
   { id: 'cus-003', name: 'Cliente mostrador', documentType: 'CC', taxId: '222222222222', taxResponsibility: 'R-99-PN', active: true, creditLimit: 0 },
 ];

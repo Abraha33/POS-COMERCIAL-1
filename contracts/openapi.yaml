@@ -16,7 +16,7 @@ info:
     `overdueBalance`); el cliente no los recalcula como autoridad.
 
     `x-status: simulated` = existe como mock MSW (frontend/src/mocks) que implementa las reglas aprobadas;
-    el backend real aún no existe. `x-status: planned` = operación PROPUESTA solo especificada (sin mock ni backend):
+    el backend real aún no existe. `x-status: simulated` = operación PROPUESTA solo especificada (sin mock ni backend):
     capa 5 (turnos, autorizaciones, sincronización y pedidos).
     Dinero en el contrato: entero en COP (BR-GEN-01); el backend calcula internamente con más decimales.
     Errores: `Error` (BR-GEN-09).
@@ -1205,12 +1205,12 @@ paths:
       tags:
         - pos
       operationId: handoverShift
-      x-status: planned
+      x-status: simulated
       x-approval: proposed
       description: |
         PROPUESTA v0.6.0 (capa 5, POS-F03). Entrega de custodia entre cajeros: arqueo de entrega con diferencia y
         autorización cuando existe. Nunca cambia el responsable sin dejar huella (`CustodyEntry`).
-        Aún sin mock ni backend; el cliente lo simula en `features/pos-ops`.
+        Simulada por mock; el cliente conserva su simulación local en `features/pos-ops`.
       parameters:
         - name: id
           in: path
@@ -1237,7 +1237,7 @@ paths:
       tags:
         - pos
       operationId: listAuthorizations
-      x-status: planned
+      x-status: simulated
       x-approval: proposed
       description: |
         PROPUESTA v0.6.0 (capa 5, POS-F12). Bandeja de solicitudes de autorización por sede. El supervisor no puede
@@ -1261,7 +1261,7 @@ paths:
       tags:
         - pos
       operationId: requestAuthorization
-      x-status: planned
+      x-status: simulated
       x-approval: proposed
       description: |
         PROPUESTA v0.6.0. Crea la solicitud con huella (`fingerprint`) de lo esencial; si esos datos cambian después,
@@ -1284,7 +1284,7 @@ paths:
       tags:
         - pos
       operationId: decideAuthorization
-      x-status: planned
+      x-status: simulated
       x-approval: proposed
       description: |
         PROPUESTA v0.6.0. Aprueba o rechaza una solicitud. La aprobación es de un solo uso y vence en `validUntil`.
@@ -1317,7 +1317,7 @@ paths:
       tags:
         - pos
       operationId: syncOperations
-      x-status: planned
+      x-status: simulated
       x-approval: proposed
       description: |
         PROPUESTA v0.6.0 (capa 5, POS-F13). Envía operaciones encoladas sin conexión. Cada una lleva su
@@ -1341,7 +1341,7 @@ paths:
       tags:
         - pos
       operationId: listPosOrders
-      x-status: planned
+      x-status: simulated
       x-approval: proposed
       description: |
         PROPUESTA v0.6.0 (capa 5, pedidos del POS). Hoy los pedidos viven en `localStorage` por sede; este contrato
@@ -1365,7 +1365,7 @@ paths:
       tags:
         - pos
       operationId: createPosOrder
-      x-status: planned
+      x-status: simulated
       x-approval: proposed
       description: PROPUESTA v0.6.0. Crea un pedido sin cobrar, o vinculado a una venta ya cobrada (`saleId`).
       requestBody:
@@ -1386,7 +1386,7 @@ paths:
       tags:
         - pos
       operationId: transitionPosOrder
-      x-status: planned
+      x-status: simulated
       x-approval: proposed
       description: |
         PROPUESTA v0.6.0. Cambia el estado: pendiente → en-proceso → listo → despachado → entregado; en-proceso ⇄
@@ -1613,6 +1613,29 @@ components:
           maximum: 1
         active:
           type: boolean
+        brand:
+          type: string
+          description: PROPUESTA v0.6.0. Marca comercial.
+        presentations:
+          type: array
+          description: |
+            PROPUESTA v0.6.0. Presentaciones vendibles del producto (caja, paca). `factor` = unidades base por
+            presentación; el precio de la presentación es informativo, el servidor decide el cobrado.
+          items:
+            type: object
+            required:
+              - name
+              - factor
+            properties:
+              name:
+                type: string
+                minLength: 1
+              factor:
+                type: number
+                exclusiveMinimum: 0
+              price:
+                type: integer
+                minimum: 0
     ProductInput:
       type: object
       required:
@@ -1657,6 +1680,29 @@ components:
           maximum: 1
         active:
           type: boolean
+        brand:
+          type: string
+          description: PROPUESTA v0.6.0. Marca comercial.
+        presentations:
+          type: array
+          description: |
+            PROPUESTA v0.6.0. Presentaciones vendibles del producto (caja, paca). `factor` = unidades base por
+            presentación; el precio de la presentación es informativo, el servidor decide el cobrado.
+          items:
+            type: object
+            required:
+              - name
+              - factor
+            properties:
+              name:
+                type: string
+                minLength: 1
+              factor:
+                type: number
+                exclusiveMinimum: 0
+              price:
+                type: integer
+                minimum: 0
     Customer:
       x-frappe-doctype: Customer
       type: object
@@ -1693,6 +1739,23 @@ components:
           type: string
         email:
           type: string
+        addresses:
+          type: array
+          description: PROPUESTA v0.6.0. Direcciones del cliente (entrega, facturación).
+          items:
+            type: object
+            required:
+              - label
+              - line
+            properties:
+              label:
+                type: string
+                minLength: 1
+              line:
+                type: string
+                minLength: 1
+              city:
+                type: string
         active:
           type: boolean
         creditLimit:
@@ -2445,6 +2508,23 @@ components:
           type: string
         email:
           type: string
+        addresses:
+          type: array
+          description: PROPUESTA v0.6.0. Direcciones del cliente (entrega, facturación).
+          items:
+            type: object
+            required:
+              - label
+              - line
+            properties:
+              label:
+                type: string
+                minLength: 1
+              line:
+                type: string
+                minLength: 1
+              city:
+                type: string
         active:
           type: boolean
         creditLimit:
