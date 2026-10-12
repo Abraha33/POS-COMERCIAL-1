@@ -85,7 +85,7 @@ export default defineConfig({
   // (usa DEV_HOST=localhost para volver a restringirlo a esta máquina).
   server: {
     host: process.env.DEV_HOST ?? true,
-    port: Number(process.env.DEV_PORT ?? 5188),
+    port: Number(process.env.DEV_PORT ?? 8082), // 8082 = proyecto oficial (ver AGENTS.md)
     strictPort: true,
   },
   test: {

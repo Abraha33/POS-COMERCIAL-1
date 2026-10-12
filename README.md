@@ -14,7 +14,7 @@ Estado del contrato: **v0.3.0, reglas de negocio aprobadas por el dueño** (acla
 ## Comandos (desde `frontend/`)
 ```bash
 pnpm install
-pnpm dev          # http://localhost:5188
+pnpm dev          # http://localhost:8082 (proyecto oficial; ver AGENTS.md)
 pnpm gen:api      # regenera tipos desde contracts/openapi.yaml
 pnpm conformance  # suite de conformidad por HTTP (API_BASE_URL=... para el backend real)
 pnpm core:check   # 8 gates; imprime READY FOR PARALLEL SCREEN CONSTRUCTION si todo pasa

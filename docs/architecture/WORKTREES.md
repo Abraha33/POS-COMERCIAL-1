@@ -1,5 +1,8 @@
 # Worktrees por carril
 
+> **Vigente:** el proyecto oficial es `pos-proofs` / `feat/pos-proofs` (puerto 8082). Ver `AGENTS.md` y
+> `docs/architecture/ENTORNO_OFICIAL.md`. La tabla de abajo es histórica.
+
 Cada carril trabaja en su propio directorio (git worktree) y su propia rama. Raíz: `D:\POS-COMERCIAL-WORKTREES\`.
 El repo principal (`D:\POS-COEMRCIAL-1`, rama `main`) lo usa el integrador.
 

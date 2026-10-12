@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Auditoría de pantallas: recorre cada ruta a 3 anchos y reporta desbordes, h1, controles sin nombre
- * y violaciones axe; guarda capturas en docs/qa/audit/. Uso: AUDIT_URL=http://localhost:5188 node scripts/audit.mjs
+ * y violaciones axe; guarda capturas en docs/qa/audit/. Uso: AUDIT_URL=http://localhost:8082 node scripts/audit.mjs
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';

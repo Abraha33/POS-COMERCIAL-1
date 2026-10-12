@@ -1,5 +1,8 @@
 # CLAUDE.md — ERP/POS Comercial
 
+> **Proyecto oficial:** esta carpeta (`pos-proofs`, rama `feat/pos-proofs`, puerto 8082). El contrato común para
+> cualquier herramienta está en `AGENTS.md`; este archivo lo complementa con detalle de UX y definición de terminado.
+
 ## Qué es
 ERP/POS SaaS para comercios (distribuidores, ferreterías, alta rotación). Frontend React separado; **Frappe/ERPNext es solo backend**
 y se consume por `/api/v1` (`contracts/openapi.yaml`). Hoy responde MSW.
