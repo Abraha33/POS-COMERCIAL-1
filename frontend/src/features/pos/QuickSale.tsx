@@ -7,6 +7,7 @@ import { useCustomers, useProducts } from '@/shared/api/queries';
 import { useHotkey } from '@/shared/keyboard/useHotkey';
 import { ConfirmAction, FormDialog, MoneyText, ScreenTemplate, ShortcutBar } from '@/shared/ui';
 import { formatMoney } from '@/shared/utils/format';
+import { uuid } from '@/shared/utils/uuid';
 import { computeTotals } from '@/shared/utils/pricing';
 import { CartLines, type PricedLine } from './CartLines';
 import { ALL_CATEGORIES, CatalogPanel } from './CatalogPanel';
@@ -55,7 +56,7 @@ export const QuickSale = ({ shift, active = true }: { shift: Shift; active?: boo
   const [channel, setChannel] = useState<DigitalChannel>('transferencia');
   const [mixedRows, setMixedRows] = useState<Payment[]>([]);
   const [note, setNote] = useState('');
-  const [operationId, setOperationId] = useState(() => crypto.randomUUID());
+  const [operationId, setOperationId] = useState(() => uuid());
   const [approvalToken, setApprovalToken] = useState<string | undefined>();
   const [pinRequest, setPinRequest] = useState<PinRequest | null>(null);
   const [receipt, setReceipt] = useState<SaleReceipt | null>(null);
@@ -173,7 +174,7 @@ export const QuickSale = ({ shift, active = true }: { shift: Shift; active?: boo
     setApprovalToken(undefined);
     setCheckoutError(null);
     setNote('');
-    setOperationId(crypto.randomUUID());
+    setOperationId(uuid());
     setQuery('');
     setSearchMessage(null);
     setPane('catalog');

@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { uuid } from '@/shared/utils/uuid';
 
 export type HeldLine = { productId: string; quantity: number; discount: number };
 export type HeldSale = {
@@ -45,7 +46,7 @@ export const useHeldSales = (registerId: string) => {
 
   const hold = useCallback(
     (lines: HeldLine[], customerId: string | null) =>
-      persist([...held, { id: crypto.randomUUID(), heldAt: new Date().toISOString(), customerId, lines }]),
+      persist([...held, { id: uuid(), heldAt: new Date().toISOString(), customerId, lines }]),
     [held, persist],
   );
 

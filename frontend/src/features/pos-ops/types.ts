@@ -1,3 +1,5 @@
+import { uuid } from '@/shared/utils/uuid';
+
 /**
  * Dominio de POS-F03 (turnos), POS-F12 (autorizaciones) y POS-F13 (offline).
  * SIMULADO en el cliente: ninguno de estos registros existe en el contrato del backend todavía.
@@ -132,10 +134,7 @@ export type Result<T, E extends string = string> = { ok: true; value: T } | { ok
 export const ok = <T>(value: T): Result<T, never> => ({ ok: true, value });
 export const fail = <E extends string>(error: E, message: string): Result<never, E> => ({ ok: false, error, message });
 
-let counter = 0;
 /** Id estable y único: UUID cuando existe, contador + tiempo en el resto de entornos. */
 export const newId = (prefix: string): string => {
-  const uuid = globalThis.crypto?.randomUUID?.();
-  counter += 1;
-  return `${prefix}-${uuid ?? `${Date.now().toString(36)}${counter.toString(36)}`}`;
+  return `${prefix}-${uuid()}`;
 };
