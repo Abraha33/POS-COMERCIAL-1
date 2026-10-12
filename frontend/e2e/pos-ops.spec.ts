@@ -10,6 +10,23 @@ const viewports = [
   { name: 'movil-375', width: 375, height: 812 },
 ] as const;
 
+/** Abre el turno por la pantalla de acceso (flujo real: POST /pos/shifts) con base exacta. */
+const openShiftReal = async (page: Page) => {
+  // Mismo cuidado que `gotoModule`: se navega por la SPA, nunca con recarga, porque la base de mocks vive en memoria.
+  await startAs(page, 'cajero', '/pos/acceso');
+  await page.getByRole('button', { name: 'Abrir caja' }).click();
+  await page.getByLabel('Cantidad de billete de 100000').fill('1');
+  await page.getByRole('button', { name: 'Revisar apertura' }).click();
+  await page.getByRole('button', { name: 'Confirmar apertura' }).dblclick();
+  await expect(page.getByTestId('opened-shift')).toBeVisible();
+  // Desde el acceso se continúa a Venta rápida; el turno del POS (/pos/turno) se abre desde ahí.
+  await page.getByRole('button', { name: /Continuar a Venta rápida/ }).click();
+  await expect(page).toHaveURL(/\/pos$/);
+  // "Mi turno" está en la barra operativa del POS (PosNav): se navega por la SPA, sin recargar.
+  await page.getByRole('button', { name: 'Mi turno' }).click();
+  await expect(page).toHaveURL(/\/pos\/turno$/);
+};
+
 const check = async (page: Page, scope: string, file: string) => {
   await page.waitForTimeout(450); // deja asentar la animación de los diálogos de PrimeReact
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
@@ -38,7 +55,7 @@ for (const vp of viewports) {
     await expect(page.getByText('No hay un turno activo en esta caja')).toBeVisible();
     await check(page, 'sin turno', `turno-vacio-${vp.name}`);
 
-    await page.getByRole('button', { name: /Crear turno simulado/ }).click();
+    await openShiftReal(page);
     await expect(page.getByRole('heading', { name: 'Turno', exact: true })).toBeVisible();
     await check(page, 'turno activo', `turno-activo-${vp.name}`);
 
@@ -91,9 +108,9 @@ test('flujo de autorización entre roles: cajero solicita, supervisor aprueba, c
   await expect(page.getByRole('button', { name: 'Aplicar autorización' })).toHaveCount(0);
 });
 
-test('relevo con cuadre exacto: la custodia cambia aquí y se informa que el servidor no tiene turno abierto', async ({ page }) => {
+test('relevo con cuadre exacto: el relevo se confirma en el servidor y la custodia cambia', async ({ page }) => {
   await startAs(page, 'cajero', '/pos/turno');
-  await page.getByRole('button', { name: /Crear turno simulado/ }).click();
+  await openShiftReal(page);
   await page.getByRole('button', { name: 'Relevar' }).click();
   const dlg = page.getByRole('dialog', { name: 'Relevar la caja' });
   await dlg.getByLabel('Recibe').selectOption({ index: 1 });
@@ -103,5 +120,5 @@ test('relevo con cuadre exacto: la custodia cambia aquí y se informa que el ser
   await dlg.getByLabel('Efectivo contado').pressSequentially(expected.replace(/\D/g, '') || '0');
   await dlg.getByRole('button', { name: 'Confirmar relevo' }).click();
   await expect(page.getByRole('heading', { name: 'Entregas de custodia' })).toBeVisible();
-  await expect(page.getByText(/No hay un turno abierto en el servidor/)).toBeVisible();
+  await expect(page.getByText('Relevo confirmado por el servidor.')).toBeVisible();
 });

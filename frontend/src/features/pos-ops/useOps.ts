@@ -84,8 +84,25 @@ export const useOps = (options: OpsOptions = {}) => {
     if (raw.some((o) => o.status === 'enviando')) guard(() => store.write('queue', offline.recoverInterrupted(raw)));
   }, [store]);
 
-  const current = shifts.recoverOwnShift(shiftList, scope.registerId, session.user.id)
+  // Fuente del turno (DECISIONES_CONTRATOS §1): el `Shift` del servidor manda en sus campos; el registro local con el
+  // MISMO id aporta solo el estado de interfaz (pausa, incidencias, bitácora). Sin servidor (modo local) manda el local.
+  const serverCurrent = serverShift.data?.status === 'open'
+    ? shifts.fromServerShift(serverShift.data, scope, session.user.name)
+    : null;
+  const localCurrent = shifts.recoverOwnShift(shiftList, scope.registerId, session.user.id)
     ?? shiftList.find((s) => s.scope.registerId === scope.registerId && s.status !== 'cerrado') ?? null;
+  const localForServer = serverCurrent ? shiftList.find((s) => s.id === serverCurrent.id) : undefined;
+  const current: ShiftRecord | null = serverMode === 'api'
+    ? (serverCurrent && { ...serverCurrent, ...(localForServer ? shifts.uiStateOf(localForServer) : {}) })
+    : localCurrent;
+  void current;
+
+  // Primera vez que se ve este turno del servidor: se crea su registro de interfaz (con el mismo id, una sola vez).
+  useEffect(() => {
+    if (serverMode !== 'api' || serverCurrent === null || localForServer) return;
+    guard(() => store.write('shifts', [...store.read<ShiftRecord>('shifts'), serverCurrent]));
+  }, [serverMode, serverCurrent, localForServer, store]);
+
   const mine = current !== null && current.cashierId === session.user.id;
   const isSupervisor = SUPERVISOR_ROLES.includes(session.user.role);
 
@@ -168,15 +185,6 @@ export const useOps = (options: OpsOptions = {}) => {
   };
 
   const actions = {
-    /** Equivale a una apertura confirmada de POS-F02 (que hoy es simulada y no persiste). */
-    startSimulatedShift: (openingCash: number) => {
-      const r = shifts.startShift(
-        { scope, cashierId: session.user.id, cashierName: session.user.name, openingCash, openingRef: 'pos-f02-simulada' },
-        shiftList,
-        new Date(),
-      );
-      run(r, saveShift);
-    },
     pause: () => current && run(shifts.pause(current), saveShift),
     resume: (reauthId: string | null) => current && run(shifts.resume(current, reauthId), saveShift),
     handover: (input: Omit<shifts.HandoverInput, 'fromId'>, policy: shifts.HandoverPolicy, approvalToken?: string | null) => {
@@ -205,8 +213,6 @@ export const useOps = (options: OpsOptions = {}) => {
       const review = actions.finishReview();
       return run(shifts.requestFinish(current, review, new Date()), saveShift);
     },
-    /** Simula lo que hará POS-F10 al cerrar. */
-    simulateClose: () => current && run(shifts.markClosed(current, new Date()), saveShift),
 
     requestAuth: (input: Omit<auth.NewRequest, 'scope' | 'requesterId' | 'requesterName'>) =>
       run(auth.createRequest({ ...input, scope, requesterId: session.user.id, requesterName: session.user.name }, new Date()), saveAuth),

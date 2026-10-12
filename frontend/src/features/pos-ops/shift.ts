@@ -1,3 +1,4 @@
+import type { Shift } from '@/shared/contracts';
 import { fail, newId, ok, type CustodyEntry, type Incident, type IncidentKind, type Result, type Scope, type ShiftRecord } from './types';
 
 /**
@@ -198,3 +199,35 @@ export const markClosed = (s: ShiftRecord, now: Date): Result<ShiftRecord, Shift
 /** ¿Debe bloquearse la pantalla por inactividad? */
 export const shouldLockForInactivity = (lastActivity: number, now: number, limitMs: number): boolean =>
   limitMs > 0 && now - lastActivity >= limitMs;
+
+/**
+ * ADAPTER TEMPORAL (DECISIONES_CONTRATOS §1): el turno lo define `Shift` del contrato (`GET /pos/shifts/current`).
+ * `ShiftRecord` solo añade el estado de interfaz que el servidor no tiene (pausa, incidencias, bitácora local).
+ * Mientras exista, esta es la única función que traduce entre ambos.
+ */
+export const fromServerShift = (shift: Shift, scope: Scope, cashierName: string): ShiftRecord => ({
+  id: shift.id,
+  scope,
+  cashierId: shift.cashierId,
+  cashierName,
+  openedAt: shift.openedAt,
+  closedAt: shift.closedAt,
+  openingCash: shift.openingCash,
+  openingRef: 'servidor',
+  status: shift.status === 'open' ? 'activo' : 'cerrado',
+  custody: [],
+  incidents: [],
+  operationIds: [],
+  finishRequestedAt: null,
+});
+
+/** Parte del registro local que es SOLO de interfaz (el servidor no la tiene). */
+export const uiStateOf = (s: ShiftRecord): Pick<ShiftRecord, 'status' | 'custody' | 'incidents' | 'operationIds' | 'finishRequestedAt'> => ({
+  // `status` aquí es el estado de INTERFAZ (activo/pausado/finalizando). El servidor solo sabe si el turno está abierto:
+  // el servidor decide `cerrado` y el registro local nunca reabre un turno cerrado en el servidor.
+  status: s.status,
+  custody: s.custody,
+  incidents: s.incidents,
+  operationIds: s.operationIds,
+  finishRequestedAt: s.finishRequestedAt,
+});

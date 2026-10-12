@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
+import { roleHasPermission } from '@/shared/contracts';
 import { useEmployees } from '@/shared/api/queries';
 import { EmptyState, FormDialog, MoneyInput, MoneyText, StatusTag, type StatusDef } from '@/shared/ui';
 import { defaultHandoverPolicy, shouldLockForInactivity, type HandoverPolicy } from './shift';
@@ -64,14 +65,10 @@ export const ShiftPanel = ({ ops }: Props) => {
     return (
       <EmptyState
         title="No hay un turno activo en esta caja"
-        description="El turno nace de una apertura confirmada. Abre la caja para empezar a operar."
+        description="El turno nace de una apertura confirmada por el servidor (POST /pos/shifts). Abre la caja para operar."
         action={
           <div className="po-actions">
             <Button label="Ir a acceso y apertura" icon="pi pi-unlock" onClick={() => void navigate({ to: '/pos/acceso' })} />
-            <Button
-              label="Crear turno simulado (base $ 200.000)" outlined icon="pi pi-flask"
-              onClick={() => actions.startSimulatedShift(200000)}
-            />
           </div>
         }
       />
@@ -197,7 +194,8 @@ const HandoverDialog = ({ ops, shift, visible, onHide }: { ops: Ops; shift: Shif
   const [mode, setMode] = useState<HandoverPolicy['mode']>(defaultHandoverPolicy.mode);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const candidates = (employees.data ?? []).filter((e) => e.active && e.id !== ops.session.user.id);
+  // Solo se ofrecen receptores que pueden operar caja (permiso pos.sell, la misma regla que aplica el servidor).
+  const candidates = (employees.data ?? []).filter((e) => e.active && e.id !== ops.session.user.id && roleHasPermission(e.role, 'pos.sell'));
   const to = candidates.find((e) => e.id === toId);
   const difference = counted === null || expected === null ? null : counted - expected;
   const needsAuth = difference !== null && difference !== 0;
@@ -323,8 +321,7 @@ const FinishDialog = ({ ops, shift, visible, onHide }: { ops: Ops; shift: ShiftR
         <Button label="Volver" outlined onClick={onHide} />
         {finishing ? (
           <>
-            <Button label="Ir a arqueo y cierre" icon="pi pi-arrow-right" onClick={() => void navigate({ to: '/pos' })} />
-            <Button label="Simular cierre" outlined icon="pi pi-flask" onClick={() => { ops.actions.simulateClose(); onHide(); }} />
+            <Button label="Ir a arqueo y cierre" icon="pi pi-arrow-right" onClick={() => { onHide(); void navigate({ to: '/pos' }); }} />
           </>
         ) : (
           <Button label="Solicitar finalización" icon="pi pi-flag" disabled={review.blockers.length > 0} onClick={() => ops.actions.requestFinish()} />

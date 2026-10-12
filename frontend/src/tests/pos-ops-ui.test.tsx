@@ -2,16 +2,20 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RouterProvider, createMemoryHistory } from '@tanstack/react-router';
+import { ApiError } from '@/shared/api/client';
 import { AppProviders } from '@/app/providers/AppProviders';
 import { createAppRouter } from '@/routes';
 import type { Role } from '@/shared/contracts';
 
 type User = ReturnType<typeof userEvent.setup>;
 
+/** Misma sesión que la app con mocks (main.tsx): el empleado de prueba del rol, para que `mine` coincida con el servidor. */
 const renderOps = async (role: Role = 'cajero') => {
+  const { sessionFor: mockSessionFor } = await import('@/mocks/handlers/auth');
   const router = createAppRouter(createMemoryHistory({ initialEntries: ['/pos/turno'] }));
+  const sessionFor = (r: Role) => (r === 'cajero' ? mockSessionFor('emp-001') : null);
   render(
-    <AppProviders initialRole={role}>
+    <AppProviders initialRole={role} sessionFor={sessionFor}>
       <RouterProvider router={router} />
     </AppProviders>,
   );
@@ -20,9 +24,15 @@ const renderOps = async (role: Role = 'cajero') => {
 };
 
 const tab = (user: User, name: RegExp) => user.click(screen.getByRole('tab', { name }));
-const startShift = async (user: User) => {
-  await user.click(await screen.findByRole('button', { name: /Crear turno simulado/ }));
-  await screen.findByRole('heading', { name: 'Turno' });
+/** El turno nace de una apertura real (`POST /pos/shifts`) antes de montar la pantalla, como en producción. */
+const startShift = async () => {
+  const { mockTokenForRole } = await import('@/mocks/test-users');
+  const { api, setAccessToken } = await import('@/shared/api/client');
+  const { shiftSchema } = await import('@/shared/contracts');
+  setAccessToken(mockTokenForRole('cajero'));
+  await api.post('/pos/shifts', { registerId: 'reg-001', openingCash: 200000 }, shiftSchema).catch((error: unknown) => {
+    if (!(error instanceof ApiError && error.code === 'SHIFT_ALREADY_OPEN')) throw error;
+  });
 };
 
 beforeEach(() => {
@@ -31,19 +41,25 @@ beforeEach(() => {
 });
 
 describe('POS-F03 · turno en la interfaz', () => {
-  it('sin turno: explica y ofrece abrir; con turno simulado muestra responsable, base y estado', async () => {
-    const user = userEvent.setup();
+  it('sin turno: explica y lleva a la apertura, sin crear turnos locales', async () => {
     await renderOps();
     expect(await screen.findByText('No hay un turno activo en esta caja')).toBeInTheDocument();
-    await startShift(user);
-    expect(screen.getByText('Activo')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ir a acceso y apertura' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Crear turno simulado/ })).not.toBeInTheDocument();
+  });
+
+  it('con turno abierto en el servidor: muestra responsable, base y estado', async () => {
+    await startShift();
+    await renderOps();
+    expect(await screen.findByText('Activo')).toBeInTheDocument();
     expect(screen.getByText('$ 200.000')).toBeInTheDocument();
   });
 
   it('pausar bloquea la terminal y conserva el turno; reanudar exige código', async () => {
     const user = userEvent.setup();
+    await startShift();
     await renderOps();
-    await startShift(user);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Pausar' })).toBeEnabled());
     await user.click(screen.getByRole('button', { name: 'Pausar' }));
     const dialog = await screen.findByRole('dialog', { name: 'Terminal bloqueada' });
     expect(within(dialog).getByText(/El turno sigue abierto/)).toBeInTheDocument();
@@ -57,8 +73,9 @@ describe('POS-F03 · turno en la interfaz', () => {
 
   it('incidencia: se registra y se resuelve', async () => {
     const user = userEvent.setup();
+    await startShift();
     await renderOps();
-    await startShift(user);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Registrar incidencia' })).toBeEnabled());
     await user.click(screen.getByRole('button', { name: 'Registrar incidencia' }));
     const dialog = await screen.findByRole('dialog', { name: 'Registrar incidencia' });
     await user.type(within(dialog).getByLabelText('Qué pasó'), 'Lector desconectado');
@@ -70,8 +87,9 @@ describe('POS-F03 · turno en la interfaz', () => {
 
   it('finalizar: lo pendiente se conserva y se pasa al flujo de cierre, sin cerrar aquí', async () => {
     const user = userEvent.setup();
+    await startShift();
     await renderOps();
-    await startShift(user);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Finalizar turno' })).toBeEnabled());
     await user.click(screen.getByRole('button', { name: 'Finalizar turno' }));
     const dialog = await screen.findByRole('dialog', { name: 'Finalizar turno' });
     expect(within(dialog).getByText(/arqueo y el cierre de caja se hacen en el flujo de cierre/)).toBeInTheDocument();
@@ -81,9 +99,8 @@ describe('POS-F03 · turno en la interfaz', () => {
   });
 
   it('el turno sobrevive a una recarga (nuevo montaje, mismo almacenamiento)', async () => {
-    const user = userEvent.setup();
+    await startShift();
     await renderOps();
-    await startShift(user);
     const { unmount } = render(<span />);
     unmount();
     document.body.innerHTML = '';
@@ -130,8 +147,8 @@ describe('POS-F13 · sincronización en la interfaz', () => {
 
   it('con turno y política habilitada la venta en efectivo queda pendiente y se sincroniza sin duplicar', async () => {
     const user = userEvent.setup();
+    await startShift();
     await renderOps();
-    await startShift(user);
     await tab(user, /Sincronización/);
     await user.click(await screen.findByLabelText('Simular que no hay conexión'));
     await user.click(screen.getByLabelText(/Habilitar venta en efectivo offline/));
@@ -149,8 +166,8 @@ describe('POS-F13 · sincronización en la interfaz', () => {
 
   it('respuesta perdida: queda incierta y se resuelve sin crear otra venta', async () => {
     const user = userEvent.setup();
+    await startShift();
     await renderOps();
-    await startShift(user);
     await tab(user, /Sincronización/);
     await user.click(await screen.findByLabelText(/Habilitar venta en efectivo offline/));
     await user.click(screen.getByRole('button', { name: 'Venta en efectivo' }));
