@@ -7,9 +7,7 @@ import { addToCart, gotoModule, openShift, startAs } from './helpers';
  */
 const cart = (page: Page) => page.getByRole('region', { name: 'Líneas de la venta' }).getByText('Arroz 500 g');
 
-// Hallazgo confirmado: el carrito se pierde al cambiar de módulo. test.fail mantiene la suite en verde
-// hasta que se corrija; cuando pase, Playwright avisa y hay que quitar test.fail.
-test.fail('el carrito sobrevive a cambiar de módulo y volver a Punto de venta', async ({ page }) => {
+test('el carrito sobrevive a cambiar de módulo y volver a Punto de venta', async ({ page }) => {
   await page.setViewportSize({ width: 1366, height: 768 });
   await startAs(page, 'cajero', '/pos');
   await openShift(page, 100000);

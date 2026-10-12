@@ -12,6 +12,8 @@ afterEach(() => {
   cleanup();
   server.resetHandlers();
   resetDb();
+  // El borrador de venta (draft.ts) vive en sessionStorage: se reinicia con la base de mocks.
+  window.sessionStorage.clear();
 });
 afterAll(() => server.close());
 

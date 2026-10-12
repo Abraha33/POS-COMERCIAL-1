@@ -26,6 +26,7 @@ import { componentReady, type MixedComponent } from './mixed/mixed';
 import { SalePanel } from './SalePanel';
 import { SupervisorPinDialog } from './SupervisorPinDialog';
 import { estimateIncludedVat, paymentsTotal, type CartLine, type CreditTerm, type PayMode } from './cart';
+import { loadDraft, saveDraft } from './draft';
 import {
   canCloseSale, channelById, ChannelSection, defaultChannels, documentOptions, isDuplicateReference, loadDocumentType,
   loadReferences, missingFields, rememberReference, saveDocumentType, type ChannelState, type DocumentType, type ProofRequest,
@@ -79,8 +80,13 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState(ALL_CATEGORIES);
   const [searchMessage, setSearchMessage] = useState<string | null>(null);
-  const [lines, setLines] = useState<CartLine[]>([]);
-  const [customerId, setCustomerId] = useState<string | null>(null);
+  // El borrador sobrevive a cambiar de módulo (la pantalla se desmonta): ver draft.ts.
+  const [draft] = useState(() => loadDraft(shift.registerId));
+  const [lines, setLines] = useState<CartLine[]>(draft.lines);
+  const [customerId, setCustomerId] = useState<string | null>(draft.customerId);
+  useEffect(() => {
+    saveDraft(shift.registerId, { lines, customerId });
+  }, [shift.registerId, lines, customerId]);
   const [mode, setMode] = useState<PayMode>('efectivo');
   const [receivedState, setReceivedState] = useState<{ total: number; amount: number } | null>(null);
   const [chan, setChan] = useState<ChannelState>({ channelId: 'nequi', destinationId: '', values: {}, proofId: null });
