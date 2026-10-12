@@ -8,6 +8,7 @@ import { counts, withBalance, type Order } from './orders/orders';
 import { useOrders } from './orders/useOrders';
 import { PosNav, type PosView } from './PosNav';
 import { QuickSale, type PreloadOrder } from './QuickSale';
+import { ReconciliationView } from './ReconciliationView';
 import { SalesHistory } from './SalesHistory';
 import { useHeldSales } from './useHeldSales';
 import './pos.css';
@@ -69,12 +70,16 @@ export const PosPage = () => {
         onCollections={() => { setBoardFilter('cobros'); setView('orders'); }}
         onOrders={() => { setBoardFilter('todos'); setView('orders'); }}
         onHistory={() => setView('history')}
+        onReconcile={() => setView('reconcile')}
       />
       <div hidden={view !== 'sell'}>{sellContent}</div>
       {view === 'orders' ? (
         <OrdersBoard key={boardFilter} branchId={session.branch.id} actor={actor} initialFilter={boardFilter} onCollect={collect} />
       ) : null}
       {view === 'history' ? <SalesHistory onNewSale={() => setView('sell')} /> : null}
+      {view === 'reconcile' ? (
+        shift.data ? <ReconciliationView shiftId={shift.data.id} /> : <OpenShiftCard />
+      ) : null}
     </div>
   );
 };

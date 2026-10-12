@@ -420,3 +420,9 @@
 
 .pos-detail__presentations { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
 .pos-detail__presentations li { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+
+.recon__totals { margin-bottom: 1rem; }
+.recon__table-wrap { overflow-x: auto; }
+.recon__table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.recon__table th, .recon__table td { padding: 0.5rem; border-bottom: 1px solid var(--app-border); text-align: left; vertical-align: top; }
+.recon__table .pos-detail__num { text-align: right; }

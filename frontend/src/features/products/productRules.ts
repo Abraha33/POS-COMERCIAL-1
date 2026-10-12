@@ -40,6 +40,16 @@ export const productFormSchema = z
     taxCategory: z.enum(['gravado', 'exento', 'excluido', 'impoconsumo']),
     taxRate: z.number(),
     active: z.boolean(),
+    brand: z.string().trim().optional(),
+    presentations: z
+      .array(
+        z.object({
+          name: z.string().trim().min(1, 'Escribe el nombre de la presentación'),
+          factor: z.number({ message: 'El factor debe ser un número' }).positive('El factor debe ser mayor que cero'),
+          price: z.number().int().nonnegative().optional(),
+        }),
+      )
+      .optional(),
   })
   .refine((v) => allowedRates[v.taxCategory].includes(v.taxRate), {
     path: ['taxRate'],

@@ -174,3 +174,17 @@ describe('Venta rápida · marca y presentaciones', () => {
     await waitFor(() => expect(screen.getByLabelText('Cantidad Aceite 1 L')).toHaveValue(12));
   });
 });
+
+describe('Venta rápida · historial del cliente', () => {
+  it('muestra compras y saldo del cliente seleccionado', async () => {
+    const user = userEvent.setup();
+    await renderPos();
+    await openShift(user);
+    await screen.findByRole('option', { name: 'Tienda La Esquina' });
+    await user.selectOptions(screen.getByLabelText(/Cliente \(F3\)/), 'Tienda La Esquina');
+    await user.click(screen.getByRole('button', { name: 'Historial del cliente' }));
+    const dialog = await screen.findByRole('dialog', { name: /Historial de Tienda La Esquina/ });
+    await waitFor(() => expect(Number(within(dialog).getByTestId('hist-count').textContent)).toBeGreaterThan(0));
+    expect(within(dialog).getByRole('table')).toBeInTheDocument();
+  });
+});

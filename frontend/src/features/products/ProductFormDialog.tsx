@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
 import { InputText } from 'primereact/inputtext';
 import type { Product, ProductInput } from '@/shared/contracts';
@@ -29,6 +30,7 @@ export const ProductFormDialog = ({ visible, product, catalog, skuLocked, saving
     defaultValues: emptyProduct,
   });
   const taxCategory = watch('taxCategory');
+  const presentations = useFieldArray({ control, name: 'presentations' });
 
   useEffect(() => {
     if (visible) reset(product ? { ...emptyProduct, ...product } : emptyProduct);
@@ -46,7 +48,15 @@ export const ProductFormDialog = ({ visible, product, catalog, skuLocked, saving
       setError('barcode', { message: 'Ya existe un producto con este código de barras' });
       return;
     }
-    onSubmit({ ...values, sku, barcode, name: values.name.trim(), category: values.category.trim(), unit: values.unit.trim() });
+    const brand = values.brand?.trim() || undefined;
+    const rows = values.presentations?.filter((r) => r.name.trim() !== '');
+    const rest: ProductInput = { ...values };
+    delete rest.brand;
+    delete rest.presentations;
+    onSubmit({
+      ...rest, sku, barcode, name: values.name.trim(), category: values.category.trim(), unit: values.unit.trim(),
+      ...(brand ? { brand } : {}), ...(rows && rows.length > 0 ? { presentations: rows } : {}),
+    });
   };
 
   const categoryField = register('taxCategory', {
@@ -148,6 +158,38 @@ export const ProductFormDialog = ({ visible, product, catalog, skuLocked, saving
           </FormField>
         </div>
       </div>
+      <FormField id="brand" label="Marca (opcional)" error={errors.brand?.message}>
+        <InputText id="brand" {...register('brand')} />
+      </FormField>
+      <fieldset className="products__presentations">
+        <legend>Presentaciones (opcional)</legend>
+        {presentations.fields.map((field, index) => (
+          <div className="products__presentation-row" key={field.id}>
+            <input
+              className="p-inputtext" aria-label={`Nombre de la presentación ${index + 1}`} placeholder="Caja x12"
+              {...register(`presentations.${index}.name` as const)}
+            />
+            <input
+              className="p-inputtext" type="number" min="0" step="any" inputMode="decimal"
+              aria-label={`Unidades por presentación ${index + 1}`} placeholder="Unidades"
+              {...register(`presentations.${index}.factor` as const, { valueAsNumber: true })}
+            />
+            <Button
+              type="button" icon="pi pi-times" rounded text severity="secondary"
+              aria-label={`Quitar presentación ${index + 1}`} onClick={() => presentations.remove(index)}
+            />
+            {errors.presentations?.[index]?.name || errors.presentations?.[index]?.factor ? (
+              <p role="alert" className="products__presentation-error">
+                {errors.presentations[index]?.name?.message ?? errors.presentations[index]?.factor?.message}
+              </p>
+            ) : null}
+          </div>
+        ))}
+        <Button
+          type="button" label="Agregar presentación" icon="pi pi-plus" text
+          onClick={() => presentations.append({ name: '', factor: 1 })}
+        />
+      </fieldset>
       <Controller
         name="active"
         control={control}

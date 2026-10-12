@@ -13,6 +13,7 @@ import { uuid } from '@/shared/utils/uuid';
 import { computeTotals } from '@/shared/utils/pricing';
 import { CartLines, type PricedLine } from './CartLines';
 import { revalidateHeld } from './heldRevalidate';
+import { CustomerHistoryDialog } from './CustomerHistoryDialog';
 import { NewCustomerDialog } from './NewCustomerDialog';
 import { ProductDetailPanel } from './ProductDetailPanel';
 import { ALL_CATEGORIES, CatalogPanel, type Availability } from './CatalogPanel';
@@ -116,6 +117,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   const [detail, setDetail] = useState<Product | null>(null);
   const [newCustomerOpen, setNewCustomerOpen] = useState(false);
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const { session, can } = useSession();
   const notify = useNotify();
   const actor = { id: session.user.id, name: session.user.name };
@@ -567,6 +569,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
             onCustomer={chooseCustomer}
             onNewCustomer={() => setNewCustomerOpen(true)}
             onEditCustomer={can('customers.edit') ? () => setEditCustomerOpen(true) : undefined}
+            onHistory={() => setHistoryOpen(true)}
             customerRef={customerRef}
             itemCount={lines.length}
             gross={gross}
@@ -809,6 +812,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
           onHide={() => setDetail(null)}
         />
       ) : null}
+      {customer && historyOpen ? <CustomerHistoryDialog customer={customer} onHide={() => setHistoryOpen(false)} /> : null}
       {customer ? (
         <NewCustomerDialog
           key={customer.id}

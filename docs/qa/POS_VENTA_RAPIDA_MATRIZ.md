@@ -29,7 +29,7 @@ pasarela. Un banco nuevo es una fila de configuración, no un formulario. El cat
 |---|---|---|
 | Texto, código de barras, SKU, categoría, disponibilidad, frecuentes, lista/cuadrícula | ✔ | |
 | Marca y presentaciones | ✔ (mocks) | `brand` y `presentations` PROPUESTA v0.6.0; búsqueda por marca; agregar una presentación suma sus unidades base |
-| Historial reciente | ◐ | "Frecuentes" cubre lo más vendido; no hay historial por cliente |
+| Historial reciente | ✔ | "Frecuentes" (catálogo) e "Historial del cliente" (compras, total, crédito, saldo) |
 | Conversión de unidades | ◐ | `factor` por presentación; el cobro siempre es por unidad base |
 
 ## 04 Detalle de producto
@@ -72,8 +72,8 @@ pasarela. Un banco nuevo es una fila de configuración, no un formulario. El cat
 | Comprobante por QR/archivo, estados y verificación | ✔ | ver `POS_COMPROBANTES_MOVILES.md` |
 | Confirmar venta bloqueado hasta verificar / excepción autorizada | ✔ | |
 | Persistir canal, referencia, cuenta y comprobante en la venta | ✔ (mocks) | `Payment` v0.6.0 PROPUESTA: `channel`, `reference`, `destination`, `proofId`; conformidad 37/37 |
-| Conciliar cuentas receptoras; "reportado vs recibido" | ✘ **B** | |
-| Ingreso en efectivo vs banco en el cierre de turno | ◐ | `expectedCash` ya cuenta solo efectivo neto; falta el desglose por canal |
+| Conciliar cuentas receptoras; "reportado vs recibido" | ◐ | vista "Conciliación de cobros" (Más): reportado por canal y cuenta, con/sin comprobante, "recibido" digitado desde el extracto; sin conexión bancaria (**B**) |
+| Ingreso en efectivo vs banco en el cierre de turno | ✔ (vista) | la conciliación separa efectivo, banco/billeteras y crédito; el cierre de turno (otro módulo) no lo consume aún |
 | Cobros en el turno correcto | ✔ | la venta lleva `shiftId` |
 
 ## 09 Crédito y cartera
@@ -106,5 +106,5 @@ pasarela. Un banco nuevo es una fila de configuración, no un formulario. El cat
 Cerrado en esta rama: canales dinámicos, documento a emitir, comprobante móvil con verificación y excepción trazable,
 canal/referencia/cuenta/comprobante en la venta (contrato v0.6.0 PROPUESTA), plazo y abono inicial de crédito, y pagos
 mixtos como componentes independientes con reversa trazable.
-Sigue **sin** cerrar: conciliación de cuentas receptoras ("reportado vs recibido"), edición de marca/presentaciones
-desde Productos (el módulo no se tocó), historial por cliente y backend real. Todo lo ✔ corre sobre mocks.
+Sigue **sin** cerrar: conexión bancaria real para la conciliación, que el cierre de turno consuma el desglose por canal,
+que `pos-ops` y pedidos consuman los endpoints de capa 5 (hoy `localStorage`) y backend real. Todo lo ✔ corre sobre mocks.

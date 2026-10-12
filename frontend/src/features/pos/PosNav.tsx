@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 
-export type PosView = 'sell' | 'orders' | 'history';
+export type PosView = 'sell' | 'orders' | 'history' | 'reconcile';
 
 type Props = {
   view: PosView;
@@ -15,13 +15,14 @@ type Props = {
   onCollections: () => void;
   onOrders: () => void;
   onHistory: () => void;
+  onReconcile: () => void;
 };
 
 /**
  * Barra de navegación operativa (P2): conserva el carrito porque la venta rápida sigue montada.
  * Suspendidas y Cobros pendientes muestran su contador; "Más" agrupa lo administrativo.
  */
-export const PosNav = ({ view, heldCount, openOrders, collectCount, light, onSell, onHeld, onCollections, onOrders, onHistory }: Props) => {
+export const PosNav = ({ view, heldCount, openOrders, collectCount, light, onSell, onHeld, onCollections, onOrders, onHistory, onReconcile }: Props) => {
   const navigate = useNavigate();
   const [more, setMore] = useState(false);
   const item = (label: string, onClick: () => void, current: boolean, count?: number, aria?: string) => (
@@ -58,6 +59,7 @@ export const PosNav = ({ view, heldCount, openOrders, collectCount, light, onSel
             <ul className="pos-nav__menu" aria-label="Opciones adicionales">
               <li><button type="button" onClick={() => { setMore(false); onHistory(); }}>Historial de ventas</button></li>
               <li><button type="button" onClick={() => { setMore(false); onHistory(); }}>Devoluciones y anulaciones</button></li>
+              <li><button type="button" onClick={() => { setMore(false); onReconcile(); }}>Conciliación de cobros</button></li>
               <li><button type="button" onClick={() => { setMore(false); void navigate({ to: '/pos/acceso' }); }}>Acceso y apertura de caja</button></li>
             </ul>
           ) : null}

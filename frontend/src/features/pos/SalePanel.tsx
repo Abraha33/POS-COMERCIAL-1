@@ -14,6 +14,7 @@ type Props = {
   onNewCustomer: () => void;
   /** Solo con permiso `customers.edit` (el cajero puede crear, no editar). */
   onEditCustomer?: () => void;
+  onHistory?: () => void;
   customerRef: RefObject<HTMLSelectElement | null>;
   itemCount: number;
   gross: number;
@@ -32,7 +33,7 @@ type Props = {
 
 /** Columna derecha: cliente, resumen con total grande, método de pago y acciones (maqueta ref-1). */
 export const SalePanel = ({
-  customers, customer, customerId, onCustomer, onNewCustomer, onEditCustomer, customerRef, itemCount, gross, discount, vat, roundingAdjustment, total,
+  customers, customer, customerId, onCustomer, onNewCustomer, onEditCustomer, onHistory, customerRef, itemCount, gross, discount, vat, roundingAdjustment, total,
   mode, onMode, hasLines, pending, onCharge, onHold, onCancel,
 }: Props) => {
   const creditNeedsCustomer = customerId === null;
@@ -74,6 +75,9 @@ export const SalePanel = ({
           {options.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
         <Button type="button" label="Nuevo cliente" icon="pi pi-user-plus" text size="small" className="pos__new-customer" onClick={onNewCustomer} />
+        {customer && onHistory ? (
+          <Button type="button" label="Historial del cliente" icon="pi pi-history" text size="small" onClick={onHistory} />
+        ) : null}
         {customer && onEditCustomer ? (
           <Button type="button" label="Editar cliente" icon="pi pi-user-edit" text size="small" onClick={onEditCustomer} />
         ) : null}
