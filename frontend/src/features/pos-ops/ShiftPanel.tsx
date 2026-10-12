@@ -130,6 +130,9 @@ export const ShiftPanel = ({ ops }: Props) => {
       {shift.custody.length > 0 ? (
         <section className="po-panel" aria-labelledby="po-cus">
           <h2 id="po-cus">Entregas de custodia</h2>
+          {ops.handoverSync.state !== 'idle' ? (
+            <p className={ops.handoverSync.state === 'sincronizado' ? 'po-ok' : 'po-hint'} role="status">{ops.handoverSync.message}</p>
+          ) : null}
           <ul className="po-list">
             {shift.custody.map((c) => (
               <li key={c.id}>
@@ -221,6 +224,7 @@ const HandoverDialog = ({ ops, shift, visible, onHide }: { ops: Ops; shift: Shif
     const done = ops.actions.handover(
       { toId: to.id, toName: to.name, expectedCash: expected, countedCash: counted, note, authorizationId: approved?.id ?? null },
       { requireCount: true, mode },
+      approved?.serverId ?? null,
     );
     if (done) onHide();
   };

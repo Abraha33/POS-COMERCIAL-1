@@ -90,3 +90,18 @@ test('flujo de autorización entre roles: cajero solicita, supervisor aprueba, c
   await expect(page.getByText('Ejecutada').first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Aplicar autorización' })).toHaveCount(0);
 });
+
+test('relevo con cuadre exacto: la custodia cambia aquí y se informa que el servidor no tiene turno abierto', async ({ page }) => {
+  await startAs(page, 'cajero', '/pos/turno');
+  await page.getByRole('button', { name: /Crear turno simulado/ }).click();
+  await page.getByRole('button', { name: 'Relevar' }).click();
+  const dlg = page.getByRole('dialog', { name: 'Relevar la caja' });
+  await dlg.getByLabel('Recibe').selectOption({ index: 1 });
+  await dlg.getByLabel('Efectivo contado').pressSequentially('0');
+  const expected = await dlg.getByLabel('Efectivo esperado').inputValue();
+  await dlg.getByLabel('Efectivo contado').fill('');
+  await dlg.getByLabel('Efectivo contado').pressSequentially(expected.replace(/\D/g, '') || '0');
+  await dlg.getByRole('button', { name: 'Confirmar relevo' }).click();
+  await expect(page.getByRole('heading', { name: 'Entregas de custodia' })).toBeVisible();
+  await expect(page.getByText(/No hay un turno abierto en el servidor/)).toBeVisible();
+});

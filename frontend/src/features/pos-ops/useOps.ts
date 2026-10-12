@@ -7,6 +7,7 @@ import * as shifts from './shift';
 import { useCurrentShift } from '@/shared/api/pos';
 import { posAuthorizationsApi } from '@/shared/api/authorizations';
 import { posSyncApi } from '@/shared/api/sync';
+import { posShiftsApi } from '@/shared/api/shiftHandover';
 import { runAuthSync } from './authSync';
 import { createHttpTransport } from './httpTransport';
 import { createSimulatedRemote, type SimulatedOutcome } from './simulator';
@@ -14,6 +15,9 @@ import { createSimulatedRemote, type SimulatedOutcome } from './simulator';
 
 /** `api`: API de capa 5 (mock); `local`: simulador con respuestas guionadas, solo para pruebas de la interfaz. */
 export type ServerMode = 'api' | 'local';
+
+/** Estado del último relevo contra el servidor (la custodia local nunca se bloquea por esto). */
+export type HandoverSync = { state: 'idle' | 'enviando' | 'sincronizado' | 'local' | 'rechazado'; message: string };
 import { StorageUnavailableError, createOpsStore, type KeyValueStorage } from './store';
 import type { AuthRequest, AuthType, ConnectivityState, IncidentKind, OperationKind, QueuedOperation, Scope, ShiftRecord } from './types';
 
@@ -54,6 +58,7 @@ export const useOps = (options: OpsOptions = {}) => {
   const httpTransport = useMemo(() => createHttpTransport(posSyncApi, () => serverShiftRef.current), []);
   const [simulatedOffline, setSimulatedOffline] = useState(false);
   const [serverMode, setServerMode] = useState<ServerMode>('api');
+  const [handoverSync, setHandoverSync] = useState<HandoverSync>({ state: 'idle', message: '' });
   const [syncing, setSyncing] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
   const [policyCtx, setPolicyCtx] = useState(offline.defaultPolicyContext);
@@ -139,6 +144,29 @@ export const useOps = (options: OpsOptions = {}) => {
     }
   })();
 
+  /**
+   * Avisa al servidor (POST /pos/shifts/{id}/handover). El relevo local ya quedó registrado: si no hay conexión, turno
+   * en el servidor o el servidor lo rechaza, la custodia sigue válida aquí y el estado se muestra sin ocultarlo.
+   */
+  const pushHandover = async (input: Omit<shifts.HandoverInput, 'fromId'>, serverAuthorizationId: string | null) => {
+    if (serverMode !== 'api') return setHandoverSync({ state: 'local', message: 'Relevo registrado solo en este dispositivo (servidor local simulado).' });
+    const shiftId = serverShiftRef.current;
+    if (!online) return setHandoverSync({ state: 'local', message: 'Sin conexión: el relevo quedó solo en este dispositivo y no se ha enviado al servidor.' });
+    if (!shiftId || input.countedCash === null) return setHandoverSync({ state: 'local', message: 'No hay un turno abierto en el servidor: el relevo quedó solo en este dispositivo.' });
+    setHandoverSync({ state: 'enviando', message: 'Enviando el relevo al servidor…' });
+    try {
+      await posShiftsApi.handover(shiftId, {
+        toEmployeeId: input.toId, countedCash: input.countedCash,
+        ...(input.note ? { note: input.note } : {}), ...(serverAuthorizationId ? { authorizationId: serverAuthorizationId } : {}),
+      });
+      setHandoverSync({ state: 'sincronizado', message: 'Relevo confirmado por el servidor.' });
+    } catch (e) {
+      const code = typeof e === 'object' && e !== null && 'code' in e ? String((e as { code: unknown }).code) : null;
+      if (code === null || code === 'HTTP_ERROR') setHandoverSync({ state: 'local', message: 'No se pudo contactar al servidor: el relevo quedó solo en este dispositivo.' });
+      else setHandoverSync({ state: 'rechazado', message: `El servidor no aceptó el relevo (${code}): ${e instanceof Error ? e.message : 'revisa el arqueo y la autorización'}.` });
+    }
+  };
+
   const actions = {
     /** Equivale a una apertura confirmada de POS-F02 (que hoy es simulada y no persiste). */
     startSimulatedShift: (openingCash: number) => {
@@ -151,12 +179,14 @@ export const useOps = (options: OpsOptions = {}) => {
     },
     pause: () => current && run(shifts.pause(current), saveShift),
     resume: (reauthId: string | null) => current && run(shifts.resume(current, reauthId), saveShift),
-    handover: (input: Omit<shifts.HandoverInput, 'fromId'>, policy: shifts.HandoverPolicy) => {
+    handover: (input: Omit<shifts.HandoverInput, 'fromId'>, policy: shifts.HandoverPolicy, serverAuthorizationId?: string | null) => {
       if (!current) return false;
-      return run(shifts.handover(current, { ...input, fromId: session.user.id }, policy, new Date()), (o) => {
+      const done = run(shifts.handover(current, { ...input, fromId: session.user.id }, policy, new Date()), (o) => {
         saveShift(o.current);
         if (o.closed) saveShift(o.closed);
       });
+      if (done) void pushHandover(input, serverAuthorizationId ?? null);
+      return done;
     },
     addIncident: (kind: IncidentKind, detail: string) =>
       current && run(shifts.addIncident(current, { kind, detail, reporterId: session.user.id }, new Date()), saveShift),
@@ -245,7 +275,7 @@ export const useOps = (options: OpsOptions = {}) => {
   };
 
   return {
-    scope, session, online, browserOnline, simulatedOffline, serverMode, setServerMode, connectivity, syncing,
+    scope, session, online, browserOnline, simulatedOffline, serverMode, setServerMode, handoverSync, connectivity, syncing,
     shifts: shiftList, current, mine, isSupervisor, authList, queue, heldCarts,
     policyCtx, setPolicyCtx, nextOutcome, setNextOutcome, error, remote: remote.current, actions,
   };
