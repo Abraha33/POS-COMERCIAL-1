@@ -10,6 +10,7 @@ type Props = {
   customer: Customer | null;
   customerId: string | null;
   onCustomer: (id: string | null) => void;
+  onNewCustomer: () => void;
   customerRef: RefObject<HTMLSelectElement | null>;
   itemCount: number;
   gross: number;
@@ -28,7 +29,7 @@ type Props = {
 
 /** Columna derecha: cliente, resumen con total grande, método de pago y acciones (maqueta ref-1). */
 export const SalePanel = ({
-  customers, customer, customerId, onCustomer, customerRef, itemCount, gross, discount, vat, roundingAdjustment, total,
+  customers, customer, customerId, onCustomer, onNewCustomer, customerRef, itemCount, gross, discount, vat, roundingAdjustment, total,
   mode, onMode, hasLines, pending, onCharge, onHold, onCancel,
 }: Props) => {
   const creditNeedsCustomer = customerId === null;
@@ -50,12 +51,13 @@ export const SalePanel = ({
           <option value="">Consumidor final</option>
           {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
+        <Button type="button" label="Nuevo cliente" icon="pi pi-user-plus" text size="small" className="pos__new-customer" onClick={onNewCustomer} />
         <div className="pos__customer-card">
           <span className="pos__avatar" aria-hidden="true"><i className="pi pi-user" /></span>
           <span>
             <strong>{customer ? customer.name : 'Consumidor final'}</strong>
             <span className="pos__hint block">
-              {customer ? `${customer.documentType} ${customer.taxId} · cupo ${formatMoney(customer.creditLimit)}` : 'Cliente de mostrador'}
+              {customer ? `${customer.documentType} ${customer.taxId} · cupo ${formatMoney(customer.creditLimit)} · saldo ${formatMoney(customer.outstandingBalance)}` : 'Cliente de mostrador'}
             </span>
           </span>
         </div>

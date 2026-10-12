@@ -5,6 +5,7 @@
  * Los estilos de componentes compartidos viven en components.css y solo usan estas variables.
  */
 @import './components.css';
+@import './toast-contrast.css';
 
 :root {
   /* Color: tonos del mismo matiz del tema, más oscuros para texto blanco encima. */

@@ -5,14 +5,16 @@ import type { ApprovalRequest, Payment, PaymentMethod, Product, SaleReceipt, Shi
 import { useSession } from '@/app/providers/SessionProvider';
 import { useNotify } from '@/app/providers/ToastProvider';
 import { useCreateSale } from '@/shared/api/pos';
-import { useCustomers, useProducts } from '@/shared/api/queries';
+import { useBranches, useCustomers, useProducts, useStockLevels } from '@/shared/api/queries';
 import { useHotkey } from '@/shared/keyboard/useHotkey';
 import { ConfirmAction, FormDialog, MoneyText, ScreenTemplate, ShortcutBar } from '@/shared/ui';
 import { formatMoney } from '@/shared/utils/format';
 import { uuid } from '@/shared/utils/uuid';
 import { computeTotals } from '@/shared/utils/pricing';
 import { CartLines, type PricedLine } from './CartLines';
-import { ALL_CATEGORIES, CatalogPanel } from './CatalogPanel';
+import { NewCustomerDialog } from './NewCustomerDialog';
+import { ProductDetailPanel } from './ProductDetailPanel';
+import { ALL_CATEGORIES, CatalogPanel, type Availability } from './CatalogPanel';
 import { CashDialog } from './CashDialog';
 import { DiscountDialog } from './DiscountDialog';
 import { HeldSalesDialog } from './HeldSalesDialog';
@@ -26,6 +28,7 @@ import { useOrders } from './orders/useOrders';
 import { describeCheckoutError, type CheckoutMessage } from './saleText';
 import { useHeldSales, type HeldSale } from './useHeldSales';
 import './pos.css';
+import './catalog-extras.css';
 
 type PinRequest = { action: ApprovalRequest['action']; reason: string };
 type Confirm = 'clear' | 'cancel' | null;
@@ -61,6 +64,8 @@ const matches = (product: Product, query: string): boolean => {
 export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed, openHeldToken = 0 }: QuickSaleProps) => {
   const products = useProducts();
   const customers = useCustomers();
+  const stockLevels = useStockLevels();
+  const branches = useBranches();
   const createSale = useCreateSale();
 
   const [query, setQuery] = useState('');
@@ -86,6 +91,11 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   const [noteDraft, setNoteDraft] = useState('');
   const [confirm, setConfirm] = useState<Confirm>(null);
   const [pane, setPane] = useState<Pane>('catalog');
+  const [availability, setAvailability] = useState<Availability>('todos');
+  const [quick, setQuick] = useState<'todos' | 'frecuentes'>('todos');
+  const [view, setView] = useState<'lista' | 'cuadricula'>('lista');
+  const [detail, setDetail] = useState<Product | null>(null);
+  const [newCustomerOpen, setNewCustomerOpen] = useState(false);
   const { session } = useSession();
   const notify = useNotify();
   const actor = { id: session.user.id, name: session.user.name };
@@ -102,9 +112,30 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   const catalog = useMemo(() => (products.data ?? []).filter((p) => p.active), [products.data]);
   const byId = useMemo(() => new Map((products.data ?? []).map((p) => [p.id, p])), [products.data]);
   const categories = useMemo(() => [...new Set(catalog.map((p) => p.category))].sort(), [catalog]);
+  const branchId = session.branch.id;
+  const onHandHere = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const level of stockLevels.data ?? []) if (level.branchId === branchId) m.set(level.productId, level.onHand);
+    return m;
+  }, [stockLevels.data, branchId]);
+  const stockOf = (productId: string) => onHandHere.get(productId) ?? 0;
+  const freqKey = `pos.freq.${shift.registerId}`;
+  const [frequent, setFrequent] = useState<Record<string, number>>(() => {
+    try {
+      const raw: unknown = JSON.parse(window.localStorage.getItem(freqKey) ?? '{}');
+      return raw && typeof raw === 'object' ? (raw as Record<string, number>) : {};
+    } catch {
+      return {};
+    }
+  });
   const filtered = useMemo(
-    () => catalog.filter((p) => (category === ALL_CATEGORIES || p.category === category) && matches(p, query)),
-    [catalog, category, query],
+    () =>
+      catalog
+        .filter((p) => (category === ALL_CATEGORIES || p.category === category) && matches(p, query))
+        .filter((p) => availability === 'todos' || (availability === 'disponibles') === ((onHandHere.get(p.id) ?? 0) > 0))
+        .filter((p) => quick === 'todos' || (frequent[p.id] ?? 0) > 0)
+        .sort((a, b) => (quick === 'frecuentes' ? (frequent[b.id] ?? 0) - (frequent[a.id] ?? 0) : 0)),
+    [catalog, category, query, availability, quick, onHandHere, frequent],
   );
   const results = filtered.slice(0, 24);
   const customerList = useMemo(() => (customers.data ?? []).filter((c) => c.active), [customers.data]);
@@ -150,13 +181,22 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
 
   const focusSearch = () => searchRef.current?.focus();
 
-  const addProduct = (product: Product) => {
+  const addProduct = (product: Product, quantity = 1) => {
     setLines((current) => {
       const existing = current.find((l) => l.productId === product.id);
       if (existing) {
-        return current.map((l) => (l.productId === product.id ? { ...l, quantity: l.quantity + 1 } : l));
+        return current.map((l) => (l.productId === product.id ? { ...l, quantity: l.quantity + quantity } : l));
       }
-      return [...current, { productId: product.id, quantity: 1, discount: 0 }];
+      return [...current, { productId: product.id, quantity, discount: 0 }];
+    });
+    setFrequent((current) => {
+      const next = { ...current, [product.id]: (current[product.id] ?? 0) + 1 };
+      try {
+        window.localStorage.setItem(freqKey, JSON.stringify(next));
+      } catch {
+        /* sin almacenamiento: los frecuentes viven en memoria */
+      }
+      return next;
     });
     setQuery('');
     setSearchMessage(null);
@@ -354,8 +394,16 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
               category={category}
               onCategory={setCategory}
               results={results}
-              filtering={query.trim() !== '' || category !== ALL_CATEGORIES}
-              onAdd={addProduct}
+              filtering={query.trim() !== '' || category !== ALL_CATEGORIES || availability !== 'todos' || quick !== 'todos'}
+              onAdd={(p) => addProduct(p)}
+              onDetail={setDetail}
+              stockOf={stockOf}
+              availability={availability}
+              onAvailability={setAvailability}
+              quick={quick}
+              onQuick={setQuick}
+              view={view}
+              onView={setView}
             />
 
             <section className="pos__cart-area" aria-label="Líneas de la venta">
@@ -389,6 +437,13 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
                     />
                     <Button type="button" label="Guardar como pendiente" icon="pi pi-save" outlined onClick={holdCurrent} />
                     <Button
+                      type="button" label="Duplicar" icon="pi pi-copy" outlined
+                      onClick={() => {
+                        heldSales.hold(lines, customerId);
+                        notify({ severity: 'info', summary: 'Copia guardada', detail: 'Está en Suspendidas; la venta actual sigue abierta.' });
+                      }}
+                    />
+                    <Button
                       type="button" label="Crear pedido" icon="pi pi-truck" outlined
                       onClick={() => {
                         setDeliverSale(null);
@@ -410,6 +465,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
             customer={customer}
             customerId={customerId}
             onCustomer={chooseCustomer}
+            onNewCustomer={() => setNewCustomerOpen(true)}
             customerRef={customerRef}
             itemCount={lines.length}
             gross={gross}
@@ -586,6 +642,26 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
           </div>
         ) : null}
       </Dialog>
+
+      {detail ? (
+        <ProductDetailPanel
+          product={detail}
+          stock={(stockLevels.data ?? []).filter((l) => l.productId === detail.id)}
+          branchNames={Object.fromEntries((branches.data ?? []).map((b) => [b.id, b.name]))}
+          currentBranchId={branchId}
+          onAdd={(p, q) => addProduct(p, q)}
+          onHide={() => setDetail(null)}
+        />
+      ) : null}
+      <NewCustomerDialog
+        visible={newCustomerOpen}
+        onHide={() => setNewCustomerOpen(false)}
+        onCreated={(c) => {
+          setNewCustomerOpen(false);
+          chooseCustomer(c.id);
+          notify({ severity: 'success', summary: 'Cliente creado', detail: c.name });
+        }}
+      />
 
       <CreateOrderDialog
         visible={orderDialog !== null}

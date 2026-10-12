@@ -17,13 +17,25 @@ type Props = {
   /** Con búsqueda o categoría activa; si no, en escritorio la rejilla se oculta y manda la tabla de líneas. */
   filtering: boolean;
   onAdd: (product: Product) => void;
+  /** Detalle bajo demanda (precios por volumen, existencias por sede). */
+  onDetail: (product: Product) => void;
+  stockOf: (productId: string) => number;
+  availability: Availability;
+  onAvailability: (value: Availability) => void;
+  quick: 'todos' | 'frecuentes';
+  onQuick: (value: 'todos' | 'frecuentes') => void;
+  view: 'lista' | 'cuadricula';
+  onView: (value: 'lista' | 'cuadricula') => void;
 };
+
+export type Availability = 'todos' | 'disponibles' | 'agotados';
 
 const ALL = 'Todos';
 
 /** Buscador (código de barras / texto), chips de categoría y resultados como botones de lista (F-08). */
 export const CatalogPanel = ({
   query, onQuery, onKeyDown, onSearch, inputRef, message, categories, category, onCategory, results, filtering, onAdd,
+  onDetail, stockOf, availability, onAvailability, quick, onQuick, view, onView,
 }: Props) => (
   <section className="pos__search-area" aria-label="Buscar productos">
     <div className="pos__searchbar">
@@ -58,20 +70,51 @@ export const CatalogPanel = ({
       </div>
     ) : null}
 
+    <div className="pos__filters" role="group" aria-label="Filtros del catálogo">
+      <SegmentedTabs<Availability>
+        ariaLabel="Disponibilidad" variant="chips" value={availability} onChange={onAvailability}
+        options={[
+          { value: 'todos', label: 'Cualquier stock' },
+          { value: 'disponibles', label: 'Disponibles' },
+          { value: 'agotados', label: 'Agotados' },
+        ]}
+      />
+      <button
+        type="button" className="app-segmented__item" aria-pressed={quick === 'frecuentes'}
+        onClick={() => onQuick(quick === 'frecuentes' ? 'todos' : 'frecuentes')}
+      >
+        <i className="pi pi-star" aria-hidden="true" /> Frecuentes
+      </button>
+      <span className="pos__view" role="group" aria-label="Vista del catálogo">
+        <button type="button" className="app-segmented__item" aria-pressed={view === 'lista'} aria-label="Vista de lista" onClick={() => onView('lista')}>
+          <i className="pi pi-list" aria-hidden="true" />
+        </button>
+        <button type="button" className="app-segmented__item" aria-pressed={view === 'cuadricula'} aria-label="Vista de cuadrícula" onClick={() => onView('cuadricula')}>
+          <i className="pi pi-th-large" aria-hidden="true" />
+        </button>
+      </span>
+    </div>
     <div className={`pos__results${filtering ? '' : ' pos__results--idle'}`}>
       {results.length > 0 ? (
-        <ul className="pos__products" aria-label="Resultados">
+        <ul className={`pos__products${view === 'cuadricula' ? ' pos__products--grid' : ''}`} aria-label="Resultados">
           {results.map((product) => (
-            <li key={product.id}>
+            <li key={product.id} className="pos__product-row">
               <button type="button" className="pos__product" onClick={() => onAdd(product)}>
                 <span className="pos__thumb" aria-hidden="true"><i className="pi pi-box" /></span>
                 <span className="pos__name">
                   <strong>{product.name}</strong>
                   <span className="pos__hint">{product.sku}</span>
                 </span>
-                <span className="pos__product-price"><MoneyText value={product.price} /></span>
+                <span className="pos__product-price">
+                  <MoneyText value={product.price} />
+                  {stockOf(product.id) <= 0 ? <span className="pos__soldout">Agotado</span> : null}
+                </span>
                 <span className="pos__product-add" aria-hidden="true"><i className="pi pi-plus" /></span>
               </button>
+              <Button
+                type="button" icon="pi pi-info-circle" text rounded className="pos__product-info"
+                aria-label={`Ver detalle de ${product.name}`} onClick={() => onDetail(product)}
+              />
             </li>
           ))}
         </ul>

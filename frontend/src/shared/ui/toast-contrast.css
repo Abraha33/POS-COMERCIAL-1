@@ -1,0 +1,9 @@
+/* Avisos (Toast): texto con contraste AA usando los tokens de estado, en vez de los colores del tema. */
+.p-toast .p-toast-message .p-toast-message-content .p-toast-summary,
+.p-toast .p-toast-message .p-toast-message-content .p-toast-detail,
+.p-toast .p-toast-message .p-toast-message-content .p-toast-message-icon { color: inherit; }
+.p-toast .p-toast-message.p-toast-message-success { background: var(--app-success-bg); color: var(--app-success-fg); }
+.p-toast .p-toast-message.p-toast-message-info { background: var(--app-info-bg); color: var(--app-info-fg); }
+.p-toast .p-toast-message.p-toast-message-warn { background: var(--app-warning-bg); color: var(--app-warning-fg); }
+.p-toast .p-toast-message.p-toast-message-error { background: var(--app-danger-bg); color: var(--app-danger-fg); }
+.p-toast .p-toast-message .p-toast-icon-close { color: inherit; min-width: var(--app-touch-min); min-height: var(--app-touch-min); }
