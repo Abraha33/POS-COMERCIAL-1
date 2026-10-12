@@ -1567,6 +1567,124 @@ paths:
                 $ref: "#/components/schemas/PosOrder"
         "409":
           $ref: "#/components/responses/Conflict"
+  /pos/payment-proofs:
+    post:
+      tags: [pos]
+      operationId: createPaymentProof
+      x-status: simulated
+      x-approval: proposed
+      summary: Crea o reutiliza un comprobante de pago digital
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PaymentProofCreate" }
+      responses:
+        "200": { description: Comprobante existente, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProof" } } } }
+        "201": { description: Comprobante creado, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProof" } } } }
+  /pos/payment-proofs/{id}:
+    get:
+      tags: [pos]
+      operationId: getPaymentProof
+      x-status: simulated
+      x-approval: proposed
+      parameters: *a1
+      responses:
+        "200": { description: Comprobante, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProof" } } } }
+  /pos/payment-proofs/{id}/evidence:
+    post:
+      tags: [pos]
+      operationId: submitPaymentProofEvidence
+      x-status: simulated
+      x-approval: proposed
+      parameters: *a1
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProofEvidenceCreate" } } } }
+      responses:
+        "200": { description: Evidencia recibida; no confirma el pago, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProof" } } } }
+  /pos/payment-proofs/{id}/verify:
+    post:
+      tags: [pos]
+      operationId: verifyPaymentProof
+      x-status: simulated
+      x-approval: proposed
+      parameters: *a1
+      responses:
+        "200": { description: Verificación iniciada, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProof" } } } }
+  /pos/payment-proofs/{id}/confirm:
+    post:
+      tags: [pos]
+      operationId: confirmPaymentProof
+      x-status: simulated
+      x-approval: proposed
+      parameters: *a1
+      responses:
+        "200": { description: Confirmación manual mock, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProof" } } } }
+  /pos/payment-proofs/{id}/reject:
+    post:
+      tags: [pos]
+      operationId: rejectPaymentProof
+      x-status: simulated
+      x-approval: proposed
+      parameters: *a1
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProofReason" } } } }
+      responses:
+        "200": { description: Comprobante rechazado, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProof" } } } }
+  /pos/payment-proofs/{id}/exception:
+    post:
+      tags: [pos]
+      operationId: authorizePaymentProofException
+      x-status: simulated
+      x-approval: proposed
+      parameters: *a1
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProofReason" } } } }
+      responses:
+        "200": { description: Excepción autorizada; no verifica banco, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProof" } } } }
+  /pos/payment-proofs/public/{token}:
+    get:
+      tags: [pos]
+      operationId: getPublicPaymentProof
+      x-status: simulated
+      x-approval: proposed
+      parameters: [{ name: token, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: Vista pública mínima, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProofPublic" } } } }
+  /pos/payment-proofs/public/{token}/evidence:
+    post:
+      tags: [pos]
+      operationId: submitPublicPaymentProofEvidence
+      x-status: simulated
+      x-approval: proposed
+      parameters: [{ name: token, in: path, required: true, schema: { type: string } }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProofEvidenceCreate" } } } }
+      responses:
+        "200": { description: Evidencia pública recibida; no confirma pago, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProof" } } } }
+  /pos/sales/{id}/receipt:
+    get:
+      tags: [pos]
+      operationId: getSaleReceiptDocument
+      x-status: simulated
+      x-approval: proposed
+      parameters: *a1
+      responses:
+        "200": { description: Representación mock del recibo, content: { application/json: { schema: { $ref: "#/components/schemas/SaleReceiptDocument" } } } }
+  /pos/sales/{id}/reprints:
+    get:
+      tags: [pos]
+      operationId: listSaleReprints
+      x-status: simulated
+      x-approval: proposed
+      parameters: *a1
+      responses:
+        "200": { description: Historial de copias, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/ReprintRecord" } } } } }
+    post:
+      tags: [pos]
+      operationId: createSaleReprint
+      x-status: simulated
+      x-approval: proposed
+      parameters: *a1
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/ReprintCreate" } } } }
+      responses:
+        "201": { description: "Nueva copia sin alterar venta, caja ni stock", content: { application/json: { schema: { $ref: "#/components/schemas/SaleReceiptDocument" } } } }
 components:
   securitySchemes:
     bearerAuth:
@@ -1634,6 +1752,78 @@ components:
           schema:
             $ref: "#/components/schemas/Error"
   schemas:
+    PaymentProofStatus:
+      type: string
+      enum: [pending_evidence, evidence_received, verifying, confirmed, rejected, exception_authorized, expired]
+    PaymentProofCreate:
+      type: object
+      required: [operationId, channelId, amount, destination]
+      properties:
+        operationId: { type: string }
+        channelId: { type: string }
+        amount: { type: integer, minimum: 0 }
+        destination: { type: string }
+    PaymentProofEvidenceCreate:
+      type: object
+      required: [fileName, mimeType]
+      properties:
+        fileName: { type: string, minLength: 1 }
+        mimeType: { type: string, pattern: '^image/' }
+    PaymentProofReason:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, minLength: 5 }
+    PaymentProof:
+      type: object
+      required: [id, operationId, channelId, amount, destination, status, token, expiresAt, bankVerified, evidence, reviewedBy, reason]
+      properties:
+        id: { type: string }
+        operationId: { type: string }
+        channelId: { type: string }
+        amount: { type: integer, minimum: 0 }
+        destination: { type: string }
+        status: { $ref: "#/components/schemas/PaymentProofStatus" }
+        token: { type: string }
+        expiresAt: { type: string }
+        bankVerified: { type: boolean, description: 'Mock; excepción autorizada siempre false.' }
+        evidence: { type: [object, 'null'], additionalProperties: true }
+        reviewedBy: { type: [string, 'null'] }
+        reason: { type: [string, 'null'] }
+    PaymentProofPublic:
+      type: object
+      required: [operationId, channelId, amount, destination, status, expiresAt]
+      properties:
+        operationId: { type: string }
+        channelId: { type: string }
+        amount: { type: integer, minimum: 0 }
+        destination: { type: string }
+        status: { $ref: "#/components/schemas/PaymentProofStatus" }
+        expiresAt: { type: string }
+    SaleReceiptDocument:
+      type: object
+      required: [saleId, saleNumber, copyNumber, issuedAt, documentType, content]
+      properties:
+        saleId: { type: string }
+        saleNumber: { type: string }
+        copyNumber: { type: integer, minimum: 0 }
+        issuedAt: { type: string }
+        documentType: { type: string }
+        content: { type: string }
+    ReprintCreate:
+      type: object
+      properties:
+        reason: { type: string, minLength: 3 }
+    ReprintRecord:
+      type: object
+      required: [id, saleId, copyNumber, requestedAt, requestedBy, reason]
+      properties:
+        id: { type: string }
+        saleId: { type: string }
+        copyNumber: { type: integer, minimum: 1 }
+        requestedAt: { type: string }
+        requestedBy: { type: string }
+        reason: { type: [string, 'null'] }
     Error:
       type: object
       required:

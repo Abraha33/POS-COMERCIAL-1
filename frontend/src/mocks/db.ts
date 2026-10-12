@@ -1,5 +1,5 @@
 import type {
-  Approval, ApprovalTicket, CustodyEntry, PosOrder, Role, SaleReceipt, SyncOperationResult,
+  Approval, ApprovalTicket, CustodyEntry, PaymentProof, PosOrder, ReprintRecord, Role, SaleReceipt, SyncOperationResult,
 } from '@/shared/contracts';
 import { setClock } from '@/shared/utils/clock';
 import { createSeed, type MockDb } from './seed';
@@ -22,6 +22,8 @@ type RuntimeState = {
   custody: CustodyEntry[];
   syncLedger: Map<string, SyncOperationResult>;
   orders: Map<string, PosOrder>;
+  paymentProofs: Map<string, PaymentProof>;
+  reprints: ReprintRecord[];
   counter: number;
 };
 
@@ -33,6 +35,8 @@ const createState = (): RuntimeState => ({
   custody: [],
   syncLedger: new Map(),
   orders: new Map(),
+  paymentProofs: new Map(),
+  reprints: [],
   counter: 0,
 });
 

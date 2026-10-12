@@ -12,3 +12,6 @@ export * from './auth';
 export * from './inventory';
 export * from './reports';
 export * from './platform';
+
+export * from './paymentProof';
+export * from './receipt';
