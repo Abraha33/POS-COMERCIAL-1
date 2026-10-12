@@ -1,7 +1,7 @@
 import { Button } from 'primereact/button';
 import { MoneyText, StatusTag, type StatusDef } from '@/shared/ui';
 import type { AccessScenario, CashDenomination, OpeningCount } from './model';
-import { rowSubtotal } from './opening';
+import { needsJustification, rowSubtotal } from './opening';
 
 type Props = {
   scenario: AccessScenario;
@@ -39,7 +39,7 @@ export const OpeningView = ({
 }: Props) => {
   const { session, terminal, register } = scenario;
   const kind = differenceKind(count);
-  const needsNote = count.difference !== null && count.difference !== 0;
+  const needsNote = needsJustification(count);
 
   return (
     <div className="pa-opening" data-testid="opening-view">
@@ -106,7 +106,7 @@ export const OpeningView = ({
         </dl>
 
         <label htmlFor="pa-note" className="pa-label">
-          {needsNote ? 'Motivo de la diferencia (obligatorio)' : 'Observaciones (opcional)'}
+          {needsNote ? (count.total === 0 ? 'Motivo de la base en cero (obligatorio)' : 'Motivo de la diferencia (obligatorio)') : 'Observaciones (opcional)'}
         </label>
         <textarea
           id="pa-note" className="p-inputtext pa-note" rows={3} value={count.note} disabled={submitting || authorized}

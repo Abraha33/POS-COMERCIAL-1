@@ -17,7 +17,7 @@ type ReviewProps = {
 /** Revisión previa a abrir. Reutilizable: solo muestra el resumen y delega la confirmación. */
 export const OpeningReviewDialog = ({ visible, count, registerName, loading, error, onConfirm, onCancel }: ReviewProps) => (
   <Dialog
-    header="Revisión de apertura" visible={visible} onHide={loading ? () => undefined : onCancel} modal
+    header="Revisión de apertura" visible={visible} onHide={loading ? () => undefined : onCancel} modal className="pa-dialog"
     style={{ width: 'min(30rem, 95vw)' }} closable={!loading}
   >
     <dl className="pa-facts" data-testid="review-summary">
@@ -56,7 +56,7 @@ export const AuthorizationDialog = ({ visible, title, reason, onAuthorize, onCan
   }, [visible]);
 
   return (
-    <Dialog header={title} visible={visible} onHide={onCancel} modal style={{ width: 'min(26rem, 95vw)' }}>
+    <Dialog header={title} visible={visible} onHide={onCancel} modal className="pa-dialog" style={{ width: 'min(26rem, 95vw)' }}>
       <form
         onSubmit={(e) => {
           e.preventDefault();

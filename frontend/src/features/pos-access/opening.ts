@@ -23,8 +23,9 @@ export const computeOpening = (
   return { quantities, total, expected, difference: expected === null ? null : total - expected, note };
 };
 
-/** Con diferencia ≠ 0 hacen falta motivo y autorización (BR-CAJ: descuadre con nota). */
-export const needsJustification = (count: OpeningCount): boolean => count.difference !== null && count.difference !== 0;
+/** Con diferencia ≠ 0, o con base cero, hacen falta motivo y autorización (BR-CAJ: descuadre con nota). */
+export const needsJustification = (count: OpeningCount): boolean =>
+  count.total === 0 || (count.difference !== null && count.difference !== 0);
 
 /** Forma exacta que el POS ya acepta para abrir turno (`ShiftOpen`). */
 export const toShiftOpen = (count: OpeningCount, register: CashRegister): ShiftOpen => ({

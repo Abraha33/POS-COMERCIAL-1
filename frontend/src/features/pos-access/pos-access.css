@@ -39,3 +39,5 @@
   .pa-opening > .pa-panel:nth-of-type(3) { position: sticky; top: 1rem; }
   .pa-table th, .pa-table td { padding: 0.125rem 0.5rem; }
 }
+
+.pa-dialog .p-dialog-header-icon { min-width: var(--app-touch-min); min-height: var(--app-touch-min); }
