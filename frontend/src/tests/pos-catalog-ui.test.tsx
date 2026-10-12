@@ -9,11 +9,11 @@ import { createAppRouter } from '@/routes';
 
 type User = ReturnType<typeof userEvent.setup>;
 
-const renderPos = async () => {
-  setAccessToken(mockTokenForRole('cajero'));
+const renderPos = async (role: 'cajero' | 'propietario' = 'cajero') => {
+  setAccessToken(mockTokenForRole(role));
   const router = createAppRouter(createMemoryHistory({ initialEntries: ['/pos'] }));
   render(
-    <AppProviders initialRole="cajero">
+    <AppProviders initialRole={role}>
       <RouterProvider router={router} />
     </AppProviders>,
   );
@@ -121,5 +121,41 @@ describe('Venta rápida · catálogo, detalle y cliente', () => {
     await user.click(screen.getByRole('button', { name: 'Duplicar' }));
     await waitFor(() => expect(screen.getByRole('button', { name: /Suspendidas, 1/ })).toBeInTheDocument());
     expect(screen.getByLabelText('Cantidad Arroz 500 g')).toBeInTheDocument();
+  });
+});
+
+describe('Venta rápida · editar cliente', () => {
+  it('edita nombre y teléfono conservando cupo, y el selector refleja el cambio', async () => {
+    const user = userEvent.setup();
+    await renderPos('propietario');
+    await openShift(user);
+    await screen.findByRole('option', { name: 'Tienda La Esquina' });
+    await user.selectOptions(screen.getByLabelText(/Cliente \(F3\)/), 'Tienda La Esquina');
+    await user.click(screen.getByRole('button', { name: 'Editar cliente' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Editar cliente' });
+    const name = within(dialog).getByLabelText('Nombre');
+    expect(name).toHaveValue('Tienda La Esquina');
+    await user.clear(name);
+    await user.type(name, 'Tienda La Esquina SAS');
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar cambios' }));
+    await waitFor(
+      () => {
+        const select = screen.getByLabelText(/Cliente \(F3\)/) as HTMLSelectElement;
+        expect(select.options[select.selectedIndex]?.text).toBe('Tienda La Esquina SAS');
+      },
+      { timeout: 5000 },
+    );
+    expect(screen.getByText(/cupo \$ ?1\.500\.000/)).toBeInTheDocument();
+  });
+});
+
+describe('Venta rápida · editar cliente sin permiso', () => {
+  it('el cajero puede crear pero no ve Editar cliente', async () => {
+    const user = userEvent.setup();
+    await renderPos();
+    await openShift(user);
+    await screen.findByRole('option', { name: 'Tienda La Esquina' });
+    await user.selectOptions(screen.getByLabelText(/Cliente \(F3\)/), 'Tienda La Esquina');
+    expect(screen.queryByRole('button', { name: 'Editar cliente' })).not.toBeInTheDocument();
   });
 });

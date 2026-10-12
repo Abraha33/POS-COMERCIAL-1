@@ -5,16 +5,22 @@ import { FormDialog } from '@/shared/ui';
 
 const documentTypes: DocumentType[] = ['CC', 'NIT', 'CE', 'TI', 'PPT', 'PEP'];
 
-type Props = { visible: boolean; onHide: () => void; onCreated: (customer: Customer) => void };
+type Props = {
+  visible: boolean;
+  onHide: () => void;
+  onCreated: (customer: Customer) => void;
+  /** Si viene, el diálogo edita este cliente (conserva cupo, responsabilidad y estado). */
+  editing?: Customer | null;
+};
 
 /** Alta rápida de cliente desde la venta (modal). Cupo de crédito 0 hasta que se configure en Clientes. */
-export const NewCustomerDialog = ({ visible, onHide, onCreated }: Props) => {
+export const NewCustomerDialog = ({ visible, onHide, onCreated, editing = null }: Props) => {
   const save = useSaveCustomer();
-  const [name, setName] = useState('');
-  const [documentType, setDocumentType] = useState<DocumentType>('CC');
-  const [taxId, setTaxId] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
+  const [name, setName] = useState(editing?.name ?? '');
+  const [documentType, setDocumentType] = useState<DocumentType>(editing?.documentType ?? 'CC');
+  const [taxId, setTaxId] = useState(editing?.taxId ?? '');
+  const [phone, setPhone] = useState(editing?.phone ?? '');
+  const [email, setEmail] = useState(editing?.email ?? '');
   const [error, setError] = useState<string | null>(null);
 
   const submit = () => {
@@ -24,17 +30,22 @@ export const NewCustomerDialog = ({ visible, onHide, onCreated }: Props) => {
     }
     save.mutate(
       {
+        ...(editing ? { id: editing.id } : {}),
         input: {
-          name: name.trim(), documentType, taxId: taxId.trim(), taxResponsibility: 'R-99-PN', active: true, creditLimit: 0,
+          name: name.trim(), documentType, taxId: taxId.trim(),
+          taxResponsibility: editing?.taxResponsibility ?? 'R-99-PN', active: editing?.active ?? true,
+          creditLimit: editing?.creditLimit ?? 0,
           ...(phone.trim() ? { phone: phone.trim() } : {}), ...(email.trim() ? { email: email.trim() } : {}),
         },
       },
       {
         onSuccess: (customer) => {
-          setName('');
-          setTaxId('');
-          setPhone('');
-          setEmail('');
+          if (!editing) {
+            setName('');
+            setTaxId('');
+            setPhone('');
+            setEmail('');
+          }
           setError(null);
           onCreated(customer);
         },
@@ -45,7 +56,8 @@ export const NewCustomerDialog = ({ visible, onHide, onCreated }: Props) => {
 
   return (
     <FormDialog
-      visible={visible} title="Nuevo cliente" onHide={onHide} onSubmit={submit} submitLabel="Crear cliente"
+      visible={visible} title={editing ? 'Editar cliente' : 'Nuevo cliente'} onHide={onHide} onSubmit={submit}
+      submitLabel={editing ? 'Guardar cambios' : 'Crear cliente'}
       loading={save.isPending} error={error}
     >
       <label htmlFor="nc-name" className="pos-detail__title">Nombre</label>

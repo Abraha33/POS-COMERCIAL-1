@@ -86,7 +86,7 @@ export const saleHandlers = [
     }
 
     const token = body.approvalToken ? state.approvals.get(body.approvalToken) : undefined;
-    type ApprovalAction = 'discount' | 'negative_stock' | 'below_cost';
+    type ApprovalAction = 'discount' | 'negative_stock' | 'below_cost' | 'credit_exception';
     /** `accepted`: acciones cuyo token vale para esta comprobación (el de below_cost, solo del propietario, cubre descuento). */
     const needApproval = (accepted: ApprovalAction[]) => {
       if (!body.approvalToken) {
@@ -173,10 +173,26 @@ export const saleHandlers = [
         return failure(409, 'CUSTOMER_BLOCKED_OVERDUE', 'El cliente tiene facturas vencidas', { customerId: customer.id });
       }
       const outstanding = open.reduce((s, r) => s + (r.amount - r.paid), 0);
-      if (outstanding + creditAmount > customer.creditLimit) {
-        return failure(409, 'CREDIT_LIMIT_EXCEEDED', 'La venta supera el cupo de crédito', {
-          creditLimit: customer.creditLimit, outstanding, requested: creditAmount,
-        });
+      // PROPUESTA v0.6.0: excedente de cupo o vencimiento libre solo con autorización `credit_exception`.
+      const exceeds = outstanding + creditAmount > customer.creditLimit;
+      const customDue = body.creditDueDate !== undefined;
+      if (customDue) {
+        const limitDate = addDays(today, 180);
+        if (body.creditDueDate! <= today || body.creditDueDate! > limitDate) {
+          return validationError('El vencimiento debe ser posterior a hoy y no superar 180 días', { creditDueDate: body.creditDueDate });
+        }
+      }
+      if (exceeds || customDue) {
+        const authorized = token && !token.used && token.action === 'credit_exception';
+        if (!authorized) {
+          if (exceeds) {
+            return failure(409, 'CREDIT_LIMIT_EXCEEDED', 'La venta supera el cupo de crédito', {
+              creditLimit: customer.creditLimit, outstanding, requested: creditAmount, action: 'credit_exception',
+            });
+          }
+          return needApproval(['credit_exception']) ?? failure(409, 'APPROVAL_REQUIRED', 'Esta operación requiere autorización', { action: 'credit_exception' });
+        }
+        approvalUsed = true;
       }
     }
 
@@ -214,10 +230,20 @@ export const saleHandlers = [
     }
 
     if (creditAmount > 0 && body.customerId) {
-      db.receivables.push({
-        id: nextId('rec'), customerId: body.customerId, saleId: sale.id, branchId: shift.branchId, issued: date,
-        due: addDays(date, body.creditTermDays ?? CREDIT_TERM_DAYS), amount: creditAmount, paid: 0,
-      });
+      // Cuotas (PROPUESTA): la cuota k vence a k×plazo días; con vencimiento libre se reparten hasta esa fecha.
+      const n = body.creditInstallments ?? 1;
+      const term = body.creditTermDays ?? CREDIT_TERM_DAYS;
+      const totalDays = body.creditDueDate
+        ? Math.round((Date.parse(body.creditDueDate) - Date.parse(date)) / 86_400_000)
+        : term * n;
+      const base = Math.floor(creditAmount / n);
+      for (let k = 1; k <= n; k += 1) {
+        db.receivables.push({
+          id: nextId('rec'), customerId: body.customerId, saleId: sale.id, branchId: shift.branchId, issued: date,
+          due: addDays(date, Math.round((totalDays * k) / n)),
+          amount: k === n ? creditAmount - base * (n - 1) : base, paid: 0,
+        });
+      }
     }
 
     const cashNet = cashAmount - change;

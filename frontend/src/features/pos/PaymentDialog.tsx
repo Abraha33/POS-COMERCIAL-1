@@ -21,6 +21,13 @@ type Props = {
   documentSlot: ReactNode;
   creditTerm: CreditTerm;
   onCreditTerm: (value: CreditTerm) => void;
+  creditInstallments: number;
+  onCreditInstallments: (value: number) => void;
+  creditDueDate: string;
+  onCreditDueDate: (value: string) => void;
+  /** El servidor rechazó por cupo: se ofrece autorizar la excepción. */
+  creditExcess: boolean;
+  onAuthorizeCreditExcess: () => void;
   creditInitial: number;
   onCreditInitial: (value: number) => void;
   mixedSlot: ReactNode;
@@ -38,7 +45,7 @@ type Props = {
 /** Cobro: importes sugeridos y cambio con ajuste al peso (BR-GEN-05, BR-VEN-06/08). El servidor confirma el total. */
 export const PaymentDialog = (props: Props) => {
   const {
-    visible, mode, total, roundingAdjustment, customer, received, onReceived, digital, documentSlot, creditTerm, onCreditTerm, creditInitial, onCreditInitial, mixedSlot,
+    visible, mode, total, roundingAdjustment, customer, received, onReceived, digital, documentSlot, creditTerm, onCreditTerm, creditInstallments, onCreditInstallments, creditDueDate, onCreditDueDate, creditExcess, onAuthorizeCreditExcess, creditInitial, onCreditInitial, mixedSlot,
     missing, change, canConfirm, pending, error, onDismissError, onConfirm, onHide,
   } = props;
 
@@ -78,6 +85,9 @@ export const PaymentDialog = (props: Props) => {
               <strong>{error.title}</strong>
               <p>{error.detail}</p>
             </div>
+            {creditExcess ? (
+              <Button type="button" label="Autorizar excedente" icon="pi pi-shield" outlined onClick={onAuthorizeCreditExcess} />
+            ) : null}
             <Button type="button" icon="pi pi-times" text rounded aria-label="Cerrar aviso" onClick={onDismissError} />
           </div>
         ) : null}
@@ -144,7 +154,34 @@ export const PaymentDialog = (props: Props) => {
               >
                 {CREDIT_TERMS.map((d) => <option key={d} value={d}>{d} días{d === 30 ? ' (aprobado)' : ' (propuesta)'}</option>)}
               </select>
-              <p className="pos__hint">Vence el {due.toLocaleDateString('es-CO')}. El saldo pasa a Cuentas por cobrar.</p>
+              <label htmlFor="credit-installments" className="pos-pay__label">Cuotas (propuesta)</label>
+              <select
+                id="credit-installments" className="p-inputtext w-full" value={creditInstallments}
+                onChange={(e) => onCreditInstallments(Number(e.target.value))}
+              >
+                {[1, 2, 3, 4, 6, 12].map((n) => <option key={n} value={n}>{n === 1 ? 'Una sola cuota' : `${n} cuotas`}</option>)}
+              </select>
+              <label htmlFor="credit-due" className="pos-pay__label">Vencimiento libre (requiere autorización)</label>
+              <input
+                id="credit-due" type="date" className="p-inputtext w-full" value={creditDueDate}
+                onChange={(e) => onCreditDueDate(e.target.value)}
+              />
+              {financed > 0 ? (
+                <ol className="pos-credit__plan" aria-label="Plan de cuotas">
+                  {Array.from({ length: creditInstallments }, (_, i) => {
+                    const k = i + 1;
+                    const base = Math.floor(financed / creditInstallments);
+                    const amountK = k === creditInstallments ? financed - base * (creditInstallments - 1) : base;
+                    const days = creditDueDate
+                      ? Math.round(((Date.parse(creditDueDate) - Date.now()) / 86_400_000 * k) / creditInstallments)
+                      : Math.round(creditTerm * k);
+                    const when = new Date();
+                    when.setDate(when.getDate() + days);
+                    return <li key={k}>Cuota {k}: {formatMoney(amountK)} · {when.toLocaleDateString('es-CO')}</li>;
+                  })}
+                </ol>
+              ) : null}
+              <p className="pos__hint">El saldo pasa a Cuentas por cobrar, una cuenta por cuota.</p>
             </section>
           );
         })() : null}

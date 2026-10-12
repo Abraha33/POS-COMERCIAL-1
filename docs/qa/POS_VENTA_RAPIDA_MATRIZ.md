@@ -42,7 +42,8 @@ pasarela. Un banco nuevo es una fila de configuración, no un formulario. El cat
 |---|---|---|
 | Selección, alta rápida, cupo y saldo | ✔ | |
 | Buscar por nombre, NIT o teléfono | ✔ | Enter selecciona si hay una sola coincidencia |
-| Editar cliente, direcciones | ✘ | |
+| Editar cliente | ✔ | solo con permiso `customers.edit` (el cajero crea pero no edita) |
+| Direcciones de cliente | ✘ **C** | el contrato de cliente no tiene direcciones |
 | Elegir documento a emitir (factura electrónica / documento equivalente POS) | ✔ | **selección**, recuerda el último; la emisión no existe (**B**, DIAN) |
 | No eliminar clientes con historial fiscal | ✘ **C** | no hay operación de borrado; falta la regla explícita |
 
@@ -77,10 +78,10 @@ pasarela. Un banco nuevo es una fila de configuración, no un formulario. El cat
 ## 09 Crédito y cartera
 | Subflujo | Estado | Nota |
 |---|---|---|
-| Cliente obligatorio, cupo disponible/utilizado/excedente | ✔ | el excedente se muestra y el servidor bloquea; falta flujo de autorización de excedente |
+| Cliente obligatorio, cupo disponible/utilizado/excedente | ✔ | el excedente se muestra; "Autorizar excedente" pide PIN de propietario/administrador (`credit_exception`) |
 | Plazo 7/15/30/45/60, abono inicial | ✔ (mocks) | `creditTermDays` PROPUESTA; 30 es el aprobado (BR-CLI-06 "30+3"), el resto se marca "propuesta" |
-| Cuotas / plan de pagos | ✘ **C** | solo un vencimiento por venta |
-| Vencimiento ajustable con autorización | ✘ | el plazo se elige entre los 5; no hay vencimiento libre ni autorización |
+| Cuotas / plan de pagos | ✔ (mocks) | `creditInstallments` PROPUESTA (2–12); una cuenta por cobrar por cuota; vista previa del plan |
+| Vencimiento libre con autorización | ✔ (mocks) | `creditDueDate` ≤ 180 días; exige acción `credit_exception` (propietario o administrador) |
 | Saldo a CxC, historial, alertas | ◐ | la venta crea CxC; sin alertas ni historial en la venta |
 | Cobro posterior de un crédito | ◐ | existe en Cartera (abonos), no desde el POS |
 | Aviso "se factura aunque no se haya recibido el dinero" | ✔ | texto en el cobro a crédito |
@@ -104,6 +105,6 @@ pasarela. Un banco nuevo es una fila de configuración, no un formulario. El cat
 Cerrado en esta rama: canales dinámicos, documento a emitir, comprobante móvil con verificación y excepción trazable,
 canal/referencia/cuenta/comprobante en la venta (contrato v0.6.0 PROPUESTA), plazo y abono inicial de crédito, y pagos
 mixtos como componentes independientes con reversa trazable.
-Sigue **sin** cerrar: cuotas/plan de pagos, autorización de excedente de cupo y de vencimiento libre (necesitan acción
-de aprobación nueva en el contrato), editar cliente y direcciones, marca y presentaciones (contrato de producto),
-conciliación y backend real. Todo lo ✔ corre sobre mocks.
+Sigue **sin** cerrar: direcciones de cliente y marca/presentaciones (contrato de cliente y de producto), conciliación
+de cuentas, backend real. Capa 5 (turnos, autorizaciones, sync, pedidos): contratos solo **especificados**
+(`x-status: planned`, ver `docs/architecture/CONTRATO_CAPA_5.md`), sin mock ni backend. Todo lo ✔ corre sobre mocks.

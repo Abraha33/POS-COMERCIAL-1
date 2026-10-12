@@ -16,7 +16,8 @@ info:
     `overdueBalance`); el cliente no los recalcula como autoridad.
 
     `x-status: simulated` = existe como mock MSW (frontend/src/mocks) que implementa las reglas aprobadas;
-    el backend real aún no existe.
+    el backend real aún no existe. `x-status: planned` = operación PROPUESTA solo especificada (sin mock ni backend):
+    capa 5 (turnos, autorizaciones, sincronización y pedidos).
     Dinero en el contrato: entero en COP (BR-GEN-01); el backend calcula internamente con más decimales.
     Errores: `Error` (BR-GEN-09).
 servers:
@@ -1199,6 +1200,219 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "422":
           $ref: "#/components/responses/ValidationError"
+  /pos/shifts/{id}/handover:
+    post:
+      tags:
+        - pos
+      operationId: handoverShift
+      x-status: planned
+      x-approval: proposed
+      description: |
+        PROPUESTA v0.6.0 (capa 5, POS-F03). Entrega de custodia entre cajeros: arqueo de entrega con diferencia y
+        autorización cuando existe. Nunca cambia el responsable sin dejar huella (`CustodyEntry`).
+        Aún sin mock ni backend; el cliente lo simula en `features/pos-ops`.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ShiftHandoverRequest"
+      responses:
+        "200":
+          description: Custodia entregada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustodyEntry"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /pos/authorizations:
+    get:
+      tags:
+        - pos
+      operationId: listAuthorizations
+      x-status: planned
+      x-approval: proposed
+      description: |
+        PROPUESTA v0.6.0 (capa 5, POS-F12). Bandeja de solicitudes de autorización por sede. El supervisor no puede
+        aprobar su propia solicitud (regla del servidor).
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/AuthorizationStatus"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuthorizationRequest"
+    post:
+      tags:
+        - pos
+      operationId: requestAuthorization
+      x-status: planned
+      x-approval: proposed
+      description: |
+        PROPUESTA v0.6.0. Crea la solicitud con huella (`fingerprint`) de lo esencial; si esos datos cambian después,
+        la aprobación deja de valer.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthorizationCreate"
+      responses:
+        "201":
+          description: Solicitud creada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthorizationRequest"
+  /pos/authorizations/{id}/decision:
+    post:
+      tags:
+        - pos
+      operationId: decideAuthorization
+      x-status: planned
+      x-approval: proposed
+      description: |
+        PROPUESTA v0.6.0. Aprueba o rechaza una solicitud. La aprobación es de un solo uso y vence en `validUntil`.
+        Errores: `SELF_APPROVAL` 403, `AUTHORIZATION_EXPIRED` 410, `FINGERPRINT_MISMATCH` 409.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthorizationDecision"
+      responses:
+        "200":
+          description: Decisión registrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthorizationRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+  /pos/sync/batches:
+    post:
+      tags:
+        - pos
+      operationId: syncOperations
+      x-status: planned
+      x-approval: proposed
+      description: |
+        PROPUESTA v0.6.0 (capa 5, POS-F13). Envía operaciones encoladas sin conexión. Cada una lleva su
+        `idempotencyKey`: reenviarla devuelve el mismo resultado y nunca duplica. Una operación rechazada no bloquea
+        las demás; las que dependen de otra (`dependsOn`) se aplican en orden. Sin PIN ni datos de tarjeta en `payload`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SyncBatch"
+      responses:
+        "200":
+          description: Resultado por operación
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SyncBatchResult"
+  /pos/orders:
+    get:
+      tags:
+        - pos
+      operationId: listPosOrders
+      x-status: planned
+      x-approval: proposed
+      description: |
+        PROPUESTA v0.6.0 (capa 5, pedidos del POS). Hoy los pedidos viven en `localStorage` por sede; este contrato
+        los compartiría entre terminales.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: "#/components/schemas/PosOrderStatus"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PosOrder"
+    post:
+      tags:
+        - pos
+      operationId: createPosOrder
+      x-status: planned
+      x-approval: proposed
+      description: PROPUESTA v0.6.0. Crea un pedido sin cobrar, o vinculado a una venta ya cobrada (`saleId`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PosOrderCreate"
+      responses:
+        "201":
+          description: Pedido creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PosOrder"
+  /pos/orders/{id}/transitions:
+    post:
+      tags:
+        - pos
+      operationId: transitionPosOrder
+      x-status: planned
+      x-approval: proposed
+      description: |
+        PROPUESTA v0.6.0. Cambia el estado: pendiente → en-proceso → listo → despachado → entregado; en-proceso ⇄
+        problema (faltante); cancelado solo antes de despachar y sin pagos. Errores: `ESTADO_INVALIDO` 409,
+        `SALDO_PENDIENTE` 409 (despacho con saldo salvo crédito), `TIENE_PAGOS` 409.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PosOrderTransition"
+      responses:
+        "200":
+          description: Pedido actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PosOrder"
+        "409":
+          $ref: "#/components/responses/Conflict"
 components:
   securitySchemes:
     bearerAuth:
@@ -1711,6 +1925,19 @@ components:
           type: boolean
         approvalToken:
           type: string
+        creditDueDate:
+          type: string
+          minLength: 10
+          description: |
+            PROPUESTA v0.6.0. Vencimiento libre del crédito (AAAA-MM-DD). Exige `approvalToken` de acción
+            `credit_exception` (solo propietario o administrador). Máximo 180 días desde la venta.
+        creditInstallments:
+          type: integer
+          minimum: 1
+          maximum: 12
+          description: |
+            PROPUESTA v0.6.0. Número de cuotas del saldo a crédito (por defecto 1). La cuota k vence a k×plazo días
+            (o, con `creditDueDate`, repartidas hasta esa fecha); cada cuota es una cuenta por cobrar.
         creditTermDays:
           type: integer
           enum:
@@ -1860,6 +2087,7 @@ components:
             - discount
             - negative_stock
             - below_cost
+            - credit_exception
         pin:
           type: string
           minLength: 4
@@ -1880,6 +2108,7 @@ components:
             - discount
             - negative_stock
             - below_cost
+            - credit_exception
         supervisorId:
           type: string
         expiresAt:
@@ -2880,3 +3109,353 @@ components:
                 type: integer
                 minimum: 0
                 description: max(onHand, 0) × unitCost.
+    ShiftHandoverRequest:
+      type: object
+      required:
+        - toEmployeeId
+        - countedCash
+      properties:
+        toEmployeeId:
+          type: string
+        countedCash:
+          type: integer
+          minimum: 0
+        note:
+          type: string
+        authorizationId:
+          type: string
+    CustodyEntry:
+      type: object
+      required:
+        - id
+        - at
+        - fromId
+        - toId
+        - expectedCash
+        - countedCash
+        - difference
+      properties:
+        id:
+          type: string
+        at:
+          type: string
+        fromId:
+          type: string
+        toId:
+          type: string
+        expectedCash:
+          type: integer
+          minimum: 0
+        countedCash:
+          type: integer
+          minimum: 0
+        difference:
+          type: integer
+        note:
+          type: string
+        authorizationId:
+          type:
+            - string
+            - "null"
+    AuthorizationStatus:
+      type: string
+      enum:
+        - pendiente
+        - aprobada
+        - rechazada
+        - vencida
+        - cancelada
+        - ejecutada
+    AuthorizationCreate:
+      type: object
+      required:
+        - type
+        - resource
+        - amount
+        - reason
+        - fingerprint
+      properties:
+        type:
+          type: string
+          enum:
+            - descuento
+            - precio
+            - devolucion
+            - anulacion
+            - dif-apertura
+            - dif-cierre
+            - relevo
+            - movimiento-efectivo
+            - otra
+        resource:
+          type: object
+          required:
+            - kind
+            - id
+          properties:
+            kind:
+              type: string
+            id:
+              type: string
+        amount:
+          type: integer
+          minimum: 0
+        reason:
+          type: string
+          minLength: 3
+        fingerprint:
+          type: string
+    AuthorizationRequest:
+      allOf:
+        - $ref: "#/components/schemas/AuthorizationCreate"
+        - type: object
+          required:
+            - id
+            - status
+            - requesterId
+            - createdAt
+            - expiresAt
+          properties:
+            id:
+              type: string
+            status:
+              $ref: "#/components/schemas/AuthorizationStatus"
+            requesterId:
+              type: string
+            createdAt:
+              type: string
+            expiresAt:
+              type: string
+            decidedById:
+              type:
+                - string
+                - "null"
+            decidedAt:
+              type:
+                - string
+                - "null"
+            decisionNote:
+              type: string
+            validUntil:
+              type:
+                - string
+                - "null"
+            executedAt:
+              type:
+                - string
+                - "null"
+    AuthorizationDecision:
+      type: object
+      required:
+        - decision
+      properties:
+        decision:
+          type: string
+          enum:
+            - aprobar
+            - rechazar
+        note:
+          type: string
+    SyncOperation:
+      type: object
+      required:
+        - idempotencyKey
+        - kind
+        - shiftId
+        - createdAt
+        - payload
+      properties:
+        idempotencyKey:
+          type: string
+        kind:
+          type: string
+        shiftId:
+          type: string
+        createdAt:
+          type: string
+        payload:
+          type: object
+          additionalProperties:
+            oneOf:
+              - type: string
+              - type: number
+        dependsOn:
+          type: array
+          items:
+            type: string
+    SyncBatch:
+      type: object
+      required:
+        - deviceId
+        - operations
+      properties:
+        deviceId:
+          type: string
+        operations:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/SyncOperation"
+    SyncOperationResult:
+      type: object
+      required:
+        - idempotencyKey
+        - status
+      properties:
+        idempotencyKey:
+          type: string
+        status:
+          type: string
+          enum:
+            - confirmada
+            - rechazada
+            - revision
+            - reintentable
+        remoteRef:
+          type:
+            - string
+            - "null"
+        code:
+          type: string
+        message:
+          type: string
+    SyncBatchResult:
+      type: object
+      required:
+        - results
+      properties:
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/SyncOperationResult"
+    PosOrderStatus:
+      type: string
+      enum:
+        - pendiente
+        - en-proceso
+        - problema
+        - listo
+        - despachado
+        - entregado
+        - cancelado
+    PosOrderLine:
+      type: object
+      required:
+        - productId
+        - quantity
+        - unitPrice
+        - packed
+        - missing
+      properties:
+        productId:
+          type: string
+        quantity:
+          type: number
+          exclusiveMinimum: 0
+        unitPrice:
+          type: integer
+          minimum: 0
+        packed:
+          type: number
+          minimum: 0
+        missing:
+          type: number
+          minimum: 0
+        missingNote:
+          type: string
+    PosOrderCreate:
+      type: object
+      required:
+        - customerId
+        - fulfillment
+        - lines
+      properties:
+        customerId:
+          type:
+            - string
+            - "null"
+        fulfillment:
+          type: string
+          enum:
+            - domicilio
+            - recogida
+            - acordada
+        address:
+          type: string
+        scheduledFor:
+          type: string
+        slot:
+          type: string
+          enum:
+            - manana
+            - tarde
+            - noche
+        shippingCost:
+          type: integer
+          minimum: 0
+        notes:
+          type: string
+        saleId:
+          type:
+            - string
+            - "null"
+        lines:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/PosOrderLine"
+    PosOrder:
+      allOf:
+        - $ref: "#/components/schemas/PosOrderCreate"
+        - type: object
+          required:
+            - id
+            - number
+            - status
+            - total
+            - paymentState
+            - paidAmount
+          properties:
+            id:
+              type: string
+            number:
+              type: string
+            status:
+              $ref: "#/components/schemas/PosOrderStatus"
+            total:
+              type: integer
+              minimum: 0
+            paymentState:
+              type: string
+              enum:
+                - sin-pago
+                - abono
+                - pagado
+                - credito
+            paidAmount:
+              type: integer
+              minimum: 0
+            qualityChecked:
+              type: boolean
+    PosOrderTransition:
+      type: object
+      required:
+        - action
+      properties:
+        action:
+          type: string
+          enum:
+            - tomar
+            - empacar
+            - reportar-faltante
+            - resolver-faltante
+            - verificar
+            - registrar-pago
+            - despachar
+            - entregar
+            - cancelar
+        reason:
+          type: string
+        amount:
+          type: integer
+          minimum: 0

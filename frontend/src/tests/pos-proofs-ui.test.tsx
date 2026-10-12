@@ -198,3 +198,25 @@ describe('Pago mixto con componentes independientes', { timeout: 30000 }, () => 
 const setPhone = async (token: string) => {
   await createMemoryGateway().submitPublic(token, IMG);
 };
+
+describe('Crédito en cuotas', { timeout: 30000 }, () => {
+  it('el plan de cuotas suma lo financiado y el excedente de cupo ofrece autorización', async () => {
+    const user = userEvent.setup();
+    await renderAt('/pos');
+    await user.click(await screen.findByRole('button', { name: /abrir turno/i }, { timeout: 5000 }));
+    await user.type(await screen.findByLabelText(/buscar producto o escanear/i), 'SKU-002{Enter}');
+    await screen.findByTestId('pos-total');
+    await user.selectOptions(screen.getByLabelText(/Cliente \(F3\)/), 'Tienda La Esquina');
+    await user.click(screen.getByRole('button', { name: 'Crédito' }));
+    await user.click(screen.getByRole('button', { name: /cobrar/i }));
+    const dialog = await screen.findByRole('dialog', { name: 'Cobrar venta' });
+
+    await user.selectOptions(within(dialog).getByLabelText(/Cuotas/), '3');
+    const plan = within(dialog).getByRole('list', { name: 'Plan de cuotas' });
+    const items = within(plan).getAllByRole('listitem');
+    expect(items).toHaveLength(3);
+    // 12.500 / 3 = 4.166 (+ resto en la última): 4.166 + 4.166 + 4.168
+    expect(items[0]).toHaveTextContent('4.166');
+    expect(items[2]).toHaveTextContent('4.168');
+  });
+});

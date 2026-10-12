@@ -12,6 +12,7 @@ const titles: Record<Action, string> = {
   discount: 'Autorizar descuento',
   negative_stock: 'Autorizar venta sin existencias',
   below_cost: 'Autorizar venta bajo el costo (solo propietario)',
+  credit_exception: 'Autorizar excepción de crédito (propietario o administrador)',
 };
 
 type Props = {

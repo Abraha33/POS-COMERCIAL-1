@@ -59,6 +59,10 @@ export const authHandlers = [
       return forbidden('Solo el propietario autoriza ventas bajo el costo');
     }
 
+    if (parsed.data.action === 'credit_exception' && employee.role !== 'propietario' && employee.role !== 'admin') {
+      return forbidden('Solo el propietario o un administrador autoriza excepciones de crédito');
+    }
+
     const approval: Approval = {
       approvalToken: nextId('appr'),
       action: parsed.data.action,

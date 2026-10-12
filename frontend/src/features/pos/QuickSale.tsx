@@ -53,7 +53,7 @@ type QuickSaleProps = {
   openHeldToken?: number;
 };
 
-const approvalActions: ApprovalRequest['action'][] = ['discount', 'negative_stock', 'below_cost'];
+const approvalActions: ApprovalRequest['action'][] = ['discount', 'negative_stock', 'below_cost', 'credit_exception'];
 const asApprovalAction = (value: unknown): ApprovalRequest['action'] | null =>
   approvalActions.find((a) => a === value) ?? null;
 
@@ -86,6 +86,9 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   const [proof, setProof] = useState<ProofRequest | null>(null);
   const [creditTerm, setCreditTerm] = useState<CreditTerm>(30);
   const [creditInitial, setCreditInitial] = useState(0);
+  const [creditInstallments, setCreditInstallments] = useState(1);
+  const [creditDueDate, setCreditDueDate] = useState('');
+  const [creditExcess, setCreditExcess] = useState(false);
   const [docType, setDocType] = useState<DocumentType>(loadDocumentType);
   const [usedRefs, setUsedRefs] = useState<string[]>(loadReferences);
   const [mixed, setMixed] = useState<MixedComponent[]>([]);
@@ -112,6 +115,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   const [view, setView] = useState<'lista' | 'cuadricula'>('lista');
   const [detail, setDetail] = useState<Product | null>(null);
   const [newCustomerOpen, setNewCustomerOpen] = useState(false);
+  const [editCustomerOpen, setEditCustomerOpen] = useState(false);
   const { session, can } = useSession();
   const notify = useNotify();
   const actor = { id: session.user.id, name: session.user.name };
@@ -305,6 +309,9 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
     setMode('efectivo');
     setCreditTerm(30);
     setCreditInitial(0);
+    setCreditInstallments(1);
+    setCreditDueDate('');
+    setCreditExcess(false);
     setCustomerId(null);
     setApprovalToken(undefined);
     setCheckoutError(null);
@@ -342,6 +349,8 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
         lines,
         payments,
         ...(mode === 'credito' && creditTerm !== 30 ? { creditTermDays: creditTerm } : {}),
+        ...(mode === 'credito' && creditInstallments > 1 ? { creditInstallments } : {}),
+        ...(mode === 'credito' && creditDueDate !== '' ? { creditDueDate } : {}),
         ...((token ?? approvalToken) ? { approvalToken: token ?? approvalToken } : {}),
       },
       {
@@ -374,6 +383,9 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
               return askPin({ action: detailAction ?? 'discount', reason: error.message });
             case 'PRICE_BELOW_COST':
               return askPin({ action: 'below_cost', reason: 'El precio queda bajo el costo: solo el propietario puede autorizarlo.' });
+            case 'CREDIT_LIMIT_EXCEEDED':
+              setCreditExcess(true);
+              return setCheckoutError(describeCheckoutError(error));
             default:
               return setCheckoutError(describeCheckoutError(error));
           }
@@ -554,6 +566,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
             customerId={customerId}
             onCustomer={chooseCustomer}
             onNewCustomer={() => setNewCustomerOpen(true)}
+            onEditCustomer={can('customers.edit') ? () => setEditCustomerOpen(true) : undefined}
             customerRef={customerRef}
             itemCount={lines.length}
             gross={gross}
@@ -639,6 +652,17 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
         }
         creditTerm={creditTerm}
         onCreditTerm={setCreditTerm}
+        creditInstallments={creditInstallments}
+        onCreditInstallments={setCreditInstallments}
+        creditDueDate={creditDueDate}
+        onCreditDueDate={setCreditDueDate}
+        creditExcess={creditExcess}
+        onAuthorizeCreditExcess={() => {
+          setCreditExcess(false);
+          setCheckoutError(null);
+          setPayOpen(false);
+          setPinRequest({ action: 'credit_exception', reason: 'El saldo supera el cupo del cliente. Autoriza el propietario o un administrador.' });
+        }}
         creditInitial={creditInitial}
         onCreditInitial={setCreditInitial}
         mixedSlot={
@@ -783,6 +807,18 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
           currentBranchId={branchId}
           onAdd={(p, q) => addProduct(p, q)}
           onHide={() => setDetail(null)}
+        />
+      ) : null}
+      {customer ? (
+        <NewCustomerDialog
+          key={customer.id}
+          editing={customer}
+          visible={editCustomerOpen}
+          onHide={() => setEditCustomerOpen(false)}
+          onCreated={(c) => {
+            setEditCustomerOpen(false);
+            notify({ severity: 'success', summary: 'Cliente actualizado', detail: c.name });
+          }}
         />
       ) : null}
       <NewCustomerDialog

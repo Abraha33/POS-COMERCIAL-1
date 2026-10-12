@@ -350,6 +350,33 @@ export const registerConformance = (target: string | (() => string)) => {
       expectError(again, 409, 'REFERENCE_DUPLICATED');
     });
 
+    it('PROPUESTA v0.6.0: excedente de cupo, vencimiento libre y cuotas exigen credit_exception; cuotas suman el saldo', async () => {
+      const token = await login('laura.gomez');
+      const shift = await ensureOpenShift(token);
+      const over = (extra: Partial<SaleCreate> = {}) => sellRequest(shift.id, {
+        customerId: 'cus-002', // cupo 800.000
+        lines: [{ productId: 'prd-002', quantity: 40, discount: 0 }, { productId: 'prd-004', quantity: 80, discount: 0 }],
+        payments: [{ method: 'credito', amount: 868000 }],
+        ...extra,
+      });
+      expectError(await sell(token, over()), 409, 'CREDIT_LIMIT_EXCEEDED');
+
+      const cashier = await call('POST', '/auth/supervisor-approvals', { token, body: { action: 'credit_exception', pin: PINS.admin } });
+      expect(cashier.status).toBe(200); // un administrador puede autorizar
+      const ok = await sell(token, over({ approvalToken: approvalSchema.parse(cashier.body).approvalToken, creditInstallments: 4 }));
+      expect(ok.status, JSON.stringify(ok.body)).toBe(201);
+      const sale = saleReceiptSchema.parse(ok.body);
+      const receivables = z.array(receivableSchema).parse((await call('GET', '/receivables', { token })).body)
+        .filter((r) => r.saleId === sale.id);
+      expect(receivables).toHaveLength(4);
+      expect(receivables.reduce((sum, r) => sum + r.amount, 0)).toBe(868000);
+
+      const free = sellRequest(shift.id, {
+        customerId: 'cus-001', payments: [{ method: 'credito', amount: 5600 }], creditDueDate: '2099-01-01',
+      });
+      expectError(await sell(token, free), 422, 'VALIDATION_ERROR');
+    });
+
     it('anulación: devuelve stock, exige motivo y no se repite', async () => {
       const token = await login('laura.gomez');
       const shift = await ensureOpenShift(token);

@@ -735,6 +735,134 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pos/shifts/{id}/handover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description PROPUESTA v0.6.0 (capa 5, POS-F03). Entrega de custodia entre cajeros: arqueo de entrega con diferencia y
+         *     autorización cuando existe. Nunca cambia el responsable sin dejar huella (`CustodyEntry`).
+         *     Aún sin mock ni backend; el cliente lo simula en `features/pos-ops`.
+         */
+        post: operations["handoverShift"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pos/authorizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description PROPUESTA v0.6.0 (capa 5, POS-F12). Bandeja de solicitudes de autorización por sede. El supervisor no puede
+         *     aprobar su propia solicitud (regla del servidor).
+         */
+        get: operations["listAuthorizations"];
+        put?: never;
+        /**
+         * @description PROPUESTA v0.6.0. Crea la solicitud con huella (`fingerprint`) de lo esencial; si esos datos cambian después,
+         *     la aprobación deja de valer.
+         */
+        post: operations["requestAuthorization"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pos/authorizations/{id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description PROPUESTA v0.6.0. Aprueba o rechaza una solicitud. La aprobación es de un solo uso y vence en `validUntil`.
+         *     Errores: `SELF_APPROVAL` 403, `AUTHORIZATION_EXPIRED` 410, `FINGERPRINT_MISMATCH` 409.
+         */
+        post: operations["decideAuthorization"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pos/sync/batches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description PROPUESTA v0.6.0 (capa 5, POS-F13). Envía operaciones encoladas sin conexión. Cada una lleva su
+         *     `idempotencyKey`: reenviarla devuelve el mismo resultado y nunca duplica. Una operación rechazada no bloquea
+         *     las demás; las que dependen de otra (`dependsOn`) se aplican en orden. Sin PIN ni datos de tarjeta en `payload`.
+         */
+        post: operations["syncOperations"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pos/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description PROPUESTA v0.6.0 (capa 5, pedidos del POS). Hoy los pedidos viven en `localStorage` por sede; este contrato
+         *     los compartiría entre terminales.
+         */
+        get: operations["listPosOrders"];
+        put?: never;
+        /** @description PROPUESTA v0.6.0. Crea un pedido sin cobrar, o vinculado a una venta ya cobrada (`saleId`). */
+        post: operations["createPosOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pos/orders/{id}/transitions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description PROPUESTA v0.6.0. Cambia el estado: pendiente → en-proceso → listo → despachado → entregado; en-proceso ⇄
+         *     problema (faltante); cancelado solo antes de despachar y sin pagos. Errores: `ESTADO_INVALIDO` 409,
+         *     `SALDO_PENDIENTE` 409 (despacho con saldo salvo crédito), `TIENE_PAGOS` 409.
+         */
+        post: operations["transitionPosOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -884,6 +1012,16 @@ export interface components {
             offline?: boolean;
             approvalToken?: string;
             /**
+             * @description PROPUESTA v0.6.0. Vencimiento libre del crédito (AAAA-MM-DD). Exige `approvalToken` de acción
+             *     `credit_exception` (solo propietario o administrador). Máximo 180 días desde la venta.
+             */
+            creditDueDate?: string;
+            /**
+             * @description PROPUESTA v0.6.0. Número de cuotas del saldo a crédito (por defecto 1). La cuota k vence a k×plazo días
+             *     (o, con `creditDueDate`, repartidas hasta esa fecha); cada cuota es una cuenta por cobrar.
+             */
+            creditInstallments?: number;
+            /**
              * @description PROPUESTA v0.6.0. Plazo del saldo a crédito en días; por defecto 30. BR-CLI-06 aprobada fija "30+3 días":
              *     cualquier otro plazo está pendiente de aprobación del dueño.
              * @enum {integer}
@@ -931,13 +1069,13 @@ export interface components {
         };
         ApprovalRequest: {
             /** @enum {string} */
-            action: "discount" | "negative_stock" | "below_cost";
+            action: "discount" | "negative_stock" | "below_cost" | "credit_exception";
             pin: string;
         };
         Approval: {
             approvalToken: string;
             /** @enum {string} */
-            action: "discount" | "negative_stock" | "below_cost";
+            action: "discount" | "negative_stock" | "below_cost" | "credit_exception";
             supervisorId: string;
             expiresAt: string;
         };
@@ -1258,6 +1396,117 @@ export interface components {
                 /** @description max(onHand, 0) × unitCost. */
                 value: number;
             }[];
+        };
+        ShiftHandoverRequest: {
+            toEmployeeId: string;
+            countedCash: number;
+            note?: string;
+            authorizationId?: string;
+        };
+        CustodyEntry: {
+            id: string;
+            at: string;
+            fromId: string;
+            toId: string;
+            expectedCash: number;
+            countedCash: number;
+            difference: number;
+            note?: string;
+            authorizationId?: string | null;
+        };
+        /** @enum {string} */
+        AuthorizationStatus: "pendiente" | "aprobada" | "rechazada" | "vencida" | "cancelada" | "ejecutada";
+        AuthorizationCreate: {
+            /** @enum {string} */
+            type: "descuento" | "precio" | "devolucion" | "anulacion" | "dif-apertura" | "dif-cierre" | "relevo" | "movimiento-efectivo" | "otra";
+            resource: {
+                kind: string;
+                id: string;
+            };
+            amount: number;
+            reason: string;
+            fingerprint: string;
+        };
+        AuthorizationRequest: components["schemas"]["AuthorizationCreate"] & {
+            id: string;
+            status: components["schemas"]["AuthorizationStatus"];
+            requesterId: string;
+            createdAt: string;
+            expiresAt: string;
+            decidedById?: string | null;
+            decidedAt?: string | null;
+            decisionNote?: string;
+            validUntil?: string | null;
+            executedAt?: string | null;
+        };
+        AuthorizationDecision: {
+            /** @enum {string} */
+            decision: "aprobar" | "rechazar";
+            note?: string;
+        };
+        SyncOperation: {
+            idempotencyKey: string;
+            kind: string;
+            shiftId: string;
+            createdAt: string;
+            payload: {
+                [key: string]: string | number;
+            };
+            dependsOn?: string[];
+        };
+        SyncBatch: {
+            deviceId: string;
+            operations: components["schemas"]["SyncOperation"][];
+        };
+        SyncOperationResult: {
+            idempotencyKey: string;
+            /** @enum {string} */
+            status: "confirmada" | "rechazada" | "revision" | "reintentable";
+            remoteRef?: string | null;
+            code?: string;
+            message?: string;
+        };
+        SyncBatchResult: {
+            results: components["schemas"]["SyncOperationResult"][];
+        };
+        /** @enum {string} */
+        PosOrderStatus: "pendiente" | "en-proceso" | "problema" | "listo" | "despachado" | "entregado" | "cancelado";
+        PosOrderLine: {
+            productId: string;
+            quantity: number;
+            unitPrice: number;
+            packed: number;
+            missing: number;
+            missingNote?: string;
+        };
+        PosOrderCreate: {
+            customerId: string | null;
+            /** @enum {string} */
+            fulfillment: "domicilio" | "recogida" | "acordada";
+            address?: string;
+            scheduledFor?: string;
+            /** @enum {string} */
+            slot?: "manana" | "tarde" | "noche";
+            shippingCost?: number;
+            notes?: string;
+            saleId?: string | null;
+            lines: components["schemas"]["PosOrderLine"][];
+        };
+        PosOrder: components["schemas"]["PosOrderCreate"] & {
+            id: string;
+            number: string;
+            status: components["schemas"]["PosOrderStatus"];
+            total: number;
+            /** @enum {string} */
+            paymentState: "sin-pago" | "abono" | "pagado" | "credito";
+            paidAmount: number;
+            qualityChecked?: boolean;
+        };
+        PosOrderTransition: {
+            /** @enum {string} */
+            action: "tomar" | "empacar" | "reportar-faltante" | "resolver-faltante" | "verificar" | "registrar-pago" | "despachar" | "entregar" | "cancelar";
+            reason?: string;
+            amount?: number;
         };
     };
     responses: {
@@ -2610,6 +2859,204 @@ export interface operations {
             };
             403: components["responses"]["Forbidden"];
             422: components["responses"]["ValidationError"];
+        };
+    };
+    handoverShift: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShiftHandoverRequest"];
+            };
+        };
+        responses: {
+            /** @description Custodia entregada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustodyEntry"];
+                };
+            };
+            409: components["responses"]["Conflict"];
+        };
+    };
+    listAuthorizations: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["AuthorizationStatus"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizationRequest"][];
+                };
+            };
+        };
+    };
+    requestAuthorization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthorizationCreate"];
+            };
+        };
+        responses: {
+            /** @description Solicitud creada */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizationRequest"];
+                };
+            };
+        };
+    };
+    decideAuthorization: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthorizationDecision"];
+            };
+        };
+        responses: {
+            /** @description Decisión registrada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthorizationRequest"];
+                };
+            };
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    syncOperations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SyncBatch"];
+            };
+        };
+        responses: {
+            /** @description Resultado por operación */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncBatchResult"];
+                };
+            };
+        };
+    };
+    listPosOrders: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["PosOrderStatus"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosOrder"][];
+                };
+            };
+        };
+    };
+    createPosOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PosOrderCreate"];
+            };
+        };
+        responses: {
+            /** @description Pedido creado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosOrder"];
+                };
+            };
+        };
+    };
+    transitionPosOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PosOrderTransition"];
+            };
+        };
+        responses: {
+            /** @description Pedido actualizado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PosOrder"];
+                };
+            };
+            409: components["responses"]["Conflict"];
         };
     };
 }

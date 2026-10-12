@@ -416,3 +416,4 @@
 .pos-nav__dot--proceso { background: var(--app-info-bg); color: var(--app-info-fg); }
 .pos-nav__dot--problema { background: var(--app-danger-bg); color: var(--app-danger-fg); }
 .pos-nav__dot--listo { background: var(--app-success-bg); color: var(--app-success-fg); }
+.pos-credit__plan { margin: 0; padding-left: 1.25rem; font-variant-numeric: tabular-nums; }
