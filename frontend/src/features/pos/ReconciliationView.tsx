@@ -3,6 +3,7 @@ import { useSales } from '@/shared/api/queries';
 import { EmptyState, ErrorState, LoadingState, MoneyInput, MoneyText, ScreenTemplate } from '@/shared/ui';
 import { formatMoney } from '@/shared/utils/format';
 import { reconLabels, reconStatus, summarize, type ReconStatus } from './reconcile';
+import { usePosChannels } from './proofs/usePosChannels';
 import './pos.css';
 
 const loadReceived = (shiftId: string): Record<string, number> => {
@@ -22,7 +23,8 @@ const tone: Record<ReconStatus, string> = {
 export const ReconciliationView = ({ shiftId }: { shiftId: string }) => {
   const sales = useSales();
   const [received, setReceived] = useState<Record<string, number>>(() => loadReceived(shiftId));
-  const summary = useMemo(() => summarize(sales.data ?? [], shiftId), [sales.data, shiftId]);
+  const channels = usePosChannels();
+  const summary = useMemo(() => summarize(sales.data ?? [], shiftId, channels), [sales.data, shiftId, channels]);
 
   const setValue = (key: string, value: number | null) => {
     setReceived((cur) => {

@@ -4,12 +4,14 @@ import { MoneyInput } from '@/shared/ui';
 import { formatMoney } from '@/shared/utils/format';
 import { uuid } from '@/shared/utils/uuid';
 import { ChannelSection } from '../proofs/ChannelSection';
-import { channelById, defaultChannels } from '../proofs/channels';
+import { channelById, type PaymentChannel } from '../proofs/channels';
 import type { ProofRequest } from '../proofs/proofs';
 import { componentStatus, componentStatusLabel, reverseComponent, type ComponentStatus, type MixedComponent } from './mixed';
 import '../proofs/proofs.css';
 
 type Props = {
+  /** Canales del CountryPack de la empresa (fuente única; no hay constantes locales). */
+  channels: PaymentChannel[];
   components: MixedComponent[];
   onChange: (next: MixedComponent[]) => void;
   proofs: Record<string, ProofRequest | null>;
@@ -41,7 +43,7 @@ const Card = ({ index, c, proof, p, onPatch, onReverse, onRemove }: CardProps) =
   const stable = useCallback((next: ProofRequest | null) => report(c.id, next), [report, c.id]);
   const [reason, setReason] = useState('');
   const [asking, setAsking] = useState(false);
-  const channel = channelById(defaultChannels, c.state.channelId) ?? defaultChannels[0]!;
+  const channel = channelById(p.channels, c.state.channelId) ?? p.channels[0]!;
   const status = componentStatus(channel, c.state.values, proof);
   const locked = status === 'confirmado';
 
@@ -54,7 +56,7 @@ const Card = ({ index, c, proof, p, onPatch, onReverse, onRemove }: CardProps) =
         </span>
       </div>
       <ChannelSection
-        channels={defaultChannels}
+        channels={p.channels}
         state={c.state}
         onState={(state) => onPatch({ state })}
         amount={c.amount}
@@ -105,6 +107,9 @@ const Card = ({ index, c, proof, p, onPatch, onReverse, onRemove }: CardProps) =
 
 export const MixedPayments = (p: Props) => {
   const { components, onChange, proofs, missing, paid } = p;
+  if (p.channels.length === 0) {
+    return <section aria-label="Pago mixto" className="mixed"><p className="pos__hint">Cargando medios de pago…</p></section>;
+  }
   const active = components.filter((c) => c.reversed === null);
   const reversed = components.filter((c) => c.reversed !== null);
   const patch = (id: string, change: Partial<MixedComponent>) =>
@@ -143,7 +148,7 @@ export const MixedPayments = (p: Props) => {
           <ul>
             {reversed.map((c) => (
               <li key={c.id}>
-                {channelById(defaultChannels, c.state.channelId)?.label} · {formatMoney(c.amount)} — {c.reversed?.reason} ({c.reversed?.by})
+                {channelById(p.channels, c.state.channelId)?.label} · {formatMoney(c.amount)} — {c.reversed?.reason} ({c.reversed?.by})
               </li>
             ))}
           </ul>

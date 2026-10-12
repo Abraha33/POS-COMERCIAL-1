@@ -1,4 +1,4 @@
-import type { PaymentMethod } from '@/shared/contracts';
+import type { CountryPack, PaymentMethod } from '@/shared/contracts';
 
 /**
  * Catálogo de canales de cobro (PROPUESTA, configurable por empresa). El formulario se deriva del TIPO de canal,
@@ -30,6 +30,17 @@ export type PaymentChannel = {
 const reference: FieldSpec = { key: 'reference', label: 'Número de referencia o aprobación', required: true, input: 'text' };
 const payer: FieldSpec = { key: 'payer', label: 'Nombre del pagador', required: false, input: 'text' };
 
+/** Tipo de canal del contrato → tipo de formulario de la UI. */
+const kindByCountryType = {
+  cash: 'efectivo', wallet: 'billetera', bank_transfer: 'cuenta', instant_key: 'llave', qr: 'qr',
+  card_terminal: 'datafono', gateway: 'pasarela', credit: 'credito',
+} as const satisfies Record<CountryPack['paymentChannels'][number]['type'], ChannelKind>;
+
+/** Canales de cobro desde el CountryPack de la empresa: la única fuente de canales de la pantalla. */
+export const channelsFromCountryPack = (pack: CountryPack | undefined): PaymentChannel[] =>
+  (pack?.paymentChannels ?? []).map((channel) => ({ ...channel, kind: kindByCountryType[channel.type] }));
+
+/** Solo para pruebas de formularios: la pantalla usa `channelsFromCountryPack`. */
 export const defaultChannels: PaymentChannel[] = [
   { id: 'efectivo', label: 'Efectivo', kind: 'efectivo', method: 'efectivo', fields: [], requiresProof: false, destinations: [] },
   {

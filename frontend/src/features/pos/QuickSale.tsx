@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from 'react';
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
-import type { ApprovalRequest, CountryPack, Payment, PaymentMethod, Product, SaleReceipt, Shift } from '@/shared/contracts';
+import type { ApprovalRequest, Payment, PaymentMethod, Product, SaleReceipt, Shift } from '@/shared/contracts';
 import { useSession } from '@/app/providers/SessionProvider';
 import { useNotify } from '@/app/providers/ToastProvider';
 import { useCreateSale } from '@/shared/api/pos';
@@ -30,7 +30,7 @@ import { estimateIncludedVat, paymentsTotal, type CartLine, type CreditTerm, typ
 import { loadSaleDraft, saveSaleDraft, updateSaleDraft, type SaleDraft } from './sale-draft';
 import {
   canCloseSale, channelById, ChannelSection, isDuplicateReference,
-  loadReferences, missingFields, rememberReference, type ChannelState, type PaymentChannel, type ProofRequest,
+  channelsFromCountryPack, loadReferences, missingFields, rememberReference, type ChannelState, type ProofRequest,
 } from './proofs';
 import { CreateOrderDialog } from './orders/CreateOrderDialog';
 import { markCharged } from './orders/orders';
@@ -63,18 +63,6 @@ type QuickSaleProps = {
 const approvalActions: ApprovalRequest['action'][] = ['discount', 'negative_stock', 'below_cost', 'credit_exception'];
 const asApprovalAction = (value: unknown): ApprovalRequest['action'] | null =>
   approvalActions.find((a) => a === value) ?? null;
-
-const channelKindByCountryType = {
-  cash: 'efectivo', wallet: 'billetera', bank_transfer: 'cuenta', instant_key: 'llave', qr: 'qr',
-  card_terminal: 'datafono', gateway: 'pasarela', credit: 'credito',
-} as const;
-
-/** Adaptador temporal de composición: CountryPack es la fuente y Proofs conserva su UI actual. */
-const paymentChannelsFromCountryPack = (pack: CountryPack | undefined): PaymentChannel[] =>
-  (pack?.paymentChannels ?? []).map((channel) => ({
-    ...channel,
-    kind: channelKindByCountryType[channel.type],
-  }));
 
 const matches = (product: Product, query: string): boolean => {
   const q = query.trim().toLowerCase();
@@ -117,7 +105,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
     saveSaleDraft(saleDraft);
   }, [saleDraft]);
 
-  const channels = useMemo(() => paymentChannelsFromCountryPack(countryPack.data), [countryPack.data]);
+  const channels = useMemo(() => channelsFromCountryPack(countryPack.data), [countryPack.data]);
   const documentOptions = countryPack.data?.documentTypes ?? [];
   const countryPackReady = countryPack.isSuccess && channels.length > 0 && documentOptions.length > 0;
   const [query, setQuery] = useState('');
@@ -748,6 +736,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
         mixedSlot={
           <MixedPayments
             components={mixed}
+            channels={channels}
             onChange={setMixed}
             proofs={mixedProofs}
             onProof={onMixedProof}

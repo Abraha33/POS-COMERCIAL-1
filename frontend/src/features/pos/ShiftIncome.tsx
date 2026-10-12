@@ -2,11 +2,13 @@ import { useMemo } from 'react';
 import { useSales } from '@/shared/api/queries';
 import { MoneyText } from '@/shared/ui';
 import { summarize } from './reconcile';
+import { usePosChannels } from './proofs/usePosChannels';
 
 /** Ingresos del turno por tipo y canal, para cerrar sabiendo qué es efectivo y qué es banco (PROPUESTA). */
 export const ShiftIncome = ({ shiftId }: { shiftId: string }) => {
   const sales = useSales();
-  const summary = useMemo(() => summarize(sales.data ?? [], shiftId), [sales.data, shiftId]);
+  const channels = usePosChannels();
+  const summary = useMemo(() => summarize(sales.data ?? [], shiftId, channels), [sales.data, shiftId, channels]);
   const unbacked = summary.rows.filter((r) => r.withoutProof > 0);
 
   return (

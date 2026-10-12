@@ -1,6 +1,8 @@
 import type { Sale } from '@/shared/contracts';
 import { methodLabels } from './saleText';
-import { defaultChannels } from './proofs/channels';
+
+/** Canal del CountryPack: solo necesitamos su id y su nombre legible. */
+export type ChannelLabel = { id: string; label: string };
 
 /**
  * Conciliación de cobros no efectivos del turno (PROPUESTA). "Reportado" = lo que las ventas dicen que entró;
@@ -26,7 +28,8 @@ export type ReconSummary = {
   credit: number;
 };
 
-export const summarize = (sales: readonly Sale[], shiftId: string): ReconSummary => {
+/** `channels` viene del CountryPack de la empresa; sin canal conocido se muestra el nombre del medio. */
+export const summarize = (sales: readonly Sale[], shiftId: string, channels: readonly ChannelLabel[]): ReconSummary => {
   const rows = new Map<string, ReconRow>();
   let cash = 0;
   let bank = 0;
@@ -46,7 +49,7 @@ export const summarize = (sales: readonly Sale[], shiftId: string): ReconSummary
       const channel = p.channel ?? p.method;
       const destination = p.destination ?? '—';
       const key = `${channel}|${destination}`;
-      const label = defaultChannels.find((c) => c.id === channel)?.label ?? methodLabels[p.method];
+      const label = channels.find((c) => c.id === channel)?.label ?? methodLabels[p.method];
       const row = rows.get(key) ?? { key, label, destination, count: 0, reported: 0, verified: 0, withoutProof: 0 };
       row.count += 1;
       row.reported += p.amount;

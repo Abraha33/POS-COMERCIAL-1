@@ -3,6 +3,12 @@ import type { Sale } from '@/shared/contracts';
 import { reconStatus, summarize } from '@/features/pos/reconcile';
 import { summarizeCustomer } from '@/features/pos/CustomerHistoryDialog';
 
+/** Canales del CountryPack (la conciliación no tiene constantes propias). */
+const CHANNELS = [
+  { id: 'nequi', label: 'Nequi' },
+  { id: 'datafono', label: 'Datáfono' },
+];
+
 const sale = (over: Partial<Sale> & Pick<Sale, 'id' | 'payments'>): Sale => ({
   number: over.id, date: '2026-10-11', customerId: null, cashierId: 'emp-001', branchId: 'br-001', shiftId: 'sh-1',
   lines: [{ productId: 'p', quantity: 1, unitPrice: 1, discount: 0, returnedQuantity: 0 }],
@@ -20,24 +26,33 @@ describe('conciliación del turno', () => {
   ];
 
   it('separa efectivo, banco y crédito; ignora anuladas y otros turnos', () => {
-    const s = summarize(sales, 'sh-1');
+    const s = summarize(sales, 'sh-1', CHANNELS);
     expect([s.cash, s.bank, s.credit]).toEqual([10000, 100000, 5000]);
   });
 
   it('agrupa por canal y cuenta destino, con lo verificado y lo no verificado', () => {
-    const rows = summarize(sales, 'sh-1').rows;
+    const rows = summarize(sales, 'sh-1', CHANNELS).rows;
     const nequi = rows.find((r) => r.label === 'Nequi')!;
     expect([nequi.count, nequi.reported, nequi.verified, nequi.withoutProof]).toEqual([2, 70000, 50000, 20000]);
     expect(rows).toHaveLength(2);
   });
 
   it('el código de aprobación del datáfono respalda el cobro', () => {
-    const r = summarize([sale({ id: 'x', payments: [{ method: 'tarjeta', amount: 1000, channel: 'datafono', reference: 'AP-1' }] })], 'sh-1').rows[0]!;
+    const r = summarize([sale({ id: 'x', payments: [{ method: 'tarjeta', amount: 1000, channel: 'datafono', reference: 'AP-1' }] })], 'sh-1', CHANNELS).rows[0]!;
     expect([r.verified, r.withoutProof]).toEqual([1000, 0]);
   });
 
+  it('la etiqueta del canal sale del CountryPack, no de constantes locales', () => {
+    const r = summarize(
+      [sale({ id: 'x', payments: [{ method: 'transferencia', amount: 500, channel: 'nequi', destination: 'Cuenta' }] })],
+      'sh-1',
+      [{ id: 'nequi', label: 'Billetera configurada' }],
+    ).rows[0]!;
+    expect(r.label).toBe('Billetera configurada');
+  });
+
   it('estado según lo recibido digitado', () => {
-    const row = summarize(sales, 'sh-1').rows.find((r) => r.label === 'Nequi')!;
+    const row = summarize(sales, 'sh-1', CHANNELS).rows.find((r) => r.label === 'Nequi')!;
     expect(reconStatus(row, undefined)).toBe('sin-registro');
     expect(reconStatus(row, 70000)).toBe('conciliado');
     expect(reconStatus(row, 50000)).toBe('falta');
