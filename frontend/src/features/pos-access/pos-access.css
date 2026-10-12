@@ -1,11 +1,41 @@
-.pa-panel { background: var(--app-surface); border: 1px solid var(--app-border); border-radius: var(--app-radius-lg); padding: 1rem; margin-bottom: 1rem; }
+/* POS-F01/F02. Solo tokens --app-*. Móvil primero; 900 px = escritorio (mismo corte que el shell). */
+.pa-access, .pa-opening { display: grid; gap: 1rem; }
+.pa-panel { background: var(--app-surface); border: 1px solid var(--app-border); border-radius: var(--app-radius-lg); padding: 1rem; min-width: 0; }
 .pa-panel h2 { margin: 0 0 0.75rem; font-size: 1.1rem; }
-.pa-facts { margin: 0; display: grid; gap: 0.5rem; }
+.pa-facts { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 0.5rem 1rem; }
 .pa-facts dt { color: var(--app-text-muted); font-size: 0.875rem; }
-.pa-facts dd { margin: 0; font-weight: 600; }
+.pa-facts dd { margin: 0; font-weight: 600; overflow-wrap: anywhere; }
+.pa-facts--inline { grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); }
+
 .pa-table { width: 100%; border-collapse: collapse; }
-.pa-table th, .pa-table td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--app-border); }
-.pa-num { text-align: right; font-variant-numeric: tabular-nums; }
-.pa-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+.pa-table th, .pa-table td { text-align: left; padding: 0.25rem 0.5rem; border-bottom: 1px solid var(--app-border); vertical-align: middle; }
+.pa-table th { font-size: 0.875rem; color: var(--app-text-muted); }
+.pa-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pa-qty { width: 6rem; min-height: 44px; text-align: right; font-variant-numeric: tabular-nums; }
+.pa-qty[aria-invalid='true'] { border-color: var(--app-danger-fg); }
+.pa-note { width: 100%; resize: vertical; }
+.pa-label { display: block; margin: 1rem 0 0.25rem; font-weight: 600; }
 .pa-hint { color: var(--app-text-muted); margin: 0.5rem 0; }
-.pa-error { color: var(--app-danger-fg); display: block; }
+.pa-error { color: var(--app-danger-fg); display: block; font-size: 0.875rem; }
+.pa-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+.pa-actions .p-button { min-height: 44px; }
+.pa-sandbox { display: flex; flex-wrap: wrap; align-items: end; gap: 1rem; margin-bottom: 1rem; }
+.pa-sandbox select { min-height: 44px; }
+.pa-sandbox__note { color: var(--app-text-muted); font-size: 0.875rem; margin: 0; }
+
+/* Teléfono: filas compactas, botones a todo el ancho. */
+@media (max-width: 599px) {
+  .pa-qty { width: 3.75rem; padding-inline: 0.25rem; }
+  .pa-table { font-size: 0.875rem; }
+  .pa-table th, .pa-table td { padding: 0.25rem 0.125rem; }
+  .pa-actions .p-button { width: 100%; justify-content: center; }
+}
+
+/* Escritorio de caja (1366×768 incluido): conteo a la izquierda, resumen fijo a la derecha, filas compactas. */
+@media (min-width: 900px) {
+  .pa-access { grid-template-columns: 1fr 1fr; align-items: start; }
+  .pa-opening { grid-template-columns: minmax(0, 1.6fr) minmax(18rem, 1fr); align-items: start; }
+  .pa-panel--context { grid-column: 1 / -1; }
+  .pa-opening > .pa-panel:nth-of-type(3) { position: sticky; top: 1rem; }
+  .pa-table th, .pa-table td { padding: 0.125rem 0.5rem; }
+}
