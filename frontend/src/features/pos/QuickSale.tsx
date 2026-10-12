@@ -35,7 +35,7 @@ import {
 import { CreateOrderDialog } from './orders/CreateOrderDialog';
 import { markCharged } from './orders/orders';
 import { useOrders } from './orders/useOrders';
-import { describeCheckoutError, type CheckoutMessage } from './saleText';
+import { describeCheckoutError, isUnknownOutcome, UNKNOWN_CHECKOUT_MESSAGE, type CheckoutMessage } from './saleText';
 import { useHeldSales, type HeldSale } from './useHeldSales';
 import './pos.css';
 import './catalog-extras.css';
@@ -140,6 +140,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   const [pinRequest, setPinRequest] = useState<PinRequest | null>(null);
   const [receipt, setReceipt] = useState<SaleReceipt | null>(null);
   const [checkoutError, setCheckoutError] = useState<CheckoutMessage | null>(null);
+  const [saleUnknown, setSaleUnknown] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const [heldOpen, setHeldOpen] = useState(false);
   const [cashOpen, setCashOpen] = useState(false);
@@ -341,6 +342,8 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
   };
 
   const reset = () => {
+    // Un cobro desconocido conserva su clave: vaciar generaría otra y podría duplicar el cobro.
+    if (saleUnknown) return;
     setLines([]);
     setReceivedState(null);
     setMixed([]);
@@ -395,6 +398,7 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
       },
       {
         onSuccess: (result) => {
+          setSaleUnknown(false);
           setPayOpen(false);
           setReceipt(result);
           if (activeChannel && chan.values.reference) setUsedRefs(rememberReference(chan.values.reference));
@@ -414,6 +418,11 @@ export const QuickSale = ({ shift, active = true, preload = null, onPreloadUsed,
             setPayOpen(false);
             setPinRequest(request);
           };
+          // Sin respuesta (red caída) o 5xx: el servidor pudo registrar el cobro. No es un rechazo.
+          if (isUnknownOutcome(error)) {
+            setSaleUnknown(true);
+            return setCheckoutError(UNKNOWN_CHECKOUT_MESSAGE);
+          }
           switch (error.code) {
             case 'STOCK_INSUFFICIENT':
               return askPin({ action: 'negative_stock', reason: 'No hay existencias suficientes. Un supervisor puede autorizar la venta.' });

@@ -1,5 +1,5 @@
 import type { PaymentMethod, Sale } from '@/shared/contracts';
-import type { ApiError } from '@/shared/api/client';
+import { ApiError } from '@/shared/api/client';
 import { formatMoney } from '@/shared/utils/format';
 
 export const methodLabels: Record<PaymentMethod, string> = {
@@ -58,6 +58,18 @@ export const describeSaleError = (
 };
 
 export type CheckoutMessage = { title: string; detail: string };
+
+/**
+ * Sin respuesta del servidor (red caída) o 5xx: el cobro puede haberse registrado. No es un rechazo,
+ * así que no se reintenta con otra clave ni se muestra como error de negocio.
+ */
+export const isUnknownOutcome = (error: unknown): boolean =>
+  !(error instanceof ApiError) || error.status >= 500;
+
+export const UNKNOWN_CHECKOUT_MESSAGE: CheckoutMessage = {
+  title: 'No sabemos si el cobro se registró',
+  detail: 'No se creó otra venta. Vuelve a confirmar el pago: se reintenta la misma operación y el servidor no lo duplica.',
+};
 
 const money = (value: unknown): string | null => (typeof value === 'number' ? formatMoney(value) : null);
 

@@ -7,6 +7,8 @@ import { createAppRouter } from '@/routes';
 import { setAccessToken } from '@/shared/api/client';
 import { mockTokenForRole } from '@/mocks/test-users';
 import { db } from '@/mocks/db';
+import { server } from '@/mocks/server';
+import { http, HttpResponse } from 'msw';
 
 const renderPos = async () => {
   setAccessToken(mockTokenForRole('cajero'));
@@ -127,5 +129,25 @@ describe('POS: venta rápida', { timeout: 20000 }, () => {
     const alert = await screen.findByTestId('checkout-error');
     expect(alert).not.toHaveTextContent(/CREDIT_LIMIT_EXCEEDED|VALIDATION_ERROR/);
     expect(alert).toHaveTextContent(/cupo de crédito/i);
+  });
+
+  it('sin respuesta del servidor el cobro queda desconocido: reintenta con la misma clave y no duplica la venta', async () => {
+    const user = userEvent.setup();
+    await renderPos();
+    await openShift(user);
+    const salesBefore = db.sales.length;
+    server.use(http.post('/api/v1/pos/sales', () => HttpResponse.error(), { once: true }));
+
+    await user.type(screen.getByLabelText(/buscar producto o escanear/i), '7701234567890{Enter}');
+    await user.click(screen.getByRole('button', { name: /cobrar/i }));
+    await user.click(await screen.findByRole('button', { name: /confirmar pago/i }));
+
+    const alert = await screen.findByTestId('checkout-error');
+    expect(alert).toHaveTextContent(/no sabemos si el cobro se registró/i);
+    expect(db.sales.length).toBe(salesBefore);
+
+    await user.click(screen.getByRole('button', { name: /confirmar pago/i }));
+    expect(await screen.findByTestId('receipt-number')).toBeInTheDocument();
+    expect(db.sales.length).toBe(salesBefore + 1);
   });
 });
