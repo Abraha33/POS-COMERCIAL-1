@@ -9,6 +9,7 @@ import { mockTokenForRole } from '@/mocks/test-users';
 import { setProofGateway } from '@/features/pos/proofs';
 import { createContractGateway } from '@/features/pos/proofs/gateway';
 import { createMemoryImageStore, type ImageStore } from '@/features/pos/proofs/imageStore';
+import { state } from '@/mocks/db';
 
 type User = ReturnType<typeof userEvent.setup>;
 const IMG = 'data:image/jpeg;base64,/9j/4AAQSkZJRg==';
@@ -16,6 +17,26 @@ const IMG = 'data:image/jpeg;base64,/9j/4AAQSkZJRg==';
 /** Cajero y teléfono comparten la misma transferencia de imágenes (en memoria) y el mismo contrato (MSW). */
 let images: ImageStore = createMemoryImageStore();
 const phone = () => createContractGateway(images);
+
+/** Ejecuta una acción con la identidad de otro usuario (p. ej. el responsable desde su app) y vuelve al cajero. */
+const as = async <T,>(role: 'cartera' | 'propietario', action: () => Promise<T>): Promise<T> => {
+  setAccessToken(mockTokenForRole(role));
+  try {
+    return await action();
+  } finally {
+    setAccessToken(mockTokenForRole('cajero'));
+  }
+};
+const proofByToken = (token: string) => [...state.paymentProofs.values()].find((p) => p.token === token)!;
+/** Ana Cartera es la responsable de la cuenta (emp-007): verifica y confirma desde su propia app. */
+const verifierConfirms = (token: string) => as('cartera', async () => {
+  const { id } = proofByToken(token);
+  await phone().verify(id, 'Ana Cartera');
+  await phone().confirm(id, 'Ana Cartera');
+});
+const verifierRejects = (token: string, reason: string) => as('cartera', async () => {
+  await phone().reject(proofByToken(token).id, 'Ana Cartera', reason);
+});
 
 const renderAt = async (path: string, role: 'cajero' | 'propietario' = 'cajero') => {
   setAccessToken(mockTokenForRole(role));
@@ -26,6 +47,14 @@ const renderAt = async (path: string, role: 'cajero' | 'propietario' = 'cajero')
     </AppProviders>,
   );
   await router.load();
+};
+
+/** El cajero revisa la vista previa y envía las fotos al responsable de la cuenta. */
+const sendToVerifier = async (user: User, dialog: HTMLElement) => {
+  await within(dialog).findByRole('option', { name: 'Ana Cartera' });
+  await user.selectOptions(within(dialog).getByLabelText('Responsable de la cuenta'), 'emp-007');
+  await user.click(within(dialog).getByRole('button', { name: 'Enviar al responsable' }));
+  await waitFor(() => expect(within(dialog).getByTestId('proof-status')).toHaveTextContent('Enviado al responsable'));
 };
 
 const toPayment = async (user: User) => {
@@ -62,7 +91,7 @@ describe('Cobro por transferencia con comprobante', { timeout: 30000 }, () => {
     expect(confirmButton).toBeDisabled();
   });
 
-  it('el teléfono envía la foto → recibido (sigue bloqueado) → el cajero confirma → se habilita y vende', async () => {
+  it('el teléfono envía la foto → el cajero la envía → el responsable verifica desde su app → se habilita y vende', async () => {
     const user = userEvent.setup();
     await renderAt('/pos');
     const dialog = await toPayment(user);
@@ -77,9 +106,14 @@ describe('Cobro por transferencia con comprobante', { timeout: 30000 }, () => {
     const confirmButton = within(dialog).getByRole('button', { name: /confirmar pago/i });
     expect(confirmButton).toBeDisabled();
 
-    await user.click(within(dialog).getByRole('button', { name: 'Empezar verificación' }));
-    await user.click(await within(dialog).findByRole('button', { name: 'Marcar pago como verificado' }));
-    await waitFor(() => expect(within(dialog).getByTestId('proof-status')).toHaveTextContent('Pago confirmado'));
+    // El cajero no verifica su propio comprobante: lo envía y espera al responsable de la cuenta.
+    await sendToVerifier(user, dialog);
+    expect(within(dialog).queryByRole('button', { name: 'Empezar verificación' })).not.toBeInTheDocument();
+    expect(within(dialog).getByText(/Esperando que el responsable verifique/)).toBeInTheDocument();
+    expect(confirmButton).toBeDisabled();
+
+    await verifierConfirms(token);
+    await waitFor(() => expect(within(dialog).getByTestId('proof-status')).toHaveTextContent('Pago confirmado'), { timeout: 6000 });
     await waitFor(() => expect(confirmButton).toBeEnabled());
     await user.click(confirmButton);
     expect(await screen.findByTestId('receipt-number')).toBeInTheDocument();
@@ -92,12 +126,13 @@ describe('Cobro por transferencia con comprobante', { timeout: 30000 }, () => {
     await user.type(within(dialog).getByLabelText(/número de referencia/i), 'REF-2');
     await user.click(within(dialog).getByRole('button', { name: /solicitar comprobante/i }));
     const link = (await within(dialog).findByLabelText('Enlace de captura')) as HTMLInputElement;
-    await setPhone(link.value.split('/captura/')[1]!);
+    const token = link.value.split('/captura/')[1]!;
+    await setPhone(token);
     await waitFor(() => expect(within(dialog).getByTestId('proof-status')).toHaveTextContent('Comprobante recibido'), { timeout: 5000 });
 
-    await user.type(within(dialog).getByLabelText('Motivo si no coincide'), 'Monto distinto');
-    await user.click(within(dialog).getByRole('button', { name: 'Rechazar comprobante' }));
-    await waitFor(() => expect(within(dialog).getByTestId('proof-status')).toHaveTextContent('Rechazado'));
+    await sendToVerifier(user, dialog);
+    await verifierRejects(token, 'Monto distinto');
+    await waitFor(() => expect(within(dialog).getByTestId('proof-status')).toHaveTextContent('Rechazado'), { timeout: 6000 });
     expect(within(dialog).getByRole('button', { name: /confirmar pago/i })).toBeDisabled();
     expect(within(dialog).getByText(/Monto distinto/)).toBeInTheDocument();
   });
@@ -186,10 +221,12 @@ describe('Pago mixto con componentes independientes', { timeout: 30000 }, () => 
     await user.type(refs[0]!, 'MX-1');
     await user.click(within(dialog).getByRole('button', { name: /solicitar comprobante/i }));
     const link = (await within(dialog).findByLabelText('Enlace de captura')) as HTMLInputElement;
-    await phone().submitPublic(link.value.split('/captura/')[1]!, IMG);
-    await user.click(await within(dialog).findByRole('button', { name: 'Empezar verificación' }, { timeout: 6000 }));
-    await user.click(await within(dialog).findByRole('button', { name: 'Marcar pago como verificado' }, { timeout: 6000 }));
-    await waitFor(() => expect(within(dialog).getByTestId('component-status-2')).toHaveTextContent('Confirmado'));
+    const mixedToken = link.value.split('/captura/')[1]!;
+    await phone().submitPublic(mixedToken, IMG);
+    await within(dialog).findByRole('button', { name: 'Enviar al responsable' }, { timeout: 6000 });
+    await sendToVerifier(user, dialog);
+    await verifierConfirms(mixedToken);
+    await waitFor(() => expect(within(dialog).getByTestId('component-status-2')).toHaveTextContent('Confirmado'), { timeout: 6000 });
     await waitFor(() => expect(confirmButton).toBeEnabled());
 
     // Reversar el digital: queda registrado y la venta vuelve a bloquearse.

@@ -1,7 +1,8 @@
 import { ApiError } from '@/shared/api/client';
 import {
   authorizePaymentProofException, confirmPaymentProof, createPaymentProof, getPaymentProof, getPublicPaymentProof,
-  rejectPaymentProof, submitPaymentProofEvidence, submitPublicPaymentProofEvidence, verifyPaymentProof,
+  rejectPaymentProof, removePaymentProofEvidence, submitPaymentProofEvidence, submitPaymentProofForVerification,
+  submitPublicPaymentProofEvidence, verifyPaymentProof,
 } from '@/shared/api/paymentProofs';
 import type { PaymentProof, PaymentProofPublic, PaymentProofStatus } from '@/shared/contracts';
 import { getImageStore, type ImageStore } from './imageStore';
@@ -12,13 +13,19 @@ export type ProofCreateInput = {
   amount: number; destination: string; employee: string;
 };
 
-/** Acceso a las solicitudes de comprobante. El contrato decide el estado; la imagen va por ImageStore. */
+/** Acceso a las solicitudes de comprobante. El contrato decide el estado; las fotos van por ImageStore. */
 export type ProofGateway = {
   create: (input: ProofCreateInput) => Promise<ProofRequest>;
   get: (id: string) => Promise<ProofRequest>;
   getPublic: (token: string) => Promise<PublicProof>;
+  /** El teléfono agrega una foto por el enlace del comprobante. */
   submitPublic: (token: string, image: string) => Promise<ProofRequest>;
+  /** El cajero agrega una foto desde el computador. Se pueden agregar varias (D-005). */
   submitLocal: (id: string, image: string, actor: string) => Promise<ProofRequest>;
+  /** "Repetir": quita una foto antes de enviar. */
+  removePhoto: (id: string, evidenceId: string, actor: string) => Promise<ProofRequest>;
+  /** "Enviar": pasa la verificación al responsable de la cuenta. */
+  send: (id: string, verifierId: string, actor: string) => Promise<ProofRequest>;
   verify: (id: string, actor: string) => Promise<ProofRequest>;
   confirm: (id: string, actor: string) => Promise<ProofRequest>;
   reject: (id: string, actor: string, reason: string) => Promise<ProofRequest>;
@@ -35,6 +42,7 @@ export class ProofGatewayError extends Error {
 const STATUS_OF: Record<PaymentProofStatus, ProofStatus> = {
   pending_evidence: 'esperando',
   evidence_received: 'recibido',
+  sent_to_verifier: 'enviado',
   verifying: 'verificando',
   confirmed: 'confirmado',
   rejected: 'rechazado',
@@ -69,13 +77,15 @@ export const createContractGateway = (images: ImageStore = getImageStore()): Pro
   const view = async (proof: PaymentProof): Promise<ProofRequest> => {
     const trail = trailOf(proof.id);
     // La foto pudo llegar desde el teléfono: la bitácora local debe mostrar esa recepción aunque no la hayamos hecho nosotros.
-    if (proof.evidence && !trail.history.some((event) => event.status === 'recibido')) {
-      const at = proof.evidence.submittedAt;
-      const received = { at, by: proof.evidence.submittedBy, status: 'recibido' as const };
+    const first = proof.evidences[0];
+    if (first && !trail.history.some((event) => event.status === 'recibido')) {
+      const received = { at: first.submittedAt, by: first.submittedBy, status: 'recibido' as const };
       const firstDecision = trail.history.findIndex((event) => event.status !== 'esperando');
       trail.history.splice(firstDecision === -1 ? trail.history.length : firstDecision, 0, received);
     }
     const exceptionEvent = [...trail.history].reverse().find((event) => event.status === 'excepcion');
+    const stored = proof.evidences.length > 0 ? await images.list(proof.token) : {};
+    const last = proof.evidences[proof.evidences.length - 1];
     return {
       id: proof.id,
       token: proof.token,
@@ -89,8 +99,10 @@ export const createContractGateway = (images: ImageStore = getImageStore()): Pro
       createdAt: trail.createdAt,
       expiresAt: proof.expiresAt,
       status: STATUS_OF[proof.status],
-      image: await images.get(proof.token),
-      receivedAt: proof.evidence?.submittedAt ?? null,
+      photos: proof.evidences.map((evidence) => ({ id: evidence.id, fileName: evidence.fileName, image: stored[evidence.id] ?? null })),
+      verifierId: proof.verifierId,
+      reason: proof.reason,
+      receivedAt: last?.submittedAt ?? null,
       attempts: trail.attempts,
       exception: proof.status === 'exception_authorized'
         ? { authorizedBy: proof.reviewedBy ?? '', reason: proof.reason ?? '', at: exceptionEvent?.at ?? '' }
@@ -116,6 +128,12 @@ export const createContractGateway = (images: ImageStore = getImageStore()): Pro
     return { fileName: imageFileName(checked.value.mimeType), mimeType: checked.value.mimeType };
   };
 
+  /** La foto nueva es la última de la lista del servidor. */
+  const storeLastPhoto = async (proof: PaymentProof, image: string): Promise<void> => {
+    const added = proof.evidences[proof.evidences.length - 1];
+    if (added) await images.put(proof.token, added.id, image);
+  };
+
   const call = async <T,>(operation: () => Promise<T>): Promise<T> => {
     try {
       return await operation();
@@ -138,16 +156,26 @@ export const createContractGateway = (images: ImageStore = getImageStore()): Pro
     getPublic: (token) => call(async () => toPublic(await getPublicPaymentProof(token))),
     submitPublic: (token, image) => call(async () => {
       const proof = await submitPublicPaymentProofEvidence(token, evidenceMeta(image));
-      await images.put(token, image);
+      await storeLastPhoto(proof, image);
       return view(proof);
     }),
     submitLocal: (id, image, actor) => call(async () => {
-      const meta = evidenceMeta(image);
-      const current = await getPaymentProof(id);
-      const proof = await submitPaymentProofEvidence(id, meta);
-      await images.put(current.token, image);
+      const proof = await submitPaymentProofEvidence(id, evidenceMeta(image));
+      await storeLastPhoto(proof, image);
       trailOf(id).attempts += 1;
       record(id, actor, 'recibido');
+      return view(proof);
+    }),
+    removePhoto: (id, evidenceId, actor) => call(async () => {
+      const before = await getPaymentProof(id);
+      const proof = await removePaymentProofEvidence(id, evidenceId);
+      await images.remove(before.token, evidenceId);
+      record(id, actor, STATUS_OF[proof.status], 'Foto quitada antes de enviar');
+      return view(proof);
+    }),
+    send: (id, verifierId, actor) => call(async () => {
+      const proof = await submitPaymentProofForVerification(id, { verifierId });
+      record(id, actor, 'enviado', `Responsable: ${verifierId}`);
       return view(proof);
     }),
     verify: (id, actor) => call(async () => {

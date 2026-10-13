@@ -80,9 +80,13 @@ export const CapturePage = ({ token }: { token: string }) => {
             </dl>
 
             {sent ? (
-              <p role="status" data-testid="capture-sent">
-                Comprobante enviado. Ya puedes volver a la caja: el cajero verificará el pago.
-              </p>
+              <>
+                <p role="status" data-testid="capture-sent">
+                  Foto enviada. Si el comprobante tiene más de una foto, agrega la siguiente. Después vuelve a la caja: el
+                  cajero revisa las fotos y las envía al responsable de la cuenta.
+                </p>
+                <Button type="button" label="Agregar otra foto" icon="pi pi-plus" outlined onClick={() => { setSent(false); setPreview(null); }} />
+              </>
             ) : (
               <>
                 <p>Toma una foto nítida del comprobante o elige una imagen que ya tengas.</p>

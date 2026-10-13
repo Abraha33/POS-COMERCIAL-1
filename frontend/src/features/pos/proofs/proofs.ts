@@ -4,11 +4,12 @@
  * (o una excepción autorizada). El servidor decide las transiciones (contrato `/pos/payment-proofs`); aquí solo
  * están los tipos de la vista, el mapeo de estados y la validación previa de la imagen.
  */
-export type ProofStatus = 'esperando' | 'recibido' | 'verificando' | 'confirmado' | 'rechazado' | 'excepcion' | 'vencido';
+export type ProofStatus = 'esperando' | 'recibido' | 'enviado' | 'verificando' | 'confirmado' | 'rechazado' | 'excepcion' | 'vencido';
 
 export const proofStatusLabel: Record<ProofStatus, string> = {
   esperando: 'Esperando comprobante',
   recibido: 'Comprobante recibido',
+  enviado: 'Enviado al responsable de la cuenta',
   verificando: 'Verificando',
   confirmado: 'Pago confirmado',
   rechazado: 'Rechazado / No coincide',
@@ -17,6 +18,9 @@ export const proofStatusLabel: Record<ProofStatus, string> = {
 };
 
 export type ProofEvent = { at: string; by: string; status: ProofStatus; note?: string };
+
+/** Una foto de la transferencia. `image` es la vista previa (solo en memoria); el servidor guarda solo los metadatos. */
+export type ProofPhoto = { id: string; fileName: string; image: string | null };
 
 export type ProofRequest = {
   id: string;
@@ -33,8 +37,12 @@ export type ProofRequest = {
   createdAt: string;
   expiresAt: string;
   status: ProofStatus;
-  /** Vista previa de la evidencia. Vive solo en memoria: nunca se persiste ni va al contrato. */
-  image: string | null;
+  /** Varias fotos por transferencia (D-005). Las imágenes viven solo en memoria: nunca se persisten ni van al contrato. */
+  photos: ProofPhoto[];
+  /** Responsable de la cuenta asignado al enviar (D-005); nulo antes de "Enviar". */
+  verifierId: string | null;
+  /** Motivo del rechazo o de la excepción, tal como lo guardó el servidor. */
+  reason: string | null;
   receivedAt: string | null;
   attempts: number;
   /** Excepción autorizada: permite cerrar la venta sin pago confirmado. */

@@ -949,10 +949,297 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/pos/payment-proofs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Crea o reutiliza un comprobante de pago digital */
+        post: operations["createPaymentProof"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pos/payment-proofs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPaymentProof"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pos/payment-proofs/{id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submitPaymentProofEvidence"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pos/payment-proofs/{id}/evidence/{evidenceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["removePaymentProofEvidence"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pos/payment-proofs/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submitPaymentProofForVerification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pos/payment-proofs/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["verifyPaymentProof"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pos/payment-proofs/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["confirmPaymentProof"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pos/payment-proofs/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["rejectPaymentProof"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pos/payment-proofs/{id}/exception": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["authorizePaymentProofException"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pos/payment-proofs/public/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPublicPaymentProof"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pos/payment-proofs/public/{token}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submitPublicPaymentProofEvidence"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pos/sales/{id}/receipt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getSaleReceiptDocument"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/pos/sales/{id}/reprints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listSaleReprints"];
+        put?: never;
+        post: operations["createSaleReprint"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @enum {string} */
+        PaymentProofStatus: "pending_evidence" | "evidence_received" | "sent_to_verifier" | "verifying" | "confirmed" | "rejected" | "exception_authorized" | "expired";
+        PaymentProofSubmit: {
+            /** @description Responsable de la cuenta que verifica desde su app (D-005). */
+            verifierId: string;
+        };
+        PaymentProofEvidence: {
+            id: string;
+            fileName: string;
+            mimeType: string;
+            submittedAt: string;
+            submittedBy: string;
+        };
+        PaymentProofCreate: {
+            operationId: string;
+            channelId: string;
+            /** @description PROPUESTA (comprobantes): nombre legible del canal para el teléfono. */
+            channelLabel: string;
+            amount: number;
+            destination: string;
+        };
+        PaymentProofEvidenceCreate: {
+            fileName: string;
+            mimeType: string;
+        };
+        PaymentProofReason: {
+            reason: string;
+        };
+        PaymentProof: {
+            id: string;
+            operationId: string;
+            channelId: string;
+            channelLabel: string;
+            /** @description Empleado que solicitó el comprobante (lo fija el servidor). */
+            requestedBy: string;
+            /** @description Responsable asignado al enviar (D-005). Nulo hasta "Enviar". */
+            verifierId: string | null;
+            amount: number;
+            destination: string;
+            status: components["schemas"]["PaymentProofStatus"];
+            token: string;
+            expiresAt: string;
+            /** @description Mock; excepción autorizada siempre false. */
+            bankVerified: boolean;
+            /** @description Fotos en orden de envío (varias por transferencia, D-005). */
+            evidences: components["schemas"]["PaymentProofEvidence"][];
+            reviewedBy: string | null;
+            reason: string | null;
+        };
+        PaymentProofPublic: {
+            operationId: string;
+            channelId: string;
+            channelLabel: string;
+            requestedBy: string;
+            amount: number;
+            destination: string;
+            status: components["schemas"]["PaymentProofStatus"];
+            expiresAt: string;
+        };
+        SaleReceiptDocument: {
+            saleId: string;
+            saleNumber: string;
+            copyNumber: number;
+            issuedAt: string;
+            documentType: string;
+            content: string;
+        };
+        ReprintCreate: {
+            reason?: string;
+        };
+        ReprintRecord: {
+            id: string;
+            saleId: string;
+            copyNumber: number;
+            requestedAt: string;
+            requestedBy: string;
+            reason: string | null;
+        };
         Error: {
             code: string;
             message: string;
@@ -3389,6 +3676,387 @@ export interface operations {
                 };
             };
             409: components["responses"]["Conflict"];
+        };
+    };
+    createPaymentProof: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentProofCreate"];
+            };
+        };
+        responses: {
+            /** @description Comprobante existente */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentProof"];
+                };
+            };
+            /** @description Comprobante creado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentProof"];
+                };
+            };
+        };
+    };
+    getPaymentProof: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Comprobante */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentProof"];
+                };
+            };
+        };
+    };
+    submitPaymentProofEvidence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentProofEvidenceCreate"];
+            };
+        };
+        responses: {
+            /** @description Foto añadida a la vista previa; no confirma el pago */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentProof"];
+                };
+            };
+            /** @description El comprobante ya fue enviado o resuelto */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    removePaymentProofEvidence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                evidenceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Foto quitada de la vista previa ("repetir") */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentProof"];
+                };
+            };
+            /** @description Solo se quita una foto antes de enviar */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    submitPaymentProofForVerification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentProofSubmit"];
+            };
+        };
+        responses: {
+            /** @description Enviado al responsable de la cuenta para verificar */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentProof"];
+                };
+            };
+            /** @description Sin fotos o estado inválido */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Responsable inexistente o inactivo */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    verifyPaymentProof: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Verificación iniciada por el responsable de la cuenta o un supervisor */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentProof"];
+                };
+            };
+            /** @description Solo el responsable asignado o un supervisor pueden verificar */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    confirmPaymentProof: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Confirmación manual mock */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentProof"];
+                };
+            };
+        };
+    };
+    rejectPaymentProof: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentProofReason"];
+            };
+        };
+        responses: {
+            /** @description Comprobante rechazado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentProof"];
+                };
+            };
+        };
+    };
+    authorizePaymentProofException: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentProofReason"];
+            };
+        };
+        responses: {
+            /** @description Excepción autorizada; no verifica banco */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentProof"];
+                };
+            };
+        };
+    };
+    getPublicPaymentProof: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Vista pública mínima */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentProofPublic"];
+                };
+            };
+        };
+    };
+    submitPublicPaymentProofEvidence: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaymentProofEvidenceCreate"];
+            };
+        };
+        responses: {
+            /** @description Evidencia pública recibida; no confirma pago */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaymentProof"];
+                };
+            };
+        };
+    };
+    getSaleReceiptDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Representación mock del recibo */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaleReceiptDocument"];
+                };
+            };
+        };
+    };
+    listSaleReprints: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Historial de copias */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReprintRecord"][];
+                };
+            };
+        };
+    };
+    createSaleReprint: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["Id"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReprintCreate"];
+            };
+        };
+        responses: {
+            /** @description Nueva copia sin alterar venta, caja ni stock */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaleReceiptDocument"];
+                };
+            };
         };
     };
 }

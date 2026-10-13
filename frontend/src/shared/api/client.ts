@@ -55,4 +55,6 @@ export const api = {
     schema.parse(await send(path, { method: 'POST', body: JSON.stringify(body) }, options)),
   put: async <S extends z.ZodType>(path: string, body: unknown, schema: S): Promise<z.infer<S>> =>
     schema.parse(await send(path, { method: 'PUT', body: JSON.stringify(body) })),
+  delete: async <S extends z.ZodType>(path: string, schema: S): Promise<z.infer<S>> =>
+    schema.parse(await send(path, { method: 'DELETE' })),
 };

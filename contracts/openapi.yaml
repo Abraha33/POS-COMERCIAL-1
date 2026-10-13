@@ -1591,25 +1591,52 @@ paths:
       parameters: *a1
       responses:
         "200": { description: Comprobante, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProof" } } } }
+  # D-005 (aprobado): varias fotos por transferencia; "Enviar" pasa la verificación al responsable de la cuenta.
   /pos/payment-proofs/{id}/evidence:
     post:
       tags: [pos]
       operationId: submitPaymentProofEvidence
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       parameters: *a1
       requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProofEvidenceCreate" } } } }
       responses:
-        "200": { description: Evidencia recibida; no confirma el pago, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProof" } } } }
+        "200": { description: Foto añadida a la vista previa; no confirma el pago, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProof" } } } }
+        "409": { description: El comprobante ya fue enviado o resuelto }
+  /pos/payment-proofs/{id}/evidence/{evidenceId}:
+    delete:
+      tags: [pos]
+      operationId: removePaymentProofEvidence
+      x-status: simulated
+      x-approval: approved
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+        - { name: evidenceId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Foto quitada de la vista previa ("repetir"), content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProof" } } } }
+        "409": { description: Solo se quita una foto antes de enviar }
+  /pos/payment-proofs/{id}/submit:
+    post:
+      tags: [pos]
+      operationId: submitPaymentProofForVerification
+      x-status: simulated
+      x-approval: approved
+      parameters: *a1
+      requestBody: { required: true, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProofSubmit" } } } }
+      responses:
+        "200": { description: Enviado al responsable de la cuenta para verificar, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProof" } } } }
+        "409": { description: Sin fotos o estado inválido, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "422": { description: Responsable inexistente o inactivo }
   /pos/payment-proofs/{id}/verify:
     post:
       tags: [pos]
       operationId: verifyPaymentProof
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       parameters: *a1
       responses:
-        "200": { description: Verificación iniciada, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProof" } } } }
+        "200": { description: Verificación iniciada por el responsable de la cuenta o un supervisor, content: { application/json: { schema: { $ref: "#/components/schemas/PaymentProof" } } } }
+        "403": { description: Solo el responsable asignado o un supervisor pueden verificar }
   /pos/payment-proofs/{id}/confirm:
     post:
       tags: [pos]
@@ -1754,7 +1781,21 @@ components:
   schemas:
     PaymentProofStatus:
       type: string
-      enum: [pending_evidence, evidence_received, verifying, confirmed, rejected, exception_authorized, expired]
+      enum: [pending_evidence, evidence_received, sent_to_verifier, verifying, confirmed, rejected, exception_authorized, expired]
+    PaymentProofSubmit:
+      type: object
+      required: [verifierId]
+      properties:
+        verifierId: { type: string, minLength: 1, description: 'Responsable de la cuenta que verifica desde su app (D-005).' }
+    PaymentProofEvidence:
+      type: object
+      required: [id, fileName, mimeType, submittedAt, submittedBy]
+      properties:
+        id: { type: string }
+        fileName: { type: string }
+        mimeType: { type: string, pattern: '^image/' }
+        submittedAt: { type: string }
+        submittedBy: { type: string }
     PaymentProofCreate:
       type: object
       required: [operationId, channelId, channelLabel, amount, destination]
@@ -1777,20 +1818,21 @@ components:
         reason: { type: string, minLength: 5 }
     PaymentProof:
       type: object
-      required: [id, operationId, channelId, channelLabel, requestedBy, amount, destination, status, token, expiresAt, bankVerified, evidence, reviewedBy, reason]
+      required: [id, operationId, channelId, channelLabel, requestedBy, amount, destination, status, token, expiresAt, bankVerified, evidences, verifierId, reviewedBy, reason]
       properties:
         id: { type: string }
         operationId: { type: string }
         channelId: { type: string }
         channelLabel: { type: string }
         requestedBy: { type: string, description: 'Empleado que solicitó el comprobante (lo fija el servidor).' }
+        verifierId: { type: [string, 'null'], description: 'Responsable asignado al enviar (D-005). Nulo hasta "Enviar".' }
         amount: { type: integer, minimum: 0 }
         destination: { type: string }
         status: { $ref: "#/components/schemas/PaymentProofStatus" }
         token: { type: string }
         expiresAt: { type: string }
         bankVerified: { type: boolean, description: 'Mock; excepción autorizada siempre false.' }
-        evidence: { type: [object, 'null'], additionalProperties: true }
+        evidences: { type: array, items: { $ref: "#/components/schemas/PaymentProofEvidence" }, description: 'Fotos en orden de envío (varias por transferencia, D-005).' }
         reviewedBy: { type: [string, 'null'] }
         reason: { type: [string, 'null'] }
     PaymentProofPublic:

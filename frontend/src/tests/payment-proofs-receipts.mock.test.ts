@@ -4,7 +4,7 @@ import { setAccessToken } from '@/shared/api/client';
 import { mockTokenForRole } from '@/mocks/test-users';
 import {
   confirmPaymentProof, createPaymentProof, getPaymentProof, submitPaymentProofEvidence,
-  authorizePaymentProofException, verifyPaymentProof,
+  authorizePaymentProofException, verifyPaymentProof, removePaymentProofEvidence, submitPaymentProofForVerification,
 } from '@/shared/api/paymentProofs';
 import { getSaleReceipt, listSaleReprints, createSaleReprint } from '@/shared/api/receipts';
 
@@ -24,17 +24,50 @@ describe('payment proofs mock contract', () => {
     const evidenced = await submitPaymentProofEvidence(proof.id, { fileName: 'pago.jpg', mimeType: 'image/jpeg' });
     expect(evidenced.status).toBe('evidence_received');
     expect(evidenced.bankVerified).toBe(false);
+    // Ni siquiera un supervisor confirma por haber recibido una foto: falta enviar y verificar.
+    setAccessToken(mockTokenForRole('propietario'));
     await expect(confirmPaymentProof(proof.id)).rejects.toMatchObject({ code: 'PROOF_INVALID_STATE' });
   });
 
-  it('confirma sólo tras verificación y conserva el ciclo contractual', async () => {
+  it('varias fotos, enviar al responsable, verificar y confirmar (D-005)', async () => {
     const proof = await createPaymentProof(proofInput);
-    await submitPaymentProofEvidence(proof.id, { fileName: 'pago.jpg', mimeType: 'image/jpeg' });
+    await submitPaymentProofEvidence(proof.id, { fileName: 'pago-1.jpg', mimeType: 'image/jpeg' });
+    const withTwo = await submitPaymentProofEvidence(proof.id, { fileName: 'pago-2.jpg', mimeType: 'image/jpeg' });
+    expect(withTwo.evidences).toHaveLength(2);
+
+    // Verificar antes de enviar no está permitido.
+    setAccessToken(mockTokenForRole('propietario'));
+    await expect(verifyPaymentProof(proof.id)).rejects.toMatchObject({ code: 'PROOF_INVALID_STATE' });
+
+    setAccessToken(mockTokenForRole('cajero'));
+    const sent = await submitPaymentProofForVerification(proof.id, { verifierId: 'emp-007' });
+    expect(sent).toMatchObject({ status: 'sent_to_verifier', verifierId: 'emp-007' });
+
+    // El cajero que lo solicitó no verifica; el responsable asignado sí.
+    await expect(verifyPaymentProof(proof.id)).rejects.toMatchObject({ status: 403 });
+    setAccessToken(mockTokenForRole('cartera'));
     const verifying = await verifyPaymentProof(proof.id);
     expect(verifying.status).toBe('verifying');
     const confirmed = await confirmPaymentProof(proof.id);
     expect(confirmed).toMatchObject({ status: 'confirmed', bankVerified: true });
     expect((await getPaymentProof(proof.id)).status).toBe('confirmed');
+  });
+
+  it('una foto se puede quitar antes de enviar y ya no después', async () => {
+    const proof = await createPaymentProof(proofInput);
+    const first = await submitPaymentProofEvidence(proof.id, { fileName: 'a.jpg', mimeType: 'image/jpeg' });
+    await submitPaymentProofEvidence(proof.id, { fileName: 'b.jpg', mimeType: 'image/jpeg' });
+    const removed = await removePaymentProofEvidence(proof.id, first.evidences[0]!.id);
+    expect(removed.evidences).toHaveLength(1);
+    await submitPaymentProofForVerification(proof.id, { verifierId: 'emp-007' });
+    await expect(removePaymentProofEvidence(proof.id, removed.evidences[0]!.id)).rejects.toMatchObject({ code: 'PROOF_INVALID_STATE' });
+  });
+
+  it('enviar exige una foto y un responsable activo', async () => {
+    const proof = await createPaymentProof(proofInput);
+    await expect(submitPaymentProofForVerification(proof.id, { verifierId: 'emp-007' })).rejects.toMatchObject({ code: 'PROOF_INVALID_STATE' });
+    await submitPaymentProofEvidence(proof.id, { fileName: 'a.jpg', mimeType: 'image/jpeg' });
+    await expect(submitPaymentProofForVerification(proof.id, { verifierId: 'no-existe' })).rejects.toMatchObject({ code: 'PROOF_VERIFIER_INVALID' });
   });
 
   it('la excepción autorizada no equivale a verificación bancaria', async () => {

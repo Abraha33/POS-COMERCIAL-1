@@ -18,8 +18,10 @@ const axeBlocking = async (page: Page, scope: string) => {
 
 // El estado del comprobante y la foto viven en el servidor de desarrollo (/dev-relay): el teléfono y el computador
 // ven el mismo registro. Las pruebas unitarias usan memoria.
-test('transferencia: QR → teléfono envía foto → cajero verifica → venta confirmada', async ({ page, browser }) => {
-  await startAs(page, 'cajero', '/pos');
+// D-005: varias fotos, el cajero revisa y envía al responsable de la cuenta, que verifica. Aquí verifica el propietario
+// (supervisor) desde el mismo panel; la separación cajero/responsable la cubren las pruebas de Vitest.
+test('transferencia: QR → teléfono envía 2 fotos → se envía al responsable → verifica → venta confirmada', async ({ page, browser }) => {
+  await startAs(page, 'propietario', '/pos');
   await openShift(page, 100000);
   await addToCart(page, 'Arroz 500 g');
   await page.getByRole('button', { name: 'Transferencia' }).click();
@@ -50,12 +52,24 @@ test('transferencia: QR → teléfono envía foto → cajero verifica → venta 
   await phone.screenshot({ path: path.join(shots, 'captura-movil-375.png'), fullPage: true });
   await phone.getByRole('button', { name: 'Enviar comprobante' }).click();
   await expect(phone.getByTestId('capture-sent')).toBeVisible();
+  // Segunda foto del mismo comprobante.
+  await phone.getByRole('button', { name: 'Agregar otra foto' }).click();
+  await phone.locator('input[aria-label="Elegir imagen del comprobante"]').setInputFiles({ name: 'comprobante-2.png', mimeType: 'image/png', buffer: PNG });
+  await phone.getByRole('button', { name: 'Enviar comprobante' }).click();
+  await expect(phone.getByTestId('capture-sent')).toBeVisible();
   await context.close();
 
   // Computador: la evidencia llegó sola, pero no confirma el pago.
   await expect(dialog.getByTestId('proof-status')).toHaveText('Comprobante recibido', { timeout: 10_000 });
   await expect(confirm).toBeDisabled();
   await page.screenshot({ path: path.join(shots, 'cobro-recibido.png'), fullPage: true });
+
+  // Las dos fotos llegan a la vista previa; el cajero las envía al responsable de la cuenta (D-005).
+  await expect(dialog.getByRole('list', { name: 'Fotos del comprobante' }).getByRole('img')).toHaveCount(2);
+  await dialog.getByLabel('Responsable de la cuenta').selectOption({ label: 'María Pérez' });
+  await dialog.getByRole('button', { name: 'Enviar al responsable' }).click();
+  await expect(dialog.getByTestId('proof-status')).toHaveText('Enviado al responsable de la cuenta');
+  await expect(confirm).toBeDisabled();
 
   // El servidor exige verificación antes de confirmar: primero se empieza, luego se marca como verificado.
   await dialog.getByRole('button', { name: 'Empezar verificación' }).click();
