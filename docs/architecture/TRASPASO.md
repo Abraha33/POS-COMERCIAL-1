@@ -149,5 +149,5 @@ Pendiente que sigue abierto:
 - **Troncal:** `feat/pos-proofs`. Tags de respaldo `respaldo/pos-proofs-0e2d946` y `respaldo/pos-proofs-d3262c8`.
 - **Ensayo hecho:** carriles `lane/inventory`, `lane/customers`, `lane/catalog` integrados en secuencia en
   `rehearsal/integration-1`, con compuertas en verde tras cada fusión. No se llevaron a la troncal.
-- **Avance medido: 67/100** para construir en paralelo. Regla, evidencia y qué falta: `docs/qa/PARALLEL_READINESS.md`.
+- **Avance medido: 68/100** para construir en paralelo. Regla, evidencia y qué falta: `docs/qa/PARALLEL_READINESS.md`.
 - **No se borró nada.** `frontend/src/method` sigue donde estaba. `integration` no se movió (tiene capturas sin guardar).

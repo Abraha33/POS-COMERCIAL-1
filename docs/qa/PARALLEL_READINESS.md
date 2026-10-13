@@ -5,18 +5,18 @@ pantallas a la vez sin pisarse. **No** mide cuánto del ERP está construido.
 
 La cifra sale de una regla fija (abajo). No es una métrica certificada: es una rúbrica con evidencia verificable por criterio.
 
-## Resultado: 67 de 100
+## Resultado: 68 de 100
 
 | # | Criterio | Peso | Puntos | Evidencia | Qué le falta |
 |---|---|---:|---:|---|---|
-| A | Base de código única y verificada | 20 | 17 | Troncal `feat/pos-proofs` contiene todo el trabajo. `core:check` 8/8. Typecheck, lint, Vitest 481/481 y conformidad 44/44 en el commit de herramientas. Tags de respaldo antes de cada avance. | `frontend/src/method` sigue sin rastrear (árbol no limpio). `integration` quedó atrás con capturas sin guardar. |
+| A | Base de código única y verificada | 20 | 18 | Troncal `feat/pos-proofs` contiene todo el trabajo. `core:check` 8/8 sobre el commit final `056d0f5` (typecheck, build, lint, Vitest, tipos, Playwright, Storybook, conformidad). Tags de respaldo antes de cada avance. | `frontend/src/method` sigue sin rastrear (árbol no limpio). `integration` quedó atrás con capturas sin guardar. |
 | B | Entorno reproducible y sin choques | 15 | 12 | `pnpm lane:new` creó 3 carriles (≈90 s cada uno). LF, editor y Node fijados. Tres servidores a la vez (8082, 8108, 8110), cada uno sirviendo su carpeta. | No probado desde Codex ni OpenCode. Al detener un servidor en Windows el proceso de Vite queda vivo. 30 worktrees locales. |
 | C | Propiedad y fronteras | 20 | 15 | `lanes.json` con 12 carriles; `pnpm lane:check` con 10 pruebas; rechaza archivos ajenos y serializados y dice a quién pedirlos. 12 hojas de carril. | La plataforma no lo obliga (GitHub no ofrece protección de ramas en este repo): un agente puede saltarse el script en local. |
 | D | Contratos listos para los primeros carriles | 15 | 8 | `inventory`, `catalog`, `pos-pay` y lectura de `customers` tienen operaciones `approved`. D-005 implementado. | Conteos, ajustes, reportes, escritura de clientes, compras y administración siguen `proposed`. Los paquetes UI por dominio son v0.1. |
 | E | Compuertas automáticas (CI) | 10 | 3 | `.github/workflows/ci.yml` escrito con las mismas compuertas que en local. | **Nunca se ha ejecutado en GitHub.** Sin protección de ramas. |
 | F | Ensayo de integración | 15 | 10 | 3 carriles (`inventory`, `customers`, `catalog`), 3 fusiones secuenciales en `rehearsal/integration-1`, compuertas en verde tras cada una (483 → 485 → 486 pruebas). | Fue el caso fácil: cambios aditivos, sin archivo compartido, un solo agente y una sola herramienta, sin PR en GitHub. |
 | G | GitHub alineado | 5 | 2 | `codex/parallel-readiness` publicada hasta `d3262c8`. | Herramientas, troncal y carriles sin publicar. `main` remoto es otra historia (Next.js) sin ancestro común. |
-| | **Total** | **100** | **67** | | |
+| | **Total** | **100** | **68** | | |
 
 ## Lectura
 
