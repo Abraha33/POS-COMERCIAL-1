@@ -43,6 +43,10 @@ node scripts/lane-repair.mjs <ruta-del-repo-principal>             # git worktre
 y reinstala con `pnpm install --frozen-lockfile` en los carriles que lo pidan. No borra nada. Ver el límite de su
 comprobación de dependencias en el encabezado del script.
 
+**Hook local de propiedad:** `.githooks/pre-commit` ejecuta `lane:check` en ramas `lane/*` y rechaza el commit si tocas lo
+ajeno. Se activa una vez por repositorio con `pnpm lane:hooks` (configura `core.hooksPath`; se revierte con
+`git config --unset core.hooksPath`). Es una ayuda, no una garantía: `--no-verify` lo salta y por eso el CI repite la comprobación.
+
 - Node ≥ 22 (`.nvmrc`, `engines`). Saltos de línea LF (`.gitattributes`, `.editorconfig`): evita diferencias falsas entre
   herramientas en Windows.
 - **No hace falta Docker** para el frontend: corre con mocks (MSW). Docker/Frappe aplica solo a los carriles `be/*`.
