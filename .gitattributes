@@ -1,0 +1,14 @@
+# Saltos de línea: LF en el repositorio y en la copia de trabajo, para que Claude, Codex y OpenCode (Windows)
+# no generen diferencias falsas. Tiene prioridad sobre core.autocrlf.
+* text=auto eol=lf
+
+# Binarios: nunca se normalizan.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.gif binary
+*.woff binary
+*.woff2 binary
+*.pdf binary

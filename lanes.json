@@ -1,0 +1,170 @@
+{
+  "$comment": "Fuente única de carriles de trabajo en paralelo. Léelo antes de tocar archivos. Ver docs/architecture/PARALLEL_STRATEGY.md.",
+  "trunk": "feat/pos-proofs",
+  "trunkPort": 8082,
+  "serialized": [
+    "contracts/**",
+    "lanes.json",
+    "AGENTS.md",
+    "CLAUDE.md",
+    ".github/**",
+    ".gitattributes",
+    ".editorconfig",
+    ".nvmrc",
+    "frontend/package.json",
+    "frontend/pnpm-lock.yaml",
+    "frontend/vite.config.ts",
+    "frontend/playwright.config.ts",
+    "frontend/src/app/**",
+    "frontend/src/routes/**",
+    "frontend/src/shared/**",
+    "frontend/src/mocks/seed.ts",
+    "frontend/src/mocks/db.ts",
+    "frontend/src/mocks/handlers/index.ts",
+    "frontend/src/mocks/handlers/auth.ts",
+    "frontend/src/conformance/**",
+    "frontend/src/tests/**",
+    "frontend/e2e/**",
+    "frontend/scripts/**",
+    "docs/architecture/**",
+    "docs/decisions/**"
+  ],
+  "lanes": {
+    "pos-cart": {
+      "title": "POS · carrito y borrador de venta",
+      "branch": "lane/pos-cart",
+      "port": 8101,
+      "owns": [
+        "frontend/src/features/pos/sale-draft/**",
+        "frontend/src/tests/pos-cash-held.test.*",
+        "frontend/e2e/carrito-navegacion.spec.ts"
+      ]
+    },
+    "pos-pay": {
+      "title": "POS · cobro, mixtos, crédito y sesión de pago",
+      "branch": "lane/pos-pay",
+      "port": 8102,
+      "owns": [
+        "frontend/src/features/pos/payment-session/**",
+        "frontend/src/features/pos/mixed/**"
+      ]
+    },
+    "pos-proofs": {
+      "title": "POS · comprobantes, reimpresión y recibo",
+      "branch": "lane/pos-proofs",
+      "port": 8103,
+      "owns": [
+        "frontend/src/features/pos/proofs/**",
+        "frontend/src/features/pos/reprints.ts",
+        "frontend/src/features/pos/SaleDetailDialog.tsx",
+        "frontend/src/mocks/proofStore.ts",
+        "frontend/src/mocks/proofStoreHttp.ts",
+        "frontend/src/mocks/proofStoreServer.ts",
+        "frontend/src/mocks/handlers/paymentProofs.ts",
+        "frontend/src/tests/pos-proofs*.test.*",
+        "frontend/src/tests/payment-proofs-receipts*.test.*",
+        "frontend/src/tests/sale-reprint.test.*",
+        "frontend/src/tests/pos-recon.test.*",
+        "frontend/e2e/pos-proofs.spec.ts",
+        "frontend/e2e/pos-recon.spec.ts"
+      ]
+    },
+    "pos-orders": {
+      "title": "POS · pedidos (F08, implementación aplazada)",
+      "branch": "lane/pos-orders",
+      "port": 8104,
+      "owns": [
+        "frontend/src/features/pos/orders/**",
+        "frontend/src/tests/pos-orders*.test.*"
+      ]
+    },
+    "pos-shell": {
+      "title": "POS · composición de la pantalla de venta (integrador POS)",
+      "branch": "lane/pos-shell",
+      "port": 8105,
+      "owns": [
+        "frontend/src/features/pos/QuickSale.tsx",
+        "frontend/src/features/pos/PosPage.tsx",
+        "frontend/src/features/pos/*.css",
+        "frontend/src/tests/pos-quick-sale.test.*",
+        "frontend/src/tests/pos-catalog-ui.test.*",
+        "frontend/src/tests/pos-history.test.*",
+        "frontend/src/tests/pos-price-tiers.test.*",
+        "frontend/src/tests/pos-sale-extras.test.*",
+        "frontend/e2e/pos-sales.spec.ts"
+      ]
+    },
+    "pos-ops": {
+      "title": "Turno, acceso a caja y operación",
+      "branch": "lane/pos-ops",
+      "port": 8106,
+      "owns": [
+        "frontend/src/features/pos-ops/**",
+        "frontend/src/features/pos-access/**",
+        "frontend/src/tests/pos-ops-*.test.*",
+        "frontend/src/tests/pos-access*.test.*",
+        "frontend/e2e/pos-ops.spec.ts",
+        "frontend/e2e/pos-access.spec.ts"
+      ]
+    },
+    "catalog": {
+      "title": "Catálogo y productos",
+      "branch": "lane/catalog",
+      "port": 8107,
+      "owns": [
+        "frontend/src/features/products/**",
+        "frontend/src/tests/products-screens.test.*"
+      ]
+    },
+    "inventory": {
+      "title": "Inventarios (stock, traslados, conteos, ajustes)",
+      "branch": "lane/inventory",
+      "port": 8108,
+      "owns": [
+        "frontend/src/features/inventory/**",
+        "frontend/src/tests/inventory-screens.test.*"
+      ]
+    },
+    "purchases": {
+      "title": "Compras y proveedores",
+      "branch": "lane/purchases",
+      "port": 8109,
+      "owns": [
+        "frontend/src/features/purchases/**",
+        "frontend/src/features/payables/**",
+        "frontend/src/tests/purchases-orders.test.*",
+        "frontend/src/tests/ledger-payables.test.*"
+      ]
+    },
+    "customers": {
+      "title": "Clientes y cuentas por cobrar",
+      "branch": "lane/customers",
+      "port": 8110,
+      "owns": [
+        "frontend/src/features/customers/**",
+        "frontend/src/features/receivables/**",
+        "frontend/src/tests/ledger-customers.test.*",
+        "frontend/src/tests/ledger-receivables.test.*"
+      ]
+    },
+    "reports": {
+      "title": "Reportes",
+      "branch": "lane/reports",
+      "port": 8111,
+      "owns": [
+        "frontend/src/features/reports/**",
+        "frontend/src/tests/reports-*.test.*"
+      ]
+    },
+    "administration": {
+      "title": "Administración, usuarios y configuración",
+      "branch": "lane/administration",
+      "port": 8112,
+      "owns": [
+        "frontend/src/features/administration/**",
+        "frontend/src/tests/admin-administration.test.*"
+      ]
+    }
+  },
+  "$precedence": "Un archivo que coincide con `owns` de un carril es de ese carril aunque también coincida con `serialized`."
+}

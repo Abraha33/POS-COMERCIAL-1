@@ -1,0 +1,51 @@
+# Las mismas compuertas que se corren en local. GitHub no ofrece protección de ramas en este repositorio (privado,
+# plan gratuito), así que este flujo es la compuerta común para Claude, Codex y OpenCode.
+# ESTADO: escrito y no ejecutado todavía en GitHub; confirmar la primera corrida antes de confiar en él.
+name: ci
+
+on:
+  push:
+    branches: ['feat/**', 'lane/**', 'codex/**', 'integration']
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.4.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      - run: pnpm conformance
+      - run: pnpm lane:test
+
+      # Propiedad de archivos: solo en ramas de carril. La base es la rama troncal publicada.
+      - name: Propiedad de archivos del carril
+        if: startsWith(github.ref_name, 'lane/')
+        run: |
+          git fetch origin feat/pos-proofs:refs/remotes/origin/feat/pos-proofs
+          node scripts/lane-check.mjs --lane "${GITHUB_REF_NAME#lane/}" --base origin/feat/pos-proofs
+
+      # Playwright (e2e) y Storybook no corren aquí: son pesados y requieren navegadores. Se ejecutan con
+      # `pnpm core:check` antes de integrar en la rama troncal.

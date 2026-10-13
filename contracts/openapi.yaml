@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: ERP/POS API
-  version: 0.6.0
+  version: 0.8.0
   description: |
     Contrato compartido entre frontend (React) y backend (Frappe/ERPNext).
 
@@ -14,6 +14,14 @@ info:
 
     v0.5.0: campos derivados calculados por el servidor (`balance`, `status`, `daysOverdue`, `outstandingBalance`,
     `overdueBalance`); el cliente no los recalcula como autoridad.
+
+    v0.7.0: cajas y terminales (`/pos/registers`), paquete de país (`/pos/country-pack`), un solo mecanismo de aprobación
+    (`ApprovalAction`, `/auth/supervisor-approvals`, sin `/pos/authorizations`), `Session.regional` y
+    `SaleCreate.documentType` obligatorio.
+
+    v0.8.0 (D-005): comprobantes de pago con varias fotos (`evidences[]`), estado `sent_to_verifier`, `verifierId`,
+    `DELETE .../evidence/{evidenceId}` y `POST .../submit`; solo el responsable asignado o un supervisor verifica.
+    Reimpresión como COPIA (`/pos/sales/{id}/reprints`, `/pos/sales/{id}/receipt`).
 
     `x-status: simulated` = existe como mock MSW (frontend/src/mocks) que implementa las reglas aprobadas;
     el backend real aún no existe. `x-status: simulated` = operación PROPUESTA solo especificada (sin mock ni backend):

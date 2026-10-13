@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -13,6 +16,9 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "core:check": "node scripts/core-check.mjs",
+    "lane:new": "node scripts/lane-new.mjs",
+    "lane:check": "node scripts/lane-check.mjs",
+    "lane:test": "node --test scripts/lane-check.test.mjs",
     "gen:api": "openapi-typescript ../contracts/openapi.yaml -o src/shared/api/generated/schema.d.ts",
     "conformance": "vitest run --config vitest.conformance.config.ts"
   },

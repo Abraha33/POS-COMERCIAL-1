@@ -5,6 +5,9 @@ Si tu herramienta lee otro archivo (`CLAUDE.md`, etc.), ese archivo remite aquí
 
 > **Para retomar el trabajo, lee primero `docs/architecture/TRASPASO.md`** (estado, decisiones, pendientes y problemas conocidos).
 
+> **Si trabajas en paralelo con otros agentes** (cualquier herramienta): lee `docs/architecture/PARALLEL_STRATEGY.md`, tu
+> carril en `lanes.json` y tu hoja en `docs/lanes/<carril>.md`. Solo editas lo que tu carril posee; `pnpm lane:check` lo verifica.
+
 ## 1. Cuál es el proyecto oficial
 
 | Qué | Valor |
