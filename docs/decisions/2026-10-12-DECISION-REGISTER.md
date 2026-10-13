@@ -124,4 +124,10 @@ La autorización a documentar no aprueba automáticamente **porcentajes financie
 | D-064 | P | Tecnología candidata: PWA/Service Worker + IndexedDB con snapshots mínimos y outbox, salud backend, sincronizador preferentemente foreground, ACK por evento, backoff y almacenamiento sujeto a cuota/evicción. **No se ha auditado frontend ni probado plataformas.** |
 | D-065 | P | Arquitectura de etapas 2/3: seis contratos UI, estados, datos lógicos, operaciones candidatas, matrices de errores y 20 escenarios de mocks descritos. [Índice del paquete F13](../offline/F13-STAGES-1-3-INDEX.md). Requieren mapeo OpenAPI/ERPNext y validaciones de DIAN, banca, seguridad, límites y tests. |
 
-**Precisión de aprobación:** "me gusta, documéntalo" aprueba dirección/encargo de especificar; no homologa automáticamente emisión de comprobantes no fiscales, fiscalidad, política de ventas efectivo, importes/caducidad ni seguridad. Los DTO/APIs siguen propuestos P. **Etapa 4 no realizada.**
+## Contratos para carriles paralelos (2026-10-12)
+
+| ID | Nivel | Alcance y efecto |
+|---|---|---|
+| D-066 | A | El dueño aprueba los contratos de **conteos, ajustes y reportes** para que los carriles `inventory` y `reports` puedan construir: `POST /inventory/adjustments`, `POST /inventory/counts`, `GET /reports/sales-summary`, `GET /reports/aging` y `GET /reports/inventory-valuation` pasan a `x-approval: approved` con las reglas BR-AJU-01..04, BR-CNT-01..03 y BR-REP-01..03. **No** aprueba lo que el contrato aún no modela: conteo diario por zonas con doble rol (D-042), ajustes con aprobación (D-038), cierres X/Z (D-044) ni permisos por reporte; eso exige un PR `contract:` nuevo. Sigue siendo mock, sin backend real. La brecha de BR-REP-03 (costo promedio por sede) se mantiene. |
+
+**Precisión de aprobación (F13):** "me gusta, documéntalo" aprueba dirección/encargo de especificar; no homologa automáticamente emisión de comprobantes no fiscales, fiscalidad, política de ventas efectivo, importes/caducidad ni seguridad. Los DTO/APIs siguen propuestos P. **Etapa 4 no realizada.**

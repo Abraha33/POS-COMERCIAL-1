@@ -12,13 +12,13 @@ Si tu herramienta lee otro archivo (`CLAUDE.md`, etc.), ese archivo remite aquí
 
 | Qué | Valor |
 |---|---|
-| Carpeta | `D:\POS-COMERCIAL-WORKTREES\pos-proofs` |
+| Carpeta | `D:\POS-COMERCIAL\POS-COMERCIAL-WORKTREES\pos-proofs` |
 | Rama | `feat/pos-proofs` |
 | Puerto de desarrollo | **8082** (`http://localhost:8082`, LAN `http://<IP-LAN>:8082`) |
 | Declarado oficial | 2026-10-12, por el dueño del producto |
 
 **Trabaja solo aquí.** Cualquier otra carpeta o rama es respaldo/referencia (lista en
-`docs/architecture/ENTORNO_OFICIAL.md`). Si abres `D:\POS-COEMRCIAL-1`, no es el oficial: allí hay un archivo
+`docs/architecture/ENTORNO_OFICIAL.md`). Si abres `D:\POS-COMERCIAL\POS-COEMRCIAL-1`, no es el oficial: allí hay un archivo
 `LEER_PRIMERO.md` que te redirige.
 
 Antes de tocar nada, comprueba:
@@ -50,7 +50,7 @@ pnpm e2e                 # Playwright; usa su propio puerto (8090) y levanta su 
 5. Antes de operaciones grandes (merge, rebase, mover carpetas), crea un tag de respaldo:
    `git tag respaldo/<motivo>-<fecha>`.
 6. No trabajes con HEAD desacoplado: si `git branch --show-current` está vacío, `git switch <rama>` primero.
-7. Los worktrees de `D:\POS-COMERCIAL-WORKTREES\` son carpetas de **otras ramas**; no copies archivos entre ellas a mano.
+7. Los worktrees de `D:\POS-COMERCIAL\POS-COMERCIAL-WORKTREES\` son carpetas de **otras ramas**; no copies archivos entre ellas a mano.
 
 ## 5. Reglas de producto
 - **No inventar reglas de negocio.** Las aprobadas están en `docs/business-rules/`; lo demás se etiqueta `PROPUESTA`/`SUP`.

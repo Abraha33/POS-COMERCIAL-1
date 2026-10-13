@@ -23,6 +23,10 @@ info:
     `DELETE .../evidence/{evidenceId}` y `POST .../submit`; solo el responsable asignado o un supervisor verifica.
     Reimpresión como COPIA (`/pos/sales/{id}/reprints`, `/pos/sales/{id}/receipt`).
 
+    D-066 (2026-10-12): el dueño aprueba ajustes (`POST /inventory/adjustments`), conteos (`POST /inventory/counts`) y
+    los tres reportes agregados (`/reports/*`) tal como están modelados (BR-AJU-01..04, BR-CNT-01..03, BR-REP-01..03).
+    Siguen fuera del contrato: conteo por zonas (D-042), ajustes con aprobación (D-038), cierres X/Z y permisos por reporte.
+
     `x-status: simulated` = existe como mock MSW (frontend/src/mocks) que implementa las reglas aprobadas;
     el backend real aún no existe. `x-status: simulated` = operación PROPUESTA solo especificada (sin mock ni backend):
     capa 5 (turnos, autorizaciones, sincronización y pedidos).
@@ -1041,7 +1045,7 @@ paths:
         - inventory
       operationId: createStockAdjustment
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: |
         Ajuste manual de existencias (BR-INV-02/06). `quantity` es un entero con signo distinto de 0; genera un
         movimiento `ajuste` y resuelve las alertas `STOCK_NEGATIVE` del producto y sede si la existencia queda
@@ -1072,7 +1076,7 @@ paths:
         - inventory
       operationId: createInventoryCount
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: |
         Conteo físico de una sede. Por cada línea con diferencia respecto a la existencia del sistema genera un
         movimiento `ajuste` y devuelve las diferencias. Exige `inventory.adjust`; el bodeguero solo en su sede.
@@ -1099,7 +1103,7 @@ paths:
         - reports
       operationId: getSalesSummary
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: |
         Resumen de ventas del periodo (fechas inclusivas `YYYY-MM-DD`; sin fechas = todo) y sede opcional.
         Las ventas anuladas no suman. Exige `reports.view`.
@@ -1122,7 +1126,7 @@ paths:
         - reports
       operationId: getAgingReport
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: |
         Antigüedad de cartera por cobrar y por pagar a la fecha `asOf` (por defecto, hoy). Saldos abiertos por
         tramo de días vencidos. Exige `reports.view`.
@@ -1149,7 +1153,7 @@ paths:
         - reports
       operationId: getInventoryValuation
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: |
         Valor del inventario por producto y sede (BR-INV-05: costo promedio ponderado). `costBasis` indica
         qué costo se usó; el mock usa el costo vigente del producto (`product_cost`). Exige `reports.view`.

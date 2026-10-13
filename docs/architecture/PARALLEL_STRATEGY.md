@@ -33,6 +33,16 @@ pnpm typecheck && pnpm lint && pnpm test && pnpm conformance
 pnpm lane:check                   # falla si tocaste algo que no es tuyo
 ```
 
+**Si mueves carpetas** (repo principal o worktrees), Git y las dependencias se rompen. No uses `git worktree prune`: repara con
+
+```bash
+node scripts/lane-repair.mjs <ruta-del-repo-principal> --dry-run   # solo informa
+node scripts/lane-repair.mjs <ruta-del-repo-principal>             # git worktree repair de todos los carriles
+```
+
+y reinstala con `pnpm install --frozen-lockfile` en los carriles que lo pidan. No borra nada. Ver el límite de su
+comprobación de dependencias en el encabezado del script.
+
 - Node ≥ 22 (`.nvmrc`, `engines`). Saltos de línea LF (`.gitattributes`, `.editorconfig`): evita diferencias falsas entre
   herramientas en Windows.
 - **No hace falta Docker** para el frontend: corre con mocks (MSW). Docker/Frappe aplica solo a los carriles `be/*`.
@@ -74,9 +84,9 @@ Medido sobre `contracts/openapi.yaml` v0.8.0:
 
 | Carril | Operaciones aprobadas (`approved`) | Pendiente de contrato (`proposed`) | ¿Arranca? |
 |---|---|---|---|
-| `inventory` | existencias, movimientos, traslados (crear, recibir), alertas | conteos, ajustes | **Sí**, en traslados y alertas. Conteos y ajustes esperan contrato. |
+| `inventory` | existencias, movimientos, traslados (crear, recibir), alertas, ajustes y conteos simples (D-066) | conteo por zonas (D-042) y ajustes con aprobación (D-038): sin modelar | **Sí.** Zonas y aprobación esperan contrato. |
 | `customers` | listar clientes, listar cartera | crear/editar cliente, abonos | **Parcial**: lectura sí; escritura espera contrato. |
-| `reports` | — | ventas, antigüedad de cartera, valorización de inventario | **No** hasta aprobar y ampliar contrato. |
+| `reports` | ventas, antigüedad de cartera, valorización de inventario (D-066) | cierres X/Z y permisos por reporte: sin modelar | **Sí**, en los tres reportes aprobados. |
 | `pos-proofs` | (cubierto por D-005, aprobado) | — | Sí: falta la app del responsable. |
 | `catalog`, `purchases`, `administration` | por revisar al asignarlos | — | Revisar su hoja antes de asignar. |
 

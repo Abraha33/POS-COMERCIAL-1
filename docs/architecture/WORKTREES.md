@@ -3,8 +3,8 @@
 > **Vigente:** el proyecto oficial es `pos-proofs` / `feat/pos-proofs` (puerto 8082). Ver `AGENTS.md` y
 > `docs/architecture/ENTORNO_OFICIAL.md`. La tabla de abajo es histórica.
 
-Cada carril trabaja en su propio directorio (git worktree) y su propia rama. Raíz: `D:\POS-COMERCIAL-WORKTREES\`.
-El repo principal (`D:\POS-COEMRCIAL-1`, rama `main`) lo usa el integrador.
+Cada carril trabaja en su propio directorio (git worktree) y su propia rama. Raíz: `D:\POS-COMERCIAL\POS-COMERCIAL-WORKTREES\`.
+El repo principal (`D:\POS-COMERCIAL\POS-COEMRCIAL-1`, rama `main`) lo usa el integrador.
 
 | Worktree | Rama | Carril | Puerto (`DEV_PORT`) |
 |---|---|---|---|
@@ -24,13 +24,13 @@ B0 (instancia de desarrollo) no tiene rama propia: se resuelve primero y se comp
 
 ## Trabajar en un carril
 ```bash
-cd /d/POS-COMERCIAL-WORKTREES/feat-pos/frontend
+cd /d/POS-COMERCIAL/POS-COMERCIAL-WORKTREES/feat-pos/frontend
 DEV_PORT=5191 pnpm dev        # app con mocks en su propio puerto
 pnpm test && pnpm lint        # antes de cada PR
 ```
 Backend contra su instancia:
 ```bash
-cd /d/POS-COMERCIAL-WORKTREES/be-sales/frontend
+cd /d/POS-COMERCIAL/POS-COMERCIAL-WORKTREES/be-sales/frontend
 API_BASE_URL=http://localhost:8000/api/v1 pnpm conformance
 ```
 

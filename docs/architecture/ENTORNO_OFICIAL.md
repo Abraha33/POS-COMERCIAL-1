@@ -5,7 +5,7 @@ Fuente de verdad para no confundir carpetas, ramas ni puertos. Reglas de trabajo
 ## Oficial
 | | |
 |---|---|
-| Carpeta | `D:\POS-COMERCIAL-WORKTREES\pos-proofs` |
+| Carpeta | `D:\POS-COMERCIAL\POS-COMERCIAL-WORKTREES\pos-proofs` |
 | Rama | `feat/pos-proofs` |
 | Puerto | `8082` (dev). Playwright usa `8090` y levanta su propio servidor |
 | Arranque | `cd frontend && pnpm dev` |
@@ -16,7 +16,7 @@ capa 5), y todos los carriles anteriores ya fusionados en esta rama.
 ## Respaldo (no trabajar aquí; no se borra)
 | Carpeta / rama | Qué es | Puerto histórico | Ancla (tag) |
 |---|---|---|---|
-| `D:\POS-COEMRCIAL-1` · `capa-2-responsive` | Carpeta principal con el trabajo de otro agente (Codex): login/registro, tracking, backend Frappe local, dashboard, `SaleInvoice`, `CashCount`, pasada responsive | 8080 / 5188 | `respaldo/capa-2-responsive-7acde90` |
+| `D:\POS-COMERCIAL\POS-COEMRCIAL-1` · `capa-2-responsive` | Carpeta principal con el trabajo de otro agente (Codex): login/registro, tracking, backend Frappe local, dashboard, `SaleInvoice`, `CashCount`, pasada responsive | 8080 / 5188 | `respaldo/capa-2-responsive-7acde90` |
 | `unificado` | Intento de unir lo anterior con la rama oficial (88 conflictos resueltos; 442 tests verdes) | 8081 | `respaldo/unificado-918e049` |
 
 `capa-1-estructura` tampoco está contenida en la oficial; se conserva sin cambios.
@@ -25,7 +25,7 @@ capa 5), y todos los carriles anteriores ya fusionados en esta rama.
 `be/auth`, `be/inventory`, `be/sales`, `be/shifts`, `contract/v0.5.0`, `design/core`, `feat/administration`,
 `feat/customers-ledger`, `feat/pos`, `feat/pos-access`, `feat/pos-ops`, `feat/pos-sales`, `feat/products-inventory`,
 `feat/purchases`, `feat/reports`, `integration`, `qa/ux`, `ui/adm`, `ui/inv`, `ui/led`, `ui/pos`, `ui/pur`.
-Sus worktrees en `D:\POS-COMERCIAL-WORKTREES\` ya no aportan nada nuevo: se pueden archivar (`git worktree remove`)
+Sus worktrees en `D:\POS-COMERCIAL\POS-COMERCIAL-WORKTREES\` ya no aportan nada nuevo: se pueden archivar (`git worktree remove`)
 cuando el dueño lo decida. **No se han tocado.**
 
 ## Estado conocido a la fecha

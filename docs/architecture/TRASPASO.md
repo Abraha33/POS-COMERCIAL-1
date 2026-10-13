@@ -9,7 +9,7 @@ Para cualquier herramienta o persona que retome el trabajo (Claude, ChatGPT/Code
 
 | | |
 |---|---|
-| Carpeta oficial | `D:\POS-COMERCIAL-WORKTREES\pos-proofs` |
+| Carpeta oficial | `D:\POS-COMERCIAL\POS-COMERCIAL-WORKTREES\pos-proofs` |
 | Rama | `feat/pos-proofs` |
 | Último commit al corte documental | `1ee25ac` (persistencia de borrador POS por caja) |
 | Puerto de desarrollo | `8082` |
@@ -140,3 +140,14 @@ Pendiente que sigue abierto:
 - **Pendiente real:** la app del responsable (verificar desde su teléfono). Hoy verifica un supervisor desde el panel del POS.
 - **Pendiente de decisión:** cómo reconciliar historias con GitHub (rama nueva en remoto, `--allow-unrelated-histories` o
   reconstruir). Las ramas `codex/*` y `feat/*` locales no tienen fusión.
+
+## Actualización (2026-10-12, cierre): entorno de carriles y ensayo de integración
+
+- **Estrategia única:** `docs/architecture/PARALLEL_STRATEGY.md`. Carriles en `lanes.json`; hoja por carril en `docs/lanes/`.
+- **Comandos:** `pnpm lane:new <carril>` (worktree + rama + puerto + instalación), `pnpm lane:check` (propiedad de archivos),
+  `pnpm lane:test`.
+- **Troncal:** `feat/pos-proofs`. Tags de respaldo `respaldo/pos-proofs-0e2d946` y `respaldo/pos-proofs-d3262c8`.
+- **Ensayo hecho:** carriles `lane/inventory`, `lane/customers`, `lane/catalog` integrados en secuencia en
+  `rehearsal/integration-1`, con compuertas en verde tras cada fusión. No se llevaron a la troncal.
+- **Avance medido: 68/100** para construir en paralelo. Regla, evidencia y qué falta: `docs/qa/PARALLEL_READINESS.md`.
+- **No se borró nada.** `frontend/src/method` sigue donde estaba. `integration` no se movió (tiene capturas sin guardar).
