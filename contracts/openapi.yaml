@@ -27,6 +27,11 @@ info:
     los tres reportes agregados (`/reports/*`) tal como están modelados (BR-AJU-01..04, BR-CNT-01..03, BR-REP-01..03).
     Siguen fuera del contrato: conteo por zonas (D-042), ajustes con aprobación (D-038), cierres X/Z y permisos por reporte.
 
+    D-067 (2026-10-13): el dueño aprueba 18 operaciones de clientes, compras y administración (alta y edición de clientes,
+    proveedores y empleados; abonos y pagos; órdenes de compra: crear, enviar, recibir y cancelar; sedes y empresa). Siguen
+    `proposed`: devoluciones, historial de turnos, relevo, solicitudes de aprobación, sincronización, paquete de país, pedidos,
+    comprobantes de pago (salvo los aprobados) y recibos/reimpresiones.
+
     `x-status: simulated` = existe como mock MSW (frontend/src/mocks) que implementa las reglas aprobadas;
     el backend real aún no existe. `x-status: simulated` = operación PROPUESTA solo especificada (sin mock ni backend):
     capa 5 (turnos, autorizaciones, sincronización y pedidos).
@@ -174,7 +179,7 @@ paths:
         - catalog
       operationId: createCustomer
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: BR-CLI-01 (documento único). Roles cartera/admin/propietario.
       requestBody:
         required: true
@@ -216,7 +221,7 @@ paths:
         - purchases
       operationId: createSupplier
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: Alta de proveedor. Roles comprador/admin/propietario.
       requestBody:
         required: true
@@ -258,7 +263,7 @@ paths:
         - catalog
       operationId: createEmployee
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: Alta de empleado/usuario. Solo admin/propietario.
       requestBody:
         required: true
@@ -330,7 +335,7 @@ paths:
         - purchases
       operationId: createPurchaseOrder
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: Crea una orden en estado `borrador`.
       requestBody:
         required: true
@@ -709,7 +714,7 @@ paths:
         - catalog
       operationId: updateCustomer
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: Edita un cliente.
       parameters: &a1
         - $ref: "#/components/parameters/Id"
@@ -740,7 +745,7 @@ paths:
         - purchases
       operationId: updateSupplier
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: Edita un proveedor.
       parameters: *a1
       requestBody:
@@ -768,7 +773,7 @@ paths:
         - catalog
       operationId: updateEmployee
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: Edita un empleado (rol, sede, activo). Solo admin/propietario.
       parameters: *a1
       requestBody:
@@ -796,7 +801,7 @@ paths:
         - catalog
       operationId: listBranches
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: Sedes de la compañía.
       responses:
         "200":
@@ -811,7 +816,7 @@ paths:
         - purchases
       operationId: sendPurchaseOrder
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: "`borrador` → `enviada`."
       parameters: *a1
       responses:
@@ -831,7 +836,7 @@ paths:
         - purchases
       operationId: receivePurchaseOrder
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: |
         `enviada` → `recibida`: entrada de inventario en la sede del usuario, recálculo del costo promedio (BR-PRO-06)
         y cuenta por pagar a `paymentTermsDays`. Exige `purchases.receive`. v0.5.0: la respuesta incluye `effect`
@@ -856,7 +861,7 @@ paths:
         - ledger
       operationId: listReceivablePayments
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: Historial de abonos de una cuenta por cobrar (más reciente primero).
       parameters: *a1
       responses:
@@ -877,7 +882,7 @@ paths:
         - ledger
       operationId: payReceivable
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: Abono. `PAYMENT_EXCEEDS_BALANCE` si supera el saldo.
       parameters: *a1
       requestBody:
@@ -907,7 +912,7 @@ paths:
         - ledger
       operationId: payPayable
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: Pago a proveedor. `PAYMENT_EXCEEDS_BALANCE` si supera el saldo.
       parameters: *a1
       requestBody:
@@ -988,7 +993,7 @@ paths:
         - ledger
       operationId: payCustomer
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: |
         Abono a la cuenta del cliente con imputación automática a las facturas más antiguas primero (BR-CLI-05).
         Crea un registro de abono por factura afectada. `PAYMENT_EXCEEDS_BALANCE` si supera el saldo total.
@@ -1021,7 +1026,7 @@ paths:
         - purchases
       operationId: cancelPurchaseOrder
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: |
         `borrador` o `enviada` → `cancelada`. Una orden `recibida` o ya `cancelada` responde 409 `INVALID_STATE`.
         Exige `purchases.create`. No afecta inventario ni cartera (aún no hubo recepción).
@@ -1174,7 +1179,7 @@ paths:
         - admin
       operationId: updateBranch
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: Edita nombre y estado de una sede. Solo admin/propietario (`admin.manage`).
       parameters: *a1
       requestBody:
@@ -1202,7 +1207,7 @@ paths:
         - admin
       operationId: getCompany
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: Datos de la empresa. Solo admin/propietario (`admin.manage`).
       responses:
         "200":
@@ -1218,7 +1223,7 @@ paths:
         - admin
       operationId: updateCompany
       x-status: simulated
-      x-approval: proposed
+      x-approval: approved
       description: Actualiza los datos de la empresa. Solo admin/propietario (`admin.manage`).
       requestBody:
         required: true
