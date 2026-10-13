@@ -101,3 +101,30 @@ dueño, pendiente de decisión).
 Todo lo anterior corre sobre **mocks**. No hay backend real, DIAN, banco, cámara, impresora, lector de código de
 barras, concurrencia real entre cajas, ni rendimiento con datos reales. Las pantallas de idioma distinto del español
 están parcialmente traducidas: fr, ru y hi muestran el español en casi todo el texto.
+
+## Actualización (2026-10-12, rama `codex/parallel-readiness`)
+
+**Dónde están los cambios:** los 13 commits nuevos están en `codex/parallel-readiness` (último: `681040f`). La rama
+oficial `feat/pos-proofs` sigue en `0e2d946`. **No hay fusión ni push.** Fusionar a `feat/pos-proofs` requiere orden explícita.
+
+Hecho en esta ronda (todo sobre mocks):
+- **Carrito y borrador:** `sale-draft/` (dueño: Carrito) con la venta en curso por caja.
+- **Cobro:** `payment-session/` es dueña de `clientOperationId` y del estado. Transiciones: envío, rechazo definitivo (misma
+  clave), UNKNOWN (reintento con la misma clave, bloquea Vaciar) y completado. El cierre digital solo con confirmado o excepción.
+- **Comprobantes:** el estado lo decide `/pos/payment-proofs` (contrato, PROPUESTA: `channelLabel`, `requestedBy`). La foto va
+  aparte (`/dev-relay/images`) y no se persiste. En desarrollo, el almacén de comprobantes es compartido entre computador y
+  teléfono (`/dev-relay/payment-proofs`). Es un simulador de desarrollo, no un endpoint del contrato.
+- **Reimpresión:** `POST /pos/sales/{id}/reprints` registra la COPIA; no altera venta, caja ni stock.
+- **Canales:** pago mixto, conciliación e ingreso del turno leen canales del CountryPack (`usePosChannels`).
+- **Dueños en paralelo:** `docs/architecture/MODULE_OWNERSHIP.md` (sección "Subáreas del POS").
+
+Verificación al cierre: typecheck ✓, lint ✓, Vitest 475/475 ✓, conformidad 44/44 ✓. Playwright: pos-access, pos-ops, pos-sales,
+pos-proofs, carrito y journeys pasan (incluido el desborde a 375 px, corregido en `681040f`).
+
+Pendiente que sigue abierto:
+- i18n por módulo y traducciones fr, ru, hi (sin revisión humana).
+- `defaultChannels` y `documentOptions` siguen existiendo solo como datos de prueba; la UI no los usa.
+- La prueba de deriva `country-pack-drift.test.ts` cubre denominaciones de escenarios; se retira cuando esos escenarios
+  también salgan del paquete de país.
+- Historial de comprobantes y método viven solo en la sesión de la pantalla (no en el servidor).
+- Todo corre sobre mocks: sin backend real, DIAN, banco, cámara ni impresora.
