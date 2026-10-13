@@ -5,18 +5,18 @@ pantallas a la vez sin pisarse. **No** mide cuánto del ERP está construido.
 
 La cifra sale de una regla fija (abajo). No es una métrica certificada: es una rúbrica con evidencia verificable por criterio.
 
-## Resultado: 79 de 100
+## Resultado: 82 de 100
 
 | # | Criterio | Peso | Puntos | Evidencia | Qué le falta |
 |---|---|---:|---:|---|---|
 | A | Base de código única y verificada | 20 | 18 | Troncal `feat/pos-proofs` contiene todo el trabajo. `core:check` 8/8 sobre el commit final `056d0f5` (typecheck, build, lint, Vitest, tipos, Playwright, Storybook, conformidad). Tags de respaldo antes de cada avance. | `frontend/src/method` sigue sin rastrear (árbol no limpio). `integration` quedó atrás con capturas sin guardar. |
-| B | Entorno reproducible y sin choques | 15 | 12 | `pnpm lane:new` creó 3 carriles (≈90 s cada uno). LF, editor y Node fijados. Tres servidores a la vez (8082, 8108, 8110), cada uno sirviendo su carpeta. | No probado desde Codex ni OpenCode. Al detener un servidor en Windows el proceso de Vite queda vivo. 30 worktrees locales. |
+| B | Entorno reproducible y sin choques | 15 | 13 | `pnpm lane:new` creó 4 carriles (≈90 s cada uno), uno de ellos desde Codex (`reports`). LF, editor y Node fijados. Tres servidores a la vez (8082, 8108, 8110), cada uno sirviendo su carpeta. Codex pasó typecheck, lint, Vitest, conformidad y `lane:check` en su carril. | Con el sandbox de Codex hay tres tropiezos: la herramienta debe abrirse **dentro** de la carpeta del carril (si no, `EPERM` al correr pruebas); no puede hacer commit porque los metadatos Git de los worktrees viven en `D:/POS-COEMRCIAL-1/.git`; y `pnpm` necesitó un Node alterno. No probado desde OpenCode. Al detener un servidor en Windows el proceso de Vite queda vivo. |
 | C | Propiedad y fronteras | 20 | 15 | `lanes.json` con 12 carriles; `pnpm lane:check` con 10 pruebas; rechaza archivos ajenos y serializados y dice a quién pedirlos. 12 hojas de carril. | La plataforma no lo obliga (GitHub no ofrece protección de ramas en este repo): un agente puede saltarse el script en local. |
 | D | Contratos listos para los primeros carriles | 15 | 13 | `inventory` (incluidos ajustes y conteos simples), `reports` (3 reportes), `catalog`, `pos-pay` y lectura de `customers` tienen operaciones `approved`. D-005 implementado. D-066 aprobó conteos, ajustes y reportes; 481 pruebas y conformidad en verde después del cambio. | Escritura de clientes, compras y administración siguen `proposed`. Zonas (D-042), ajustes con aprobación (D-038) y cierres X/Z no están modelados. Los paquetes UI por dominio son v0.1. |
 | E | Compuertas automáticas (CI) | 10 | 7 | Primera corrida real en GitHub: run `38332997539` sobre `19904aa` (`codex/parallel-readiness`), 4 min 17 s, en verde: instalación, typecheck, lint, Vitest, conformidad y pruebas de carriles. | El paso "Propiedad de archivos del carril" **no se ha ejecutado**: al publicar 5 ramas a la vez GitHub solo lanzó una corrida y las ramas `lane/*` no tuvieron la suya. Sin protección de ramas. Las acciones avisan de Node 20 obsoleto. |
-| F | Ensayo de integración | 15 | 10 | 3 carriles (`inventory`, `customers`, `catalog`), 3 fusiones secuenciales en `rehearsal/integration-1`, compuertas en verde tras cada una (483 → 485 → 486 pruebas). | Fue el caso fácil: cambios aditivos, sin archivo compartido, un solo agente y una sola herramienta, sin PR en GitHub. |
+| F | Ensayo de integración | 15 | 12 | 3 carriles (`inventory`, `customers`, `catalog`), 3 fusiones secuenciales en `rehearsal/integration-1`, compuertas en verde tras cada una (483 → 485 → 486 pruebas). Segundo ensayo con otra herramienta: Codex migró `reports` a los tres endpoints aprobados (`lane/reports` `26af717`), respetó la propiedad y pidió el cambio de contrato por `docs/qa/requests/lane-reports.md` en vez de tocarlo. | `lane/reports` aún no se integró ni pasó por CI. La solicitud de contrato no se ha atendido. Revisión del integrador pendiente: la pantalla muestra identificadores sin traducir, se retiraron los gráficos y las pruebas ya no verifican cifras; sin revisión visual. Sin PR en GitHub. |
 | G | GitHub alineado | 5 | 4 | Publicadas `feat/pos-proofs` y `codex/parallel-readiness` en `19904aa`, y `lane/inventory`, `lane/customers`, `lane/catalog`. | `main` remoto es otra historia (Next.js) sin ancestro común. |
-| | **Total** | **100** | **79** | | |
+| | **Total** | **100** | **82** | | |
 
 ## Lectura
 
