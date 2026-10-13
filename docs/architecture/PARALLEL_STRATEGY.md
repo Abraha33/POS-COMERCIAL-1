@@ -74,9 +74,9 @@ Medido sobre `contracts/openapi.yaml` v0.8.0:
 
 | Carril | Operaciones aprobadas (`approved`) | Pendiente de contrato (`proposed`) | ¿Arranca? |
 |---|---|---|---|
-| `inventory` | existencias, movimientos, traslados (crear, recibir), alertas | conteos, ajustes | **Sí**, en traslados y alertas. Conteos y ajustes esperan contrato. |
+| `inventory` | existencias, movimientos, traslados (crear, recibir), alertas, ajustes y conteos simples (D-066) | conteo por zonas (D-042) y ajustes con aprobación (D-038): sin modelar | **Sí.** Zonas y aprobación esperan contrato. |
 | `customers` | listar clientes, listar cartera | crear/editar cliente, abonos | **Parcial**: lectura sí; escritura espera contrato. |
-| `reports` | — | ventas, antigüedad de cartera, valorización de inventario | **No** hasta aprobar y ampliar contrato. |
+| `reports` | ventas, antigüedad de cartera, valorización de inventario (D-066) | cierres X/Z y permisos por reporte: sin modelar | **Sí**, en los tres reportes aprobados. |
 | `pos-proofs` | (cubierto por D-005, aprobado) | — | Sí: falta la app del responsable. |
 | `catalog`, `purchases`, `administration` | por revisar al asignarlos | — | Revisar su hoja antes de asignar. |
 
