@@ -128,3 +128,15 @@ Pendiente que sigue abierto:
   también salgan del paquete de país.
 - Historial de comprobantes y método viven solo en la sesión de la pantalla (no en el servidor).
 - Todo corre sobre mocks: sin backend real, DIAN, banco, cámara ni impresora.
+
+## Actualización (2026-10-12, noche): D-005 e integración con GitHub
+
+- **D-005 implementado (contrato → UI):** una transferencia admite varias fotos con "Repetir"; "Enviar" pasa la verificación
+  al responsable de la cuenta; solo ese responsable (o un supervisor) verifica, confirma o rechaza. El cajero que solicitó el
+  comprobante espera. Contrato: `evidences[]`, estado `sent_to_verifier`, `verifierId`, `DELETE .../evidence/{id}` y
+  `POST .../submit`. Commit `4e20bd2`.
+- **Documentación de GitHub sincronizada** (`265cb8c`): 59 archivos de `docs/` de las ramas de Codex (PRs #19 a #24). No se
+  importó código: el `main` remoto es una app Next.js con otra historia y **no** comparte ancestro con este repositorio.
+- **Pendiente real:** la app del responsable (verificar desde su teléfono). Hoy verifica un supervisor desde el panel del POS.
+- **Pendiente de decisión:** cómo reconciliar historias con GitHub (rama nueva en remoto, `--allow-unrelated-histories` o
+  reconstruir). Las ramas `codex/*` y `feat/*` locales no tienen fusión.
