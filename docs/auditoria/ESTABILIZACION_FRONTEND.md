@@ -1,6 +1,6 @@
 # Estabilización del frontend ERP/POS — Fase 1
 
-Rama de trabajo: `integration` (worktree `D:\POS-COMERCIAL-WORKTREES\integration`). `main` no se tocó.
+Rama de trabajo: `integration` (worktree `D:\POS-COMERCIAL\POS-COMERCIAL-WORKTREES\integration`). `main` no se tocó.
 Todas las cifras de este informe son mediciones de esta sesión, salvo donde se indica.
 
 ## 1. Estado de las ramas (verificado con `git`)

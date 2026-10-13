@@ -3,7 +3,7 @@
 Sirve igual para Codex, OpenCode o Claude Code: nada de lo que pide depende de la herramienta. Está escrito para el carril
 `reports`; para otro carril cambia `reports` por su nombre y `8111` por su puerto (`lanes.json`).
 
-Pégalo tal cual en la herramienta, abierta en `D:\POS-COMERCIAL-WORKTREES\pos-proofs`.
+Pégalo tal cual en la herramienta, abierta en `D:\POS-COMERCIAL\POS-COMERCIAL-WORKTREES\pos-proofs`.
 
 ---
 
@@ -16,7 +16,7 @@ ANTES DE ESCRIBIR CÓDIGO
 2. Crea tu carril (no trabajes en la carpeta pos-proofs):
      cd frontend
      pnpm lane:new reports
-   Eso crea la carpeta D:\POS-COMERCIAL-WORKTREES\lane-reports en la rama lane/reports e instala dependencias.
+   Eso crea la carpeta D:\POS-COMERCIAL\POS-COMERCIAL-WORKTREES\lane-reports en la rama lane/reports e instala dependencias.
    Si la carpeta ya existe, úsala. A partir de aquí trabaja SOLO dentro de lane-reports.
 3. Comprueba dónde estás: `git branch --show-current` debe decir lane/reports.
 4. Corre `pnpm typecheck && pnpm lint && pnpm test` en lane-reports/frontend antes de cambiar nada y anota el resultado.

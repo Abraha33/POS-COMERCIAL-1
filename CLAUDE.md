@@ -9,7 +9,7 @@ y se consume por `/api/v1` (`contracts/openapi.yaml`). Hoy responde MSW.
 
 ## Estructura
 `frontend/` app · `contracts/` OpenAPI + ejemplos + fixtures · `docs/` (architecture, business-rules, qa) · `backend/` (README).
-Worktrees por carril en `D:\POS-COMERCIAL-WORKTREES\` (ver `docs/architecture/WORKTREES.md`).
+Worktrees por carril en `D:\POS-COMERCIAL\POS-COMERCIAL-WORKTREES\` (ver `docs/architecture/WORKTREES.md`).
 
 ## Stack decidido (no cambiar sin PR `core:`)
 React 19 + TS 5.9 + Vite · **PrimeReact 10.9.9, tema `lara-light-blue`** · TanStack Router/Query · RHF + Zod · MSW · Storybook ·

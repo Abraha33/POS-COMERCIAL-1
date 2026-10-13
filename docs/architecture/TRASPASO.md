@@ -9,7 +9,7 @@ Para cualquier herramienta o persona que retome el trabajo (Claude, ChatGPT/Code
 
 | | |
 |---|---|
-| Carpeta oficial | `D:\POS-COMERCIAL-WORKTREES\pos-proofs` |
+| Carpeta oficial | `D:\POS-COMERCIAL\POS-COMERCIAL-WORKTREES\pos-proofs` |
 | Rama | `feat/pos-proofs` |
 | Último commit al corte documental | `1ee25ac` (persistencia de borrador POS por caja) |
 | Puerto de desarrollo | `8082` |
