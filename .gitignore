@@ -1,4 +1,6 @@
 node_modules
+# copias de node_modules apartadas al reinstalar (node_modules.incompleto-*, node_modules.rutaanterior-*)
+node_modules.*
 dist
 storybook-static
 test-results
