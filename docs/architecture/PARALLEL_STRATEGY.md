@@ -33,6 +33,16 @@ pnpm typecheck && pnpm lint && pnpm test && pnpm conformance
 pnpm lane:check                   # falla si tocaste algo que no es tuyo
 ```
 
+**Si mueves carpetas** (repo principal o worktrees), Git y las dependencias se rompen. No uses `git worktree prune`: repara con
+
+```bash
+node scripts/lane-repair.mjs <ruta-del-repo-principal> --dry-run   # solo informa
+node scripts/lane-repair.mjs <ruta-del-repo-principal>             # git worktree repair de todos los carriles
+```
+
+y reinstala con `pnpm install --frozen-lockfile` en los carriles que lo pidan. No borra nada. Ver el límite de su
+comprobación de dependencias en el encabezado del script.
+
 - Node ≥ 22 (`.nvmrc`, `engines`). Saltos de línea LF (`.gitattributes`, `.editorconfig`): evita diferencias falsas entre
   herramientas en Windows.
 - **No hace falta Docker** para el frontend: corre con mocks (MSW). Docker/Frappe aplica solo a los carriles `be/*`.
