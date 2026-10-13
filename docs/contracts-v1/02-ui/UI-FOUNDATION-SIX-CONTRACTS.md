@@ -64,4 +64,3 @@ Puntos de revisión **propuestos**: 1366 px desktop, 768 px tablet, 375 px móvi
 
 ## 8. Gates UI (documental)
 Cada dominio debe especificar FLOW+SCREEN+TEMPLATE+COMPONENTS+RESPONSIVE+ACCESSIBILITY (paquetes hermanos) y casos para vacío/carga/error/permiso/UNKNOWN. Los contratos en `docs/pos-proofs/v0.1` se conservan históricos; no se reescriben. Las pruebas E2E, visual regression y axe quedan para etapa 4 y NO se ejecutan aquí.
-

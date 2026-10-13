@@ -80,3 +80,30 @@ Inventario del 12/10: F01–F06 y F12 con **base funcional avanzada**; F07, F09�
 ## Regla de actualización
 Toda nueva decisión implica editar el registro, el documento funcional afectado y sus pruebas/contratos dependientes. Añadir fecha, autor de decisión (usuario/propuesta), estado (aprobada/propuesta/pendiente), referencia y riesgo. Nunca sobrescribir silenciosamente la historia.
 
+
+## Reactivación documental F08 — Pedidos (2026-10-12, conversación posterior)
+
+**Cambio expreso:** el usuario solicitó completar etapas **1, 2 y 3** para **F08 Gestor de pedidos**, sin construir código; **F13 Offline continúa separado**. Esto complementa el paquete `docs/contracts-v1/`, cuya exclusión de F08 solo describía el alcance del encargo anterior. **Documento principal:** [F08 etapas 1–3](orders/F08-STAGES-1-3-INDEX.md).
+
+- [Etapa 1: flujo de preparación, faltantes y compras externas](orders/F08-STAGE1-OPERATING-FLOW-V2.md).
+- [Etapa 2: seis contratos UI](orders/F08-STAGE2-UI-SIX-CONTRACTS-V2.md).
+- [Etapa 3A: DTO lógicos, operaciones y adapters](orders/F08-STAGE3-DATA-API-ADAPTERS-V2.md).
+- [Etapa 3B: estados/permisos/escenarios de mocks](orders/F08-STAGE3-STATES-PERMISSIONS-MOCKS-V2.md).
+
+**Decisiones de negocio posteriores:** pedido omnicanal sin duplicar; preparador ve qué/cuánto/dónde, marque faltante con un toque y continúa; una persona autorizada (no cargo fijo) busca proveedores, decide fuente y asigna comprador; otra persona autorizada entrega dinero, incluso si tiene otro cargo. Si proveedor no tiene stock, devolver faltante a búsqueda conservando intento y fondos en custodia. Stock oficial por bodega vs ubicación probable diferenciados. Calidad verificada por SKU/variante/cantidad; parcialidad y sustituciones requieren aceptación correspondiente. Radar de proveedores es microapp **opcional**, no fuente garantizada.
+
+**Estado:** F08 antes tenía base PED v1 pero su profundización estaba aplazada; ahora **etapas documentales 1–3 preparadas**, construcción etapa 4 aún aplazada/no ejecutada. Controles financieros usan CAJ/TES/COM/INV, sin duplicar contabilidad. D-053..D-059 registran esta actualización y propuestas derivadas. No pruebas ejecutadas, ni APIs ni código validados.
+
+
+## F13 Offline — documentación posterior etapas 1–3 (2026-10-12)
+
+**Nuevo encargo posterior:** usuario aceptó la recomendación de **offline ligero y seguro** y solicitó documentarla en GitHub. Ver [índice F13](offline/F13-STAGES-1-3-INDEX.md). Excluir etapa 4 de construcción/QA; el antiguo "F13 excluido" describía únicamente los paquetes previos y **no** invalida la documentación autónoma actual.
+
+- [Etapa 1](offline/F13-STAGE1-FUNCTIONAL-V1.md): continuidad para catálogo y carrito cacheados, picking F08 descargado y capturas conteo; ventas efectivo offline **solo provisionales y condicionadas**; sin confirmaciones bancarias/fiscales ni cierre Z.
+- [Etapa 2](offline/F13-STAGE2-UI-SIX-CONTRACTS-V1.md): seis contratos UI; indicador discreto, operaciones pendientes, frescura de datos y resolución de excepciones sin burocracia.
+- [Etapa 3A](offline/F13-STAGE3-DATA-SYNC-ADAPTERS-V1.md): entidades y operaciones lógicas, políticas por dispositivo, outbox idempotente, dedupe backend, sincronización/ACK por evento, almacenamiento browser y límites.
+- [Etapa 3B](offline/F13-STAGE3-STATES-PERMISSIONS-MOCKS-V1.md): estados independientes, permisos por persona (no cargo), fallos y 20 escenarios QA documentados, no ejecutados.
+
+**Separaciones:** guardar un evento local no publica venta ni verifica banco; offline no es hotspot; stock y precio cacheados son datos fechados/estimados; confirmación fiscal y reglas DIAN necesitan profesional; `UNKNOWN` se resuelve consultando autoridad antes de duplicar. La revocación de permisos no es instantánea sin conexión: limitar vigencia y revalidar antes de aplicar al servidor.
+
+**Estado:** F13 especificado hasta etapa 3, **no construido**. D-060..D-065 registran alcance aprobado para documentar y propuestas técnicas pendientes. Preflight frontend real, backend, fiscalidad/caja, seguridad y QA futuro.

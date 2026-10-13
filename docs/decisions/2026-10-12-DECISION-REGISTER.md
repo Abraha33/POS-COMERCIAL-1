@@ -97,3 +97,31 @@ El usuario autorizó **desarrollar documentación hasta etapa 3**, sin realizar 
 ### Regla de gobernanza específica
 La autorización a documentar no aprueba automáticamente **porcentajes financieros, tratamiento de impuestos/garantías, endpoints, decisiones de ERPNext, umbrales, campos exactos ni pruebas**. Cualquier contradicción entre nuevas propuestas P y decisiones D-001..D-044 nivel A se resuelve a favor de las A previas. Antes de etapa 4, cotejar el frontend real con `capa-2-responsive` y OpenAPI real.
 
+
+## F08 — Nuevas decisiones posteriores a D-052 (2026-10-12)
+
+| ID | Nivel | Decisión / consecuencia |
+|---|---|---|
+| D-053 | A | Usuario reactiva F08 **solo para cerrar documentación de etapas 1, 2 y 3**. **Etapa 4 no autorizada**. La exclusión histórica de F08 en D-046 aplicaba al paquete previo, no al nuevo encargo separado. |
+| D-054 | A | F08 **omnicanal**, rápida y sin burocracia: preparador ve SKU/variante, cantidad y ubicación; indica `No encontré` o toma parcial en una acción y continúa; faltante lo resuelven personas autorizadas por separado. |
+| D-055 | A | **Autorizaciones por persona, operación, contexto y vigencia** (puntuales/temporales/permanentes), NO por cargo fijo; asignar la tarea no otorga automáticamente permiso para caja. Quien decide proveedor, entrega dinero, compra y recibe puede ser distinta persona o la misma con grants válidos. Regla transversal para Holamigo. |
+| D-056 | A | Falta de mercancía: consultar stock/ubicación por distintas bodegas y, si procede, establecimientos locales y microapp Radar **opcional**; contactar fuente, elegir y asignar compra. Fallar compra ("No había") vuelve a búsqueda conservando intento, responsable y **dinero adelantado bajo custodia**; no crear burocracia ni pagos duplicados. |
+| D-057 | A | Meta de calidad: antes de listo/despacho verificar referencias, variantes y cantidades contra versión aceptada del cliente; entrega parcial se identifica expresamente y no se muestra como pedido completo. Garantía de 100% es objetivo, no rendimiento medido. |
+| D-058 | A | Estado de pedido, avance de preparación, pago, calidad, stock, faltantes y entrega se mantienen independientes; la urgencia/prioridad conserva D-043. Datos de zona pueden ser probables, stock oficial por bodega, mostrar fecha/fuente. |
+| D-059 | P | Propuesta técnica derivada de A anteriores: tres espacios UI, submáquina de cinco estados humanos de faltante, DTOs/operaciones lógicas, grants específicos, 20 escenarios MSW **solo descriptivos**. [Paquete de diseño F08](../orders/F08-STAGES-1-3-INDEX.md). Validar con API/backend real antes de implementar. |
+
+**Regla de precedencia:** D-053 permite documentar F08 en un paquete posterior sin alterar que D-046 excluía el trabajo anterior. F08 sigue sin código ni validación de conectores. Las prioridades de D-043 no se sustituyen automáticamente. F13 sigue excluido.
+
+
+## F13 Offline — Decisiones y propuestas documentadas tras D-059 (2026-10-12)
+
+| ID | Nivel | Alcance y efecto |
+|---|---|---|
+| D-060 | A | El usuario aprueba **documentar F13 hasta etapas 1, 2 y 3**, sin construcción de etapa 4. La exclusión anterior D-046 aplicaba a un paquete anterior, igual que F08; ambas historias se conservan. |
+| D-061 | A | Producto **offline ligero, automático, sin ERP paralelo**, orientado a consulta catálogo/cache, borradores/suspensión carrito, captura de picking/faltantes F08 asignados y conteos locales; indicadores discretos y sincronizar al recuperar conectividad. |
+| D-062 | A | **Control conservador:** transferencias/bancos sin verificación, no declarar pagos confirmados por foto; no emitir documentos fiscales aceptados ni cierres Z definitivos offline; no ajustes de inventario oficiales offline. **Venta efectivo provisional condicionada**, DESHABILITADA por defecto hasta políticas fiscal, financiera y técnica validadas. |
+| D-063 | A | Integridad: operaciones locales etiquetadas pendientes hasta ACK; idempotencia + consulta estado ante `UNKNOWN`, no duplicar pagos, stocks ni pedidos; avisar sólo conflictos que requieren revisión. Autorización por persona/operación/contexto/vigencia conforme D-055; permisos en servidor al reconectar. |
+| D-064 | P | Tecnología candidata: PWA/Service Worker + IndexedDB con snapshots mínimos y outbox, salud backend, sincronizador preferentemente foreground, ACK por evento, backoff y almacenamiento sujeto a cuota/evicción. **No se ha auditado frontend ni probado plataformas.** |
+| D-065 | P | Arquitectura de etapas 2/3: seis contratos UI, estados, datos lógicos, operaciones candidatas, matrices de errores y 20 escenarios de mocks descritos. [Índice del paquete F13](../offline/F13-STAGES-1-3-INDEX.md). Requieren mapeo OpenAPI/ERPNext y validaciones de DIAN, banca, seguridad, límites y tests. |
+
+**Precisión de aprobación:** "me gusta, documéntalo" aprueba dirección/encargo de especificar; no homologa automáticamente emisión de comprobantes no fiscales, fiscalidad, política de ventas efectivo, importes/caducidad ni seguridad. Los DTO/APIs siguen propuestos P. **Etapa 4 no realizada.**

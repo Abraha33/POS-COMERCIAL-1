@@ -39,4 +39,3 @@ Cuenta receptora invalidada, supervisor desconectado, configuración parcial, ca
 
 ## Validaciones pendientes
 Cumplimiento fiscal por país, protección de datos, modelo exacto de tenant (site Frappe), compatibilidad hardware, matrices de rol y tratamiento de permisos offline (este último fuera de alcance de la iteración).
-

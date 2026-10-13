@@ -215,4 +215,3 @@ La aprobación funcional del grupo 8 formaliza **cierre integral de operaciones 
 - Caja/turno se cierra en ámbito operativo; contabilidad del período se cierra separadamente con CON-05.
 
 Los detalles de importes/tolerancias, integraciones, contabilidad y reglas fiscales requieren verificación profesional. No se ha ejecutado ni validado una prueba por aprobar el contrato.
-

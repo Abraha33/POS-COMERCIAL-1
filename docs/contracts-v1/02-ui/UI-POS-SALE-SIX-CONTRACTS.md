@@ -54,4 +54,3 @@ Candidatos visuales PrimeReact solo si existen en versión vigente. **Props/even
 
 ## Error/carga/recuperación
 Loading productos/precios, cero resultados, sin precio, stock insuficiente, cliente duplicado, scanner SKU ambiguo; cobro pendiente de verificación bancaria, datáfono rechazado o UNKNOWN, pérdida respuesta HTTP, fiscal rechazado, impresora desconectada, sin autorización de supervisor. El flujo nunca descarta un intento pendiente o confirmado al cerrar diálogo, navegar o cambiar turno. Pedidos/Offline son dependencia externa, no implementados aquí.
-

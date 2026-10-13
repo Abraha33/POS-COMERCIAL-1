@@ -66,4 +66,3 @@ Exportaciones sensibles sólo a roles habilitados y registradas.
 
 ## Pendientes técnicos
 Definir fórmula exacta por KPI, zonas horarias, cortes, latencia, paginación, fuente ERPNext, criterios fiscales de soporte y retención legal; contabilidad/DIAN validan lo suyo. No usar dashboards como evidencia de corrección transaccional.
-

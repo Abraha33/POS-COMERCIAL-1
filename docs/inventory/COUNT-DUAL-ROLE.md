@@ -40,4 +40,3 @@ Una bandeja compacta de sesiones por estado + detalle de líneas; escáner/tecla
 **El negocio programa conteos diariamente, por zona física**, con cantidad de zonas configurable (siete es solo ejemplo). Bandeja visual semáforo de urgencia: rojo (vencido/riesgo/diferencia), amarillo (hoy/próximo), verde (al día), gris (bloqueado). **No confundir prioridad con estado**: pendiente, contando, reconteo, en aprobación, conciliado. Un conteo completado con diferencia abierta no equivale a zona sin incidencia.
 
 Cajero guía/registra; ayudante cuenta físicamente; supervisor valida ajustes. Cada sesión mantiene corte temporal por zona o ítem y contabiliza ventas/entradas/salidas ocurridas mientras se cuenta. Ninguna captura ajusta stock sin documento aprobado. Prioridad/periodicidad/umbrales son por empresa. **Fuente funcional completa:** [INV v1](INV-ZONES-CYCLE-STOCK-V1.md).
-

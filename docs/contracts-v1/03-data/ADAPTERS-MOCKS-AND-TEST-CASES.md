@@ -91,4 +91,3 @@ Este catálogo satisface **especificar** escenarios MSW/fixtures para etapa 3. G
 | POS-E03 | POS.C08 | fiscal aceptado, impresora falla | Mismo fiscal/documento; nuevo PrintJob sin reemisión |
 | POS-E04 | POS.C09/C10 | aprobación precio cambia el total antes de ejecución | Se invalida ApprovalSnapshot anterior, necesita nueva aprobación |
 | POS-E05 | POS.C06 | transferencia 3 fotos, una rehecha antes de enviar | Estado evidencia versionado, aprobar foto ≠ acreditar dinero |
-

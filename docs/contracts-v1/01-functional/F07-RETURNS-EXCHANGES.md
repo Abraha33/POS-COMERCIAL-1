@@ -52,4 +52,3 @@
 
 ## Validación externa pendiente
 SIC/garantía/retracto/reversión y protección del consumidor por canal y jurisdicción; DIAN (notas y documentos equivalentes), retenciones y valoración de inventario; refund del proveedor bancario. Los nombres de API/estados se concretan en etapa 3, no son prueba de integración.
-

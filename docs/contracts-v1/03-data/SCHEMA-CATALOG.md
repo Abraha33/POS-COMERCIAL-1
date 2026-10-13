@@ -111,4 +111,3 @@ Estos contratos completan el estado que **no puede residir únicamente en QuickS
 | CloseIncident | incidentId, shiftId, kind, severity, cause, evidenceRefs[], status, assignedReviewer?, resolvedAt? | Incidencias abiertas explícitas en X/Z; política define bloqueo o cierre con pendientes |
 
 **Etapa 3 no es una migración**: se debe comparar con los contratos existentes reales y decidir en implementación qué DTOs ya existen o son proyecciones.
-

@@ -104,4 +104,3 @@ Estos estados no se declaran compatibles con ERPNext por nombrarlos. Validar tra
 | CloseIncident | open → reviewing → resolved / accepted_pending / escalated | Cierre Z considera incidentes según política; nunca ocultar estado desconocido |
 
 **Prueba contractual futura obligatoria:** cambiar de Venta a Historial/Caja, cerrar diálogo, redimensionar la pantalla y reabrir mantiene SaleDraft/PaymentSession/AttemptID y el total confirmado. Un pago UNKNOWN no cambia automáticamente a rechazado.
-

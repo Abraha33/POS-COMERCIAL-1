@@ -30,3 +30,12 @@ Una regla **A** aprobada por usuario en registro prevalece sobre detalle generad
 ## Definición de "preparado para implementar"
 No equivale a que software esté construido. Hace falta **preflight** técnico: confirmar branch local vigente/commit, APIs existentes, versión real PrimeReact/React, ownership store, permisos, viabilidad ERPNext, compatibilidad contable/fiscal. En caso de desacople: emitir informe `GAP` con nombre operación/entidad/seguridad y aprobación antes de implementar.
 
+
+## Nota de alcance posterior — F08 (2026-10-12)
+
+La exclusión de Pedidos/F08 descrita **arriba** corresponde a este paquete previo, no a una prohibición general. **Después**, el usuario solicitó explícitamente documentar F08 hasta etapa 3, sin código, como paquete **autónomo**: [F08 etapas 1–3](../orders/F08-STAGES-1-3-INDEX.md). **F13 Offline permanece excluido** de ambos paquetes. No reinterpretar la v1 como si hubiera incluido F08.
+
+
+## Nota de alcance posterior — F13 Offline (2026-10-12)
+
+La exclusión de F13 escrita arriba describe el primer paquete documental. Un **nuevo encargo** solicitó luego documentar F13 por separado hasta etapa 3: [F13 Offline etapas 1–3](../offline/F13-STAGES-1-3-INDEX.md). No editar retroactivamente las exclusiones históricas ni interpretar contratos lógicos como software disponible. **Etapa 4 sigue fuera.**

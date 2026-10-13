@@ -62,3 +62,16 @@ El próximo agente que vaya a construir deberá antes (1) auditar el repo/commit
 - ¿Qué decisiones fiscales y contables ha firmado el contador y el proveedor tecnológico? Ninguna se puede suponer por un documento de propuesta.
 - ¿Están aprobados los nombres de entidades, contratos API y umbrales? Deben validarse, no inferirse de mock.
 
+
+## F08 posterior — documentación separada de Pedidos (2026-10-12)
+
+El usuario autorizó continuar F08 **hasta documentación de etapas 1/2/3, sin código ni etapa 4**. Leer [F08 índice de cuatro documentos](orders/F08-STAGES-1-3-INDEX.md) DESPUÉS de los contratos generales. D-053..D-059 precisan que la prohibición histórica de profundizar F08 aplicaba **solo al encargo anterior**; F13 Offline permanece separado.
+
+No asignar permisos de compra/dinero por nombre de cargo: la autoridad depende de persona, acción, ámbito, fecha y, cuando aplique, un pedido y monto. Marcar faltante de un toque nunca debe forzar requisiciones; el sourcing/adquisición reusa COM + CAJ/TES y microapp Radar opcional. Fondos adelantados siguen auditados al cambiar proveedor. Verificación de cantidades/variante obligatoria para marcar pedido completo. Nuevos DTOs/operaciones de F08 son contratos **candidatos**, no APIs comprobadas.
+
+
+## F13 documentado — paquete autónomo etapas 1–3 (2026-10-12)
+
+El usuario solicitó dejar por escrito la propuesta de offline seguro. Leer [F13 Índice](offline/F13-STAGES-1-3-INDEX.md) y los cuatro archivos asociados. **No iniciar etapa 4** por este encargo.
+
+Prioridad: cache catálogo/borradores, picking F08 ya asignado, conteo físico; efectivo solo provisional CONDICIONAL y apagado por defecto; medios electrónicos, crédito, fiscales, reembolso, stock oficial y cierre Z sin confirmación offline. Persona autorizada y servidor autoridad; local `saved_local` jamás = `confirmed`. Outbox dedupe server-side, ACK por evento, query UNKNOWN, datos por tenant/device, garantía navegador **no asumida**. Frontend real y políticas legales/contables/security necesitan auditoría antes de código. Registro D-060..D-065.

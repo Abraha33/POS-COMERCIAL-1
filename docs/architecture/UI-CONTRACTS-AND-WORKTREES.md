@@ -83,4 +83,3 @@ Repos `Abraha33/ERP-POS-Holamigo`: rama consultada `experiment/frappe-validation
 **Permitido ahora:** construir frontend con mocks y contratos congelados por vertical slice, en rama local correcta, manteniendo estado y errores de cobro.
 **Antes de paralelizar:** inspección árbol vigente + owners + store/UI contracts compartidos + detección de conflictos.
 **Antes de producción:** prueba ERPNext/Frappe, permisos en servidor, fiscalidad, banco, inventario, concurrencia, seguridad y QA.
-

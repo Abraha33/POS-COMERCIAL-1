@@ -48,4 +48,3 @@
 
 ## Instrucción de handoff para futura etapa 4
 "Consulta `docs/PROJECT-STATE.md`, `docs/decisions/2026-10-12-DECISION-REGISTER.md` y `docs/contracts-v1/README.md`. Trabaja sólo después de auditar el branch frontend vigente y congelar fuentes de estado compartido. No implementes PED/F08 ni F13 OFFLINE como parte de estos contratos. Utiliza schemas y operations de etapa 3 como *candidatos*, no endpoints reales; conserva los invariantes financieros, de stock y permisos; crea pruebas por contrato."
-

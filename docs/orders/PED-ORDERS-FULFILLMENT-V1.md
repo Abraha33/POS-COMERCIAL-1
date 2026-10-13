@@ -1,3 +1,5 @@
+> **Actualización posterior (2026-10-12):** esta base funcional v1 se conserva por trazabilidad. El usuario reactivó **etapas de documentación 1–3 de F08**, sin autorizar construcción. Para reglas operativas vigentes de faltantes de un toque, compra externa sin burocracia, fondos y **autorización por persona y no cargo**, consultar el [paquete F08 v2](F08-STAGES-1-3-INDEX.md). La prioridad configurada originalmente según D-043 sigue vigente. Esta nota no implica implementación de etapa 4.
+
 # PED — Pedidos, preparación y despacho (grupo 7 / POS F08)
 
 **Aprobación funcional de la propuesta:** usuario, 2026-10-12. **Estado de entrega:** implementación y profundización técnica de F08 permanecen **APLAZADAS** (decisión D-010); aprobar un diseño base NO adelanta su posición en roadmap. **Versión:** v1.0 de base funcional, sin código.
@@ -50,4 +52,3 @@ Se acepta la **propuesta reciente** de fecha comprometida + riesgo de incumplimi
 9. Conteo de inventario en paralelo con picking: operaciones concurrentes se reflejan sin inventar stock disponible.
 
 **Pendientes de implementación:** transición exacta de estados, logística por empresa, medios de entrega, integración ERPNext Sales Order/Delivery Note/Stock Reservation y fiscalidad. No declarar F08 construido por aprobación de este contrato.
-

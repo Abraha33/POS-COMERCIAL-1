@@ -106,4 +106,3 @@ En caso impresora sin respuesta, **nunca repetir la venta ni emitir otra factura
 - Todos los permisos server-side y recuperación auditables.
 
 **No afirmar integración o cumplimiento hasta prueba sobre frontend vigente, POS Core/ERPNext y proveedor fiscal.**
-

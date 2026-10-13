@@ -25,4 +25,3 @@ Excepciones: documento fiscal pendiente/rechazado, transferencia en verificació
 7. Historial de usuario A sin permisos de sede B no deja consultar ni exportar B.
 
 **Estado:** alcance funcional suficientemente definido, API/UI/pruebas aún por derivar. Reservar asuntos legales y fiscales para especialistas.
-

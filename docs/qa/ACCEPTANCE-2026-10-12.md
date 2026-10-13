@@ -140,5 +140,31 @@ Este checklist es documental: **NO marcar ninguna prueba E2E/unit/integración c
 - [ ] Ratificar hipótesis F07 (consumidor/fiscal), CLI (crédito) y ADM (permisos/destinos).
 - [ ] Diseñar y ejecutar en trabajo posterior Zod, MSW, pruebas UI/QA y adapter ERPNext; fuera del encargo actual.
 
-Documentación: [índice de contratos etapas 1–3](contracts-v1/README.md). El indicador 38 % preparación frontend o 73 % funcional informado por Codex no queda certificado por este checklist; solo una auditoría basada en entregables y pruebas permite recalcularlo.
+Documentación: [índice de contratos etapas 1–3](../contracts-v1/README.md). El indicador 38 % preparación frontend o 73 % funcional informado por Codex no queda certificado por este checklist; solo una auditoría basada en entregables y pruebas permite recalcularlo.
 
+
+## F08 etapas 1–3 — preparación documental (2026-10-12)
+
+- [x] Etapa 1: pedido omnicanal, preparación veloz, disponibilidad por bodega, faltantes con un toque, compras externas, autorización dinámica por persona, verificación/entrega.
+- [x] Etapa 2: contratos FLOW/SCREEN/TEMPLATE/COMPONENTS/RESPONSIVE/ACCESSIBILITY (sin UI construida).
+- [x] Etapa 3: modelos datos/Zod lógicos, operaciones API sin rutas reales, adaptadores, estados, permisos, errores y 20 escenarios de mocks **documentados**, no ejecutados.
+- [x] F13 Offline separado; etapa 4 de código/QA **no realizada**.
+- [ ] Cotejar contra rama frontend vigente, OpenAPI y ERPNext/COM/CAJ/INV; verificar derechos/grants reales en backend.
+- [ ] Probar en futura etapa 4 reintentos duplicados, faltante No había con dinero entregado, compras compartidas, stock de múltiples bodegas y cliente acepta parcial.
+- [ ] Validar uso de datos de proveedores, régimen fiscal y custodia de caja si aplicable.
+
+[Paquete F08](../orders/F08-STAGES-1-3-INDEX.md). La casilla marcada indica **documento redactado**, jamás test PASS.
+
+
+## F13 — Etapas 1–3 documentación (2026-10-12)
+
+- [x] Etapa 1: matriz de acciones offline permitidas/restringidas, efectivo provisional condicional, stock/precio cacheados con frescura, picking/conteos locales y recuperación funcional.
+- [x] Etapa 2: seis contratos UI; indicador de conexión no intrusivo, estado local/servidor y bandeja de conflictos.
+- [x] Etapa 3: DTO/puertos/outbox, ACK/idempotencia/UNKNOWN, permisos por persona, estados/error, **20 escenarios MSW descritos**.
+- [x] Etapa 4 **no ejecutada**; sin PWA/IndexedDB/React/MSW/Zod/OpenAPI ni integración probada.
+- [ ] Backend/OpenAPI: idempotencia durable y `status-by-ID`, manejo de revisión, permisos, contabilidad y Stock Ledger ERPNext.
+- [ ] Legal/fiscal: posibilidad real de venta efectivo provisional, identificación de documento no fiscal, contingencia DIAN por país y condiciones de caja.
+- [ ] Seguridad: browsers destino, cuota/evicción, datos sensibles por tenant/persona/dispositivo, XSS y sesión compartida.
+- [ ] QA futuro: pérdida/reconexión, ACK perdido, 2 cajas concurrentes, revocación durante caída, dispositivo sin datos, corte X/Z y QA responsive/a11y.
+
+[Índice F13](../offline/F13-STAGES-1-3-INDEX.md). Casillas completadas significan documentación; no pruebas PASS.

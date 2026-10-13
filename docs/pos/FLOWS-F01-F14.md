@@ -11,12 +11,12 @@
 | F05 | Carrito suspendido (cajero) | Suspender borrador sin pagos comprometidos → navegar → recuperar y revalidar | Avanzado. Persistencia, reserva e incompatibilidad con pagos pendientes |
 | F06 | Cobro / facturación (cajero/admin) | Checkout → pago(s) parciales/mixtos → verificaciones → venta → documento fiscal → entrega electrónica/impresión/entrega física | Avanzado. Integración e incertidumbre |
 | F07 | Devoluciones (autorizado) | Buscar venta → validar cantidades → motivo → autorizar → reembolso/cambio → inventario/documento ajuste | Parcial. Detalle de efectos, permisos |
-| F08 | Pedidos (cajero/despachador/admin) | Crear pedido → bandeja semáforo → preparar, incidencia, verificar, despachar → entrega | **Base funcional aprobada PED-01..08**; implementación y profundidad técnica APLAZADAS. Ver ../orders/PED-ORDERS-FULFILLMENT-V1.md |
+| F08 | Pedidos (cajero/despachador/admin) | Crear pedido → bandeja semáforo → preparar, incidencia, verificar, despachar → entrega | **Etapas documentales 1–3 ampliadas F08 v2**: faltantes ágiles/compra autorizada por persona, interfaz y contratos lógicos. Construcción etapa 4 NO ejecutada. Ver ../orders/F08-STAGES-1-3-INDEX.md |
 | F09 | Movimientos financieros en caja | Gasto/compra/abono proveedor/retiro/reposición → permiso → soporte → registrar | Parcial. Derivado CAJ-05 |
 | F10 | Control, conciliación y cierre integral X/Z | Revisar facturas contado/crédito, recaudos, compras, gastos, proveedores, traslados, arqueo y diferencias → X provisional / Z definitivo | **Definido funcionalmente** con REP-01..03/CAJ-07; integración y QA pendientes |
 | F11 | Historial y reportes | Buscar operaciones, filtros, X/Z, consolidado, KPIs, inventario, cartera y auditoría por permisos | **Base funcional aprobada REP-01..09**, fuentes e implementación pendientes |
 | F12 | Autorizaciones (supervisor/admin) | Solicitud con contexto → permiso y umbral → aprobar/rechazar → evento auditado | Avanzado. Autorización de verificación bancaria diferenciada |
-| F13 | Offline y sincronización | Detectar red → operar sólo acciones seguras → cola local → reconciliar incertidumbres → sincronizar | Parcial. Seguridad y API |
+| F13 | Offline y sincronización | Salud backend → capacidades offline permitidas → captura local → consultar UNKNOWN → sincronizar → conciliar | **Etapas documentales 1–3 preparadas** en ../offline/F13-STAGES-1-3-INDEX.md. Construcción, fiscalidad, seguridad y QA pendientes |
 | F14 | Configuración POS (admin) | Caja/terminal/turno/medios/cuentas/QR/impresoras/reglas/usuarios | Parcial. Modelo de datos y despliegue |
 
 ## Contratos ampliatorios aprobados el 2026-10-12
@@ -49,4 +49,3 @@
 
 ## Criterio para declarar un flujo listo
 Aprobar entradas/salidas, estados, permisos, errores, evidencias, criterios de aceptación, tests y conectores reales aplicables. 'Mock completo' y 'producción certificada' son estados distintos. Desarrollar la UI no autoriza enviar documentos a DIAN ni realizar cargos bancarios.
-

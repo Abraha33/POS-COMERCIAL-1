@@ -33,4 +33,3 @@ Identificar cliente → validar condiciones → operar venta contado/crédito �
 
 ## Por validar
 Política de mora, cupo default, plazos, límites, reporte de centrales, tratamiento tributario y tipo de identificaciones; contratos de integración TES/ERPNext. No inventar tasas de interés ni cargos automáticos.
-

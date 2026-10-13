@@ -16,4 +16,3 @@ No especializar el core con tipos rígidos de negocio; mantener capabilities/per
 
 ## Estado y próximos pasos
 Estos elementos son referencia de producto y backlog separado; no forman parte automática del cierre de F06/F-FIN. Documentar su propio contrato y métricas cuando se programe implementación.
-

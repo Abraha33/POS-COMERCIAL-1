@@ -44,4 +44,3 @@ Hacer compras ágiles en un comercio pequeño y permitir órdenes/aprobaciones/r
 
 ## Contratos y relaciones
 CAT: producto/UOM/costos; INV: recepción/traslado/no vendible; F-FIN: CAJ-05/TES-06/CON-02; REP: compras y proveedores. Adaptar ERPNext Purchase Order/Receipt/Invoice/Payment Entry/Return **sólo después** de probar comportamiento en versión de uso. Costeo, retenciones, documentos soporte y recepción contable requieren contador/asesor fiscal.
-

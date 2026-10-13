@@ -146,4 +146,3 @@ Una solicitud no sirve como aprobación. Eventos publicados se vuelven fuente ER
 | POS.C10 approval.decide | C | approvalId, decision, actor | permiso para snapshot específico | SELF_APPROVAL_RESTRICTED |
 
 **El carrito y PaymentSession no son la misma entidad.** Suspendida sin pago ≠ Cobro pendiente. Ningún request del navegador confirma banco, fiscalidad o impresión simplemente por respuesta mock; el servidor debe devolver estados reales cuando exista integración.
-

@@ -19,4 +19,3 @@ Cuando una operación dentro del alcance mencione un pedido/entrega o situación
 
 ## Estado de decisiones
 Reglas A existentes de GitHub siguen vigentes. Nuevos detalles de F07, CLI, ADM y F09–F11 son **propuestas de especificación derivadas** por el asistente para revisión técnica; su publicación no convierte automáticamente nuevos umbrales, normas fiscales ni diseño UI en decisiones aprobadas. Ninguna modificación de histórico; cualquier conflicto se anota para ratificación.
-

@@ -51,4 +51,3 @@
 
 ## Integraciones y pendientes técnicos
 Con F04/F06, PED, COM, INV y Reportes; validar ERPNext Item/UOM/Item Price/Pricing Rule y fiscalidad. Estados, APIs, resolución de solapamientos, indexación y rendimiento siguen por probar. **Funcional aprobado ≠ motor verificado.**
-

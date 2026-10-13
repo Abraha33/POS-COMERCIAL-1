@@ -68,4 +68,3 @@ Responsable puede iniciar conteo en desktop/cajero; ayudante utiliza apoyo manua
 ERPNext será autoridad para movimientos oficiales Stock Entry, Stock Reconciliation, Stock Ledger, reservas y efectos contables tras pruebas reproducibles. Zona/sesión/prioridad es capacidad Holamigo, no necesariamente un DocType nativo. Cada operación documentada tiene idempotencia, permisos y scope tenant/sede/bodega. Precisar en diseño técnico política de corte horario, conteos ciegos, correspondencia SKU-ubicación, valoración y cierres contables; no bloquear toda la tienda por defecto.
 
 **Estado:** diseño de negocio aprobado; métricas, umbrales monetarios, APIs, performance y conectores deben validarse antes de producción.
-
