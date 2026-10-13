@@ -1,0 +1,11 @@
+#!/bin/sh
+# Bloquea el commit de una rama lane/* si toca archivos que no son de su carril (lanes.json).
+# Se activa una vez por repositorio con `pnpm lane:hooks`. Saltarlo con --no-verify es posible: por eso el CI repite la
+# misma comprobación. Fuera de ramas lane/* no hace nada.
+branch=$(git branch --show-current)
+case "$branch" in
+  lane/*) ;;
+  *) exit 0 ;;
+esac
+root=$(git rev-parse --show-toplevel)
+exec node "$root/frontend/scripts/lane-check.mjs"

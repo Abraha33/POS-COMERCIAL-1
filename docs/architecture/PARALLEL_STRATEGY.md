@@ -43,6 +43,10 @@ node scripts/lane-repair.mjs <ruta-del-repo-principal>             # git worktre
 y reinstala con `pnpm install --frozen-lockfile` en los carriles que lo pidan. No borra nada. Ver el límite de su
 comprobación de dependencias en el encabezado del script.
 
+**Hook local de propiedad:** `.githooks/pre-commit` ejecuta `lane:check` en ramas `lane/*` y rechaza el commit si tocas lo
+ajeno. Se activa una vez por repositorio con `pnpm lane:hooks` (configura `core.hooksPath`; se revierte con
+`git config --unset core.hooksPath`). Es una ayuda, no una garantía: `--no-verify` lo salta y por eso el CI repite la comprobación.
+
 - Node ≥ 22 (`.nvmrc`, `engines`). Saltos de línea LF (`.gitattributes`, `.editorconfig`): evita diferencias falsas entre
   herramientas en Windows.
 - **No hace falta Docker** para el frontend: corre con mocks (MSW). Docker/Frappe aplica solo a los carriles `be/*`.
@@ -85,10 +89,12 @@ Medido sobre `contracts/openapi.yaml` v0.8.0:
 | Carril | Operaciones aprobadas (`approved`) | Pendiente de contrato (`proposed`) | ¿Arranca? |
 |---|---|---|---|
 | `inventory` | existencias, movimientos, traslados (crear, recibir), alertas, ajustes y conteos simples (D-066) | conteo por zonas (D-042) y ajustes con aprobación (D-038): sin modelar | **Sí.** Zonas y aprobación esperan contrato. |
-| `customers` | listar clientes, listar cartera | crear/editar cliente, abonos | **Parcial**: lectura sí; escritura espera contrato. |
+| `customers` | listar clientes y cartera, alta y edición de cliente, abonos (D-067) | — | **Sí.** |
 | `reports` | ventas, antigüedad de cartera, valorización de inventario (D-066) | cierres X/Z y permisos por reporte: sin modelar | **Sí**, en los tres reportes aprobados. |
 | `pos-proofs` | (cubierto por D-005, aprobado) | — | Sí: falta la app del responsable. |
-| `catalog`, `purchases`, `administration` | por revisar al asignarlos | — | Revisar su hoja antes de asignar. |
+| `purchases` | proveedores, órdenes (crear, enviar, recibir, cancelar), pagos a proveedores (D-067) | programación de pagos: sin modelar | **Sí.** |
+| `administration` | empleados, sedes, empresa (D-067) | roles/permisos editables y configuración POS por caja (D-049): sin modelar | **Sí**, en lo aprobado. |
+| `catalog` | por revisar al asignarlo | — | Revisar su hoja antes de asignar. |
 
 ## 8. Lo que esta estrategia NO resuelve (declarado)
 

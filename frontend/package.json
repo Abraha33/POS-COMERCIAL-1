@@ -19,6 +19,7 @@
     "lane:new": "node scripts/lane-new.mjs",
     "lane:check": "node scripts/lane-check.mjs",
     "lane:repair": "node scripts/lane-repair.mjs",
+    "lane:hooks": "git config core.hooksPath .githooks",
     "lane:test": "node --test scripts/lane-check.test.mjs",
     "gen:api": "openapi-typescript ../contracts/openapi.yaml -o src/shared/api/generated/schema.d.ts",
     "conformance": "vitest run --config vitest.conformance.config.ts"

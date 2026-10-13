@@ -1,7 +1,11 @@
 node_modules
+# copias de node_modules apartadas al reinstalar (node_modules.incompleto-*, node_modules.rutaanterior-*)
+node_modules.*
 dist
 storybook-static
 test-results
 playwright-report
 *.log
 .DS_Store
+# Carpeta suelta del dueño, sin decidir qué hacer con ella (2026-10-13): no se versiona ni se borra.
+frontend/src/method
