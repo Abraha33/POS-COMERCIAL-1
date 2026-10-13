@@ -13,6 +13,7 @@
 .reports__field label { font-size: 0.85rem; color: var(--app-text-muted); }
 .reports__field input,
 .reports__field select { min-height: var(--app-touch-min); }
+.reports__filters .p-button { min-height: var(--app-touch-min); }
 .reports__note { margin: 0; font-size: 0.85rem; color: var(--app-text-muted); }
 .reports__nav { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .reports__nav a {
@@ -46,6 +47,8 @@
 .reports__chart { min-width: 0; }
 .reports__chart h3 { margin-top: 0; }
 .reports__table { width: 100%; border-collapse: collapse; }
+.reports__table th,
+.reports__table td { min-width: 7rem; }
 .reports__table caption { text-align: left; font-weight: 600; padding: 0.25rem 0; }
 .reports__table th { text-align: left; font-size: 0.85rem; color: var(--app-text-muted); padding: 0.4rem; }
 .reports__table td { padding: 0.4rem; border-top: 1px solid var(--app-border); }
@@ -61,4 +64,5 @@
   .reports__field select { width: 100%; }
   .reports__split,
   .reports__charts { grid-template-columns: minmax(0, 1fr); }
+  .reports__section { padding: 0.75rem; }
 }
