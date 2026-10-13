@@ -149,9 +149,9 @@
 }
 @media (max-width: 600px) {
   .app-topbar__module, .app-topbar__online-text, .app-topbar__brand-name { display: none; }
-  .app-topbar__role { max-width: 7rem; }
-  .app-topbar__role-label { max-width: 6.5rem; }
-  .app-topbar__role-label .app-topbar__role { max-width: 6.5rem; }
+  .app-topbar__role { max-width: 5.5rem; }
+  .app-topbar__role-label { max-width: 5.5rem; }
+  .app-topbar__role-label .app-topbar__role { max-width: 5.5rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   .app-sidenav { transition: none; }
